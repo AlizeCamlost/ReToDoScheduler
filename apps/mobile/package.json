@@ -1,0 +1,24 @@
+{
+  "name": "@retodo/mobile",
+  "private": true,
+  "version": "0.1.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "expo start",
+    "ios": "expo run:ios",
+    "build": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@retodo/core": "file:../../packages/core",
+    "expo": "~52.0.28",
+    "expo-sqlite": "~15.0.6",
+    "react": "18.3.1",
+    "react-native": "0.76.6"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "typescript": "^5.7.3"
+  }
+}

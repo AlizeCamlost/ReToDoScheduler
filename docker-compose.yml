@@ -1,0 +1,32 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: retodo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: retodo
+      POSTGRES_PASSWORD: retodo_dev_password
+      POSTGRES_DB: retodo
+    ports:
+      - "5432:5432"
+    volumes:
+      - retodo_pgdata:/var/lib/postgresql/data
+
+  api:
+    image: node:22-alpine
+    container_name: retodo-api-dev
+    working_dir: /workspace
+    command: sh -lc "npm install && npm --prefix services/api run dev"
+    ports:
+      - "8787:8787"
+    environment:
+      PORT: "8787"
+      DATABASE_URL: postgresql://retodo:retodo_dev_password@db:5432/retodo
+    depends_on:
+      - db
+    volumes:
+      - ./:/workspace
+
+volumes:
+  retodo_pgdata:

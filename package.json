@@ -1,0 +1,23 @@
+{
+  "name": "retodo-scheduler",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm --prefix packages/core run build && npm --prefix apps/web run build && npm --prefix apps/mobile run build && npm --prefix services/api run build",
+    "lint": "npm --prefix packages/core run lint && npm --prefix apps/web run lint && npm --prefix apps/mobile run lint && npm --prefix services/api run lint",
+    "test": "npm --prefix packages/core run test && npm --prefix apps/web run test && npm --prefix apps/mobile run test && npm --prefix services/api run test",
+    "dev:web": "npm --workspace apps/web run dev",
+    "dev:mobile": "npm --workspace apps/mobile run dev",
+    "dev:api": "npm --workspace services/api run dev",
+    "dev:db:up": "docker compose up -d db",
+    "dev:db:down": "docker compose stop db"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
