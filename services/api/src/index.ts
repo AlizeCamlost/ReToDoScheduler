@@ -1,6 +1,6 @@
 import Fastify from "fastify";
-import healthRoute from "./routes/health";
-import taskRoutes from "./routes/tasks";
+import healthRoute from "./routes/health.js";
+import taskRoutes from "./routes/tasks.js";
 
 const app = Fastify({ logger: true });
 
