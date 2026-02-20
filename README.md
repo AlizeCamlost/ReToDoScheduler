@@ -19,6 +19,7 @@ npm run dev:web
 npm run dev:mobile
 npm run dev:api
 npm run dev:db:up
+npm --prefix apps/mobile run prebuild:ios
 ```
 
 ## Current status (Phase 1)

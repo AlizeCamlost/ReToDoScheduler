@@ -3,10 +3,24 @@
     "name": "ReToDoScheduler",
     "slug": "retodo-scheduler",
     "version": "0.1.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.retodo.scheduler"
-    }
+      "bundleIdentifier": "com.camlostshi.retodoscheduler",
+      "buildNumber": "1"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.0"
+          }
+        }
+      ]
+    ]
   }
 }

@@ -6,13 +6,17 @@
   "scripts": {
     "dev": "expo start",
     "ios": "expo run:ios",
+    "prebuild:ios": "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/ CI=1 expo prebuild --platform ios --clean",
+    "open:xcode": "open ios/ReToDoScheduler.xcworkspace",
     "build": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "echo \"No tests yet\""
+    "test": "echo \"No tests yet\"",
+    "android": "expo run:android"
   },
   "dependencies": {
     "@retodo/core": "file:../../packages/core",
     "expo": "~52.0.28",
+    "expo-build-properties": "^1.0.10",
     "expo-sqlite": "~15.0.6",
     "react": "18.3.1",
     "react-native": "0.76.6"
