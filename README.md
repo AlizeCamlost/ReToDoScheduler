@@ -50,3 +50,4 @@ npm run ios:dev
 - iPhone install runbook: `docs/runbook/ios-device-install.md`
 - iPhone startup runbook (中文): `docs/runbook/ios-startup-zh.md`
 - Client sync runbook: `docs/runbook/client-sync.md`
+- Full architecture tutorial (中文): `docs/tutorial/retodo-architecture-and-build-zh.md`
