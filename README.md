@@ -35,3 +35,8 @@ npm --prefix apps/mobile run prebuild:ios
 - Implement deterministic scheduler and rule engine persistence.
 - Add real sync protocol with `sync_ops` cursor.
 - Add backup jobs and restore runbook automation.
+
+## Deployment
+
+- Server deploy runbook: `docs/runbook/server-deploy.md`
+- iPhone install runbook: `docs/runbook/ios-device-install.md`
