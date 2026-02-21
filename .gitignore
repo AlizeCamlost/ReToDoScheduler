@@ -2,6 +2,7 @@ node_modules
 .DS_Store
 .env
 .env.*
+!deploy/.env.prod.example
 dist
 build
 coverage
