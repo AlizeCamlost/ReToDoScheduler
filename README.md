@@ -20,6 +20,7 @@ npm run dev:mobile
 npm run dev:api
 npm run dev:db:up
 npm --prefix apps/mobile run prebuild:ios
+npm run ios:dev
 ```
 
 ## Current status (Phase 1)
@@ -47,4 +48,5 @@ npm --prefix apps/mobile run prebuild:ios
 
 - Server deploy runbook: `docs/runbook/server-deploy.md`
 - iPhone install runbook: `docs/runbook/ios-device-install.md`
+- iPhone startup runbook (中文): `docs/runbook/ios-startup-zh.md`
 - Client sync runbook: `docs/runbook/client-sync.md`

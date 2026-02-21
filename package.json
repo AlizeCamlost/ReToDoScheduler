@@ -15,7 +15,10 @@
     "dev:mobile": "npm --workspace apps/mobile run dev",
     "dev:api": "npm --workspace services/api run dev",
     "dev:db:up": "docker compose up -d db",
-    "dev:db:down": "docker compose stop db"
+    "dev:db:down": "docker compose stop db",
+    "ios:dev": "bash scripts/ios-dev.sh",
+    "ios:dev:tunnel": "bash scripts/ios-dev.sh --tunnel",
+    "ios:prepare": "bash scripts/ios-dev.sh --prebuild --open-xcode --no-metro"
   },
   "devDependencies": {
     "typescript": "^5.7.3"
