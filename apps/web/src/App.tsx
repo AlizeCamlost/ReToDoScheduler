@@ -1,9 +1,25 @@
 import { makeTask, nowIso, parseQuickInput, type Task } from "@retodo/core";
-import { useMemo, useState } from "react";
-import { downloadMarkdown, loadTasks, parseMarkdownImport, saveTasks } from "./storage";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  downloadMarkdown,
+  getOrCreateDeviceId,
+  loadApiBaseUrl,
+  loadTasks,
+  parseMarkdownImport,
+  saveApiBaseUrl,
+  saveTasks
+} from "./storage";
+import { mergeByLww, pullRemoteTasks, pushAndPullTasks } from "./sync";
 
 const createId = (): string =>
   (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`).toString();
+
+const taskSignature = (items: Task[]): string =>
+  JSON.stringify(
+    [...items]
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((item) => [item.id, item.updatedAt, item.status, item.title])
+  );
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
@@ -12,13 +28,105 @@ function App() {
   const [manualMinChunk, setManualMinChunk] = useState<string>("");
   const [manualEstimate, setManualEstimate] = useState<string>("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [apiBaseUrl, setApiBaseUrl] = useState<string>(() => loadApiBaseUrl());
+  const [syncMessage, setSyncMessage] = useState("未同步");
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  const todoCount = useMemo(() => tasks.filter((task) => task.status !== "done").length, [tasks]);
+  const tasksRef = useRef(tasks);
+  const deviceIdRef = useRef(getOrCreateDeviceId());
+  const syncTimerRef = useRef<number | null>(null);
+  const syncInFlightRef = useRef(false);
 
-  const commitTasks = (next: Task[]) => {
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+
+  const visibleTasks = useMemo(
+    () => tasks.filter((task) => task.status !== "archived"),
+    [tasks]
+  );
+
+  const todoCount = useMemo(
+    () => visibleTasks.filter((task) => task.status !== "done").length,
+    [visibleTasks]
+  );
+
+  const mergeRemoteTasks = (incoming: Task[]) => {
+    const merged = mergeByLww(tasksRef.current, incoming);
+    if (taskSignature(merged) === taskSignature(tasksRef.current)) return;
+    setTasks(merged);
+    saveTasks(merged);
+    tasksRef.current = merged;
+  };
+
+  const performSync = async () => {
+    const baseUrl = apiBaseUrl.trim();
+    if (!baseUrl || syncInFlightRef.current) return;
+
+    syncInFlightRef.current = true;
+    setIsSyncing(true);
+
+    try {
+      const remote = await pushAndPullTasks(baseUrl, deviceIdRef.current, tasksRef.current);
+      mergeRemoteTasks(remote);
+      setSyncMessage(`已同步 ${new Date().toLocaleTimeString()}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSyncMessage(`同步失败: ${message}`);
+    } finally {
+      syncInFlightRef.current = false;
+      setIsSyncing(false);
+    }
+  };
+
+  const pullOnly = async () => {
+    const baseUrl = apiBaseUrl.trim();
+    if (!baseUrl || syncInFlightRef.current) return;
+
+    try {
+      const remote = await pullRemoteTasks(baseUrl);
+      mergeRemoteTasks(remote);
+    } catch {
+      // Pull is best effort in MVP.
+    }
+  };
+
+  const scheduleSync = () => {
+    if (!apiBaseUrl.trim()) return;
+    if (syncTimerRef.current) {
+      window.clearTimeout(syncTimerRef.current);
+    }
+    syncTimerRef.current = window.setTimeout(() => {
+      void performSync();
+    }, 600);
+  };
+
+  const commitTasks = (next: Task[], origin: "local" | "remote" = "local") => {
     setTasks(next);
     saveTasks(next);
+    tasksRef.current = next;
+    if (origin === "local") {
+      scheduleSync();
+    }
   };
+
+  useEffect(() => {
+    saveApiBaseUrl(apiBaseUrl);
+    void performSync();
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void pullOnly();
+    }, 7000);
+
+    return () => {
+      window.clearInterval(timer);
+      if (syncTimerRef.current) {
+        window.clearTimeout(syncTimerRef.current);
+      }
+    };
+  }, [apiBaseUrl]);
 
   const addTask = () => {
     if (!quickInput.trim()) return;
@@ -58,28 +166,40 @@ function App() {
     );
   };
 
-  const removeTask = (taskId: string) => {
-    commitTasks(tasks.filter((task) => task.id !== taskId));
+  const archiveTask = (taskId: string) => {
+    commitTasks(
+      tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              status: "archived",
+              updatedAt: nowIso()
+            }
+          : task
+      )
+    );
   };
 
   const reorder = (sourceId: string, targetId: string) => {
     if (sourceId === targetId) return;
-    const sourceIndex = tasks.findIndex((task) => task.id === sourceId);
-    const targetIndex = tasks.findIndex((task) => task.id === targetId);
+    const sourceIndex = visibleTasks.findIndex((task) => task.id === sourceId);
+    const targetIndex = visibleTasks.findIndex((task) => task.id === targetId);
     if (sourceIndex < 0 || targetIndex < 0) return;
 
-    const next = [...tasks];
-    const [moved] = next.splice(sourceIndex, 1);
+    const visible = [...visibleTasks];
+    const [moved] = visible.splice(sourceIndex, 1);
     if (!moved) return;
-    next.splice(targetIndex, 0, moved);
+    visible.splice(targetIndex, 0, moved);
 
-    commitTasks(
-      next.map((task, idx) => ({
-        ...task,
-        extJson: { ...task.extJson, rank: idx },
-        updatedAt: nowIso()
-      }))
-    );
+    const visibleIds = new Set(visible.map((task) => task.id));
+    const hidden = tasks.filter((task) => !visibleIds.has(task.id));
+    const reordered = [...visible, ...hidden].map((task, idx) => ({
+      ...task,
+      extJson: { ...task.extJson, rank: idx },
+      updatedAt: nowIso()
+    }));
+
+    commitTasks(reordered);
   };
 
   const importMarkdown = async (file: File | null) => {
@@ -109,7 +229,19 @@ function App() {
     <main className="app">
       <section className="panel">
         <h1>ReToDoScheduler</h1>
-        <p className="muted">离线优先任务列表（MVP）。未完成：{todoCount}</p>
+        <p className="muted">任务未完成：{todoCount}</p>
+        <div className="row">
+          <input
+            type="text"
+            value={apiBaseUrl}
+            onChange={(event) => setApiBaseUrl(event.target.value)}
+            placeholder="服务器地址，例如：http://1.2.3.4:8787"
+          />
+          <button onClick={() => void performSync()} disabled={isSyncing}>
+            {isSyncing ? "同步中" : "立即同步"}
+          </button>
+        </div>
+        <p className="muted">{syncMessage}</p>
         <div className="row">
           <input
             type="text"
@@ -153,9 +285,9 @@ function App() {
 
       <section className="panel">
         <h2>任务</h2>
-        <p className="muted">支持拖拽重排，当前重排会写入本地 rank（学习样本占位）。</p>
+        <p className="muted">拖拽重排后会自动同步到服务器（LWW）。</p>
         <ul className="task-list">
-          {tasks.map((task) => (
+          {visibleTasks.map((task) => (
             <li
               key={task.id}
               className="task-item"
@@ -185,7 +317,7 @@ function App() {
                 </div>
                 <div className="actions">
                   <button onClick={() => toggleDone(task.id)}>{task.status === "done" ? "撤销" : "完成"}</button>
-                  <button onClick={() => removeTask(task.id)}>删除</button>
+                  <button onClick={() => archiveTask(task.id)}>删除</button>
                 </div>
               </div>
             </li>

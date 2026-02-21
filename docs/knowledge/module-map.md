@@ -8,15 +8,15 @@
 ## apps/mobile
 - iPhone-first entry point.
 - Uses SQLite for local-first persistence.
-- Will add background sync + backup trigger integration.
+- Provides basic sync via `/v1/tasks/sync` with server URL input.
 
 ## apps/web
 - Browser execution and quick management.
-- Uses local storage in Phase 1 (will migrate to IndexedDB + sync parity).
+- Uses local storage and basic sync via `/v1/tasks/sync`.
 
 ## services/api
 - Sync/backup/auth service boundary.
-- Phase 1 keeps health endpoint and task endpoint placeholder.
+- Exposes `/health`, `/v1/tasks`, `/v1/tasks/sync` (LWW upsert).
 
 ## services/db
 - PostgreSQL migrations and DB-specific artifacts.

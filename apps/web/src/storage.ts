@@ -1,6 +1,8 @@
 import type { Task } from "@retodo/core";
 
 const TASK_STORAGE_KEY = "retodo.web.tasks.v1";
+const DEVICE_ID_KEY = "retodo.web.device.id";
+const API_BASE_URL_KEY = "retodo.web.api.base.url";
 
 export const loadTasks = (): Task[] => {
   const raw = localStorage.getItem(TASK_STORAGE_KEY);
@@ -16,6 +18,24 @@ export const loadTasks = (): Task[] => {
 
 export const saveTasks = (tasks: Task[]): void => {
   localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(tasks));
+};
+
+const createId = (): string =>
+  (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`).toString();
+
+export const getOrCreateDeviceId = (): string => {
+  const existing = localStorage.getItem(DEVICE_ID_KEY);
+  if (existing) return existing;
+  const next = createId();
+  localStorage.setItem(DEVICE_ID_KEY, next);
+  return next;
+};
+
+export const loadApiBaseUrl = (): string =>
+  localStorage.getItem(API_BASE_URL_KEY) ?? "http://127.0.0.1:8787";
+
+export const saveApiBaseUrl = (url: string): void => {
+  localStorage.setItem(API_BASE_URL_KEY, url);
 };
 
 export const downloadMarkdown = (tasks: Task[]): void => {

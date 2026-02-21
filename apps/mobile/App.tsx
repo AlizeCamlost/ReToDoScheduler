@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   FlatList,
@@ -11,36 +11,110 @@ import {
 } from "react-native";
 import type { Task } from "@retodo/core";
 import { initializeDb } from "./src/db";
-import { addTaskFromQuickInput, deleteTask, listTasks, toggleTaskDone } from "./src/taskService";
+import { syncTasksWithServer } from "./src/syncService";
+import {
+  addTaskFromQuickInput,
+  archiveTask,
+  getSetting,
+  listTasks,
+  setSetting,
+  toggleTaskDone
+} from "./src/taskService";
 
 export default function App() {
   const [input, setInput] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [serverUrl, setServerUrl] = useState("");
+  const [syncMessage, setSyncMessage] = useState("未同步");
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const syncInFlightRef = useRef(false);
+
+  const visibleTasks = useMemo(() => tasks.filter((task) => task.status !== "archived"), [tasks]);
 
   const refresh = async () => {
     const next = await listTasks();
     setTasks(next);
   };
 
+  const syncNow = async () => {
+    const baseUrl = serverUrl.trim();
+    if (!baseUrl || syncInFlightRef.current) return;
+
+    syncInFlightRef.current = true;
+    setIsSyncing(true);
+
+    try {
+      const result = await syncTasksWithServer(baseUrl);
+      await refresh();
+      setSyncMessage(`已同步 ${result.synced} 项，${new Date().toLocaleTimeString()}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSyncMessage(`同步失败: ${message}`);
+    } finally {
+      syncInFlightRef.current = false;
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
     const boot = async () => {
       await initializeDb();
       await refresh();
+      const savedUrl = await getSetting("server_url");
+      if (savedUrl) {
+        setServerUrl(savedUrl);
+      }
     };
     void boot();
   }, []);
+
+  useEffect(() => {
+    if (!serverUrl.trim()) return;
+
+    const timer = setInterval(() => {
+      void syncNow();
+    }, 7000);
+
+    return () => clearInterval(timer);
+  }, [serverUrl]);
+
+  const onSaveServerUrl = async () => {
+    const normalized = serverUrl.trim();
+    await setSetting("server_url", normalized);
+    if (normalized) {
+      await syncNow();
+    }
+  };
 
   const addTask = async () => {
     if (!input.trim()) return;
     await addTaskFromQuickInput(input.trim());
     setInput("");
     await refresh();
+    await syncNow();
   };
 
   return (
     <SafeAreaView style={styles.page}>
       <Text style={styles.title}>ReToDoScheduler</Text>
-      <Text style={styles.subtitle}>iPhone 离线任务列表（Phase 1）</Text>
+      <Text style={styles.subtitle}>iPhone 离线优先 + 简易同步</Text>
+      <View style={styles.column}>
+        <TextInput
+          style={styles.input}
+          value={serverUrl}
+          onChangeText={setServerUrl}
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="服务器地址，例如：http://1.2.3.4:8787"
+        />
+        <View style={styles.row}>
+          <Button title="保存地址" onPress={() => void onSaveServerUrl()} />
+          <Button title={isSyncing ? "同步中" : "立即同步"} onPress={() => void syncNow()} />
+        </View>
+        <Text style={styles.syncLabel}>{syncMessage}</Text>
+      </View>
+
       <View style={styles.row}>
         <TextInput
           style={styles.input}
@@ -50,8 +124,9 @@ export default function App() {
         />
         <Button title="添加" onPress={() => void addTask()} />
       </View>
+
       <FlatList
-        data={tasks}
+        data={visibleTasks}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -63,10 +138,22 @@ export default function App() {
                 </Text>
               </View>
               <View style={styles.actions}>
-                <TouchableOpacity onPress={() => void toggleTaskDone(item).then(refresh)}>
+                <TouchableOpacity
+                  onPress={() =>
+                    void toggleTaskDone(item)
+                      .then(refresh)
+                      .then(syncNow)
+                  }
+                >
                   <Text style={styles.link}>{item.status === "done" ? "撤销" : "完成"}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => void deleteTask(item.id).then(refresh)}>
+                <TouchableOpacity
+                  onPress={() =>
+                    void archiveTask(item.id)
+                      .then(refresh)
+                      .then(syncNow)
+                  }
+                >
                   <Text style={styles.linkDanger}>删除</Text>
                 </TouchableOpacity>
               </View>
@@ -95,10 +182,15 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginBottom: 12
   },
+  column: {
+    marginBottom: 12,
+    gap: 8
+  },
   row: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 12
+    marginBottom: 12,
+    alignItems: "center"
   },
   input: {
     flex: 1,
@@ -108,6 +200,10 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     paddingHorizontal: 10,
     paddingVertical: 8
+  },
+  syncLabel: {
+    fontSize: 12,
+    color: "#4b5563"
   },
   card: {
     backgroundColor: "white",

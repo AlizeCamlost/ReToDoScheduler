@@ -26,17 +26,25 @@ npm --prefix apps/mobile run prebuild:ios
 
 - Monorepo scaffold is ready.
 - Core task model and defaults are implemented.
-- Web offline local CRUD demo is implemented.
-- Mobile SQLite local CRUD minimal flow is implemented.
-- API service has health endpoint and task sync placeholder endpoint.
+- Web local CRUD + basic server sync is implemented.
+- Mobile SQLite local CRUD + basic server sync is implemented.
+- API has `/health`, `/v1/tasks`, and `/v1/tasks/sync`.
 
 ## Next steps
 
 - Implement deterministic scheduler and rule engine persistence.
-- Add real sync protocol with `sync_ops` cursor.
+- Evolve from full-list sync to `sync_ops` incremental cursor sync.
 - Add backup jobs and restore runbook automation.
+
+## Sync setup (MVP)
+
+- Start API server and ensure `GET /health` works.
+- In web app, fill the server URL input (for example `http://<server-ip>:8787`).
+- In iOS app, fill and save the same server URL.
+- Trigger `立即同步` on either side. The other side will receive updates on next poll.
 
 ## Deployment
 
 - Server deploy runbook: `docs/runbook/server-deploy.md`
 - iPhone install runbook: `docs/runbook/ios-device-install.md`
+- Client sync runbook: `docs/runbook/client-sync.md`
