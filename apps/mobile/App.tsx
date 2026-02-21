@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import type { Task } from "@retodo/core";
 import { initializeDb } from "./src/db";
-import { syncTasksWithServer } from "./src/syncService";
+import { normalizeServerUrl, syncTasksWithServer } from "./src/syncService";
 import {
   addTaskFromQuickInput,
   archiveTask,
@@ -37,8 +37,8 @@ export default function App() {
     setTasks(next);
   };
 
-  const syncNow = async () => {
-    const baseUrl = serverUrl.trim();
+  const syncNow = async (baseUrlOverride?: string) => {
+    const baseUrl = (baseUrlOverride ?? serverUrl).trim();
     if (!baseUrl || syncInFlightRef.current) return;
 
     syncInFlightRef.current = true;
@@ -80,10 +80,16 @@ export default function App() {
   }, [serverUrl]);
 
   const onSaveServerUrl = async () => {
-    const normalized = serverUrl.trim();
-    await setSetting("server_url", normalized);
-    if (normalized) {
-      await syncNow();
+    try {
+      const normalized = normalizeServerUrl(serverUrl);
+      setServerUrl(normalized);
+      await setSetting("server_url", normalized);
+      if (normalized) {
+        await syncNow(normalized);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSyncMessage(`同步失败: ${message}`);
     }
   };
 
@@ -142,7 +148,7 @@ export default function App() {
                   onPress={() =>
                     void toggleTaskDone(item)
                       .then(refresh)
-                      .then(syncNow)
+                      .then(() => syncNow())
                   }
                 >
                   <Text style={styles.link}>{item.status === "done" ? "撤销" : "完成"}</Text>
@@ -151,7 +157,7 @@ export default function App() {
                   onPress={() =>
                     void archiveTask(item.id)
                       .then(refresh)
-                      .then(syncNow)
+                      .then(() => syncNow())
                   }
                 >
                   <Text style={styles.linkDanger}>删除</Text>

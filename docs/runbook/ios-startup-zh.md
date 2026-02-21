@@ -81,7 +81,11 @@ http://<server-ip>:8787
 
 1. 白屏：通常是 Debug 模式下 Metro 未启动。先 `npm run ios:dev` 再重启 app。
 2. 构建很慢、风扇响：首次 Xcode 编译 Pods/Hermes 正常，后续会快很多。
-3. 手机无法访问服务器：检查云服务器安全组是否放行 `8787`。
+3. 手机同步报 `Network request failed`：
+   - 先在 iPhone Safari 打开 `http://<server-ip>:8787/health` 验证连通性。
+   - Safari 不通：检查云服务器安全组/防火墙端口 `8787`。
+   - Safari 可通但 App 不通：重新用最新代码 `Cmd + R` 安装 app。
+   - 地址输入必须包含协议头，例如 `http://<server-ip>:8787`。
 
 ## 维护约定
 
