@@ -81,7 +81,10 @@ const rowToTask = (row: Record<string, unknown>): SyncTaskPayload => ({
 
 const fetchAllTasks = async (): Promise<SyncTaskPayload[]> => {
   const result = await pool.query<Record<string, unknown>>(
-    "SELECT * FROM tasks ORDER BY COALESCE((ext_json->>'rank')::int, 2147483647) ASC, updated_at DESC"
+    `SELECT * FROM tasks
+     ORDER BY
+       COALESCE((ext_json->'kairos'->>'rank')::int, (ext_json->>'rank')::int, 2147483647) ASC,
+       updated_at DESC`
   );
   return result.rows.map(rowToTask);
 };

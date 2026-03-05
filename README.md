@@ -1,6 +1,6 @@
-# ReToDoScheduler
+# Norn
 
-Local-first todo scheduler for iPhone + Web with incremental sync.
+Norn is a local-first todo scheduler for iPhone + Web with incremental sync.
 
 ## Workspace layout
 
@@ -8,7 +8,9 @@ Local-first todo scheduler for iPhone + Web with incremental sync.
 - `apps/web`: React + Vite SPA for browser access (runs as local dev server on mac).
 - `services/api`: Fastify API service.
 - `services/db`: PostgreSQL migrations and database service artifacts.
-- `packages/core`: shared domain model, defaults, lightweight NLP parser, and scoring utilities.
+- `packages/core`: shared domain model and rules:
+  - `norn/*`: stable core model and ordering surface.
+  - `kairos/*`: dynamic decision cursor (rank/strategy metadata).
 - `docs`: ADRs, domain docs, and runbooks.
 
 ## Quick start
@@ -40,7 +42,7 @@ cp apps/mobile/.env.example apps/mobile/.env
 
 ## Next steps
 
-- Implement deterministic scheduler and rule engine persistence.
+- Implement deterministic scheduler and Kairos decision-cursor persistence.
 - Evolve from full-list sync to `sync_ops` incremental cursor sync.
 - Add backup jobs and restore runbook automation.
 

@@ -1,14 +1,15 @@
 # Module Map
 
 ## packages/core
-- Owns canonical domain types.
-- Owns defaults and input normalization.
-- Will own scheduler/rule engine implementation.
+- Norn core domain boundary.
+- Owns canonical task/time-slot types and defaults.
+- Owns parsing/scoring and stable ordering surfaces.
+- Contains Kairos decision cursor for dynamic ranking metadata.
 
 ## apps/mobile
 - iPhone-first entry point.
 - Uses SQLite for local-first persistence.
-- Provides basic sync via `/v1/tasks/sync` with server URL input.
+- Provides basic sync via `/v1/tasks/sync` with fixed server URL.
 
 ## apps/web
 - Browser execution and quick management.
@@ -28,3 +29,4 @@
 - ADR: architecture decisions.
 - domain: data model and business definitions.
 - runbook: operational procedures (backup/recovery/deploy).
+- knowledge: long-lived design intent for Norn/Kairos layering.

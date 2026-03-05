@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ReToDoScheduler",
-    "slug": "retodo-scheduler",
+    "name": "Norn",
+    "slug": "norn",
     "icon": "./assets/icons/app-icon.png",
     "version": "0.1.0",
     "runtimeVersion": {

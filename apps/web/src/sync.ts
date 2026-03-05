@@ -1,4 +1,4 @@
-import type { Task } from "@retodo/core";
+import { sortNornTasks, type Task } from "@retodo/core";
 import { API_AUTH_TOKEN } from "./config";
 
 const buildUrl = (baseUrl: string, path: string): string => {
@@ -27,9 +27,7 @@ export const mergeByLww = (localTasks: Task[], remoteTasks: Task[]): Task[] => {
     }
   }
 
-  return [...merged.values()].sort((a, b) =>
-    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  );
+  return sortNornTasks([...merged.values()]);
 };
 
 const parseItems = (payload: unknown): Task[] => {

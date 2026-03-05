@@ -75,7 +75,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.page}>
-      <Text style={styles.title}>ReToDoScheduler</Text>
+      <Text style={styles.title}>Norn</Text>
       <Text style={styles.subtitle}>iPhone 离线优先 + 固定服务器同步</Text>
       <View style={styles.column}>
         <View style={styles.row}>

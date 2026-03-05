@@ -1,6 +1,6 @@
 # Server Deploy Guide (Tencent Cloud, 2C2G)
 
-This guide deploys API + PostgreSQL for ReToDoScheduler before Phase 2.
+This guide deploys API + PostgreSQL for Norn before Phase 2.
 
 ## 0. Server prerequisites
 
@@ -77,7 +77,7 @@ curl http://127.0.0.1:8787/health
 Expected response:
 
 ```json
-{"ok":true,"service":"retodo-api","timestamp":"..."}
+{"ok":true,"service":"norn-api","timestamp":"..."}
 ```
 
 Validate protected route:

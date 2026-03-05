@@ -1,4 +1,4 @@
-import { makeTask, nowIso, parseQuickInput, type Task } from "@retodo/core";
+import { makeTask, nowIso, parseQuickInput, sortNornTasks, type Task, withKairosRank } from "@retodo/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE_URL } from "./config";
 import { downloadMarkdown, getOrCreateDeviceId, parseMarkdownImport } from "./storage";
@@ -6,8 +6,6 @@ import { pullRemoteTasks, pushAndPullTasks } from "./sync";
 
 const createId = (): string =>
   (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`).toString();
-
-const sortByServerOrder = (items: Task[]): Task[] => [...items];
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -35,7 +33,7 @@ function App() {
   );
 
   const applyRemoteTasks = (incoming: Task[]) => {
-    const sorted = sortByServerOrder(incoming);
+    const sorted = sortNornTasks(incoming);
     setTasks(sorted);
     tasksRef.current = sorted;
   };
@@ -157,11 +155,13 @@ function App() {
 
     const visibleIds = new Set(visible.map((task) => task.id));
     const hidden = tasks.filter((task) => !visibleIds.has(task.id));
-    const reordered = [...visible, ...hidden].map((task, idx) => ({
-      ...task,
-      extJson: { ...task.extJson, rank: idx },
-      updatedAt: nowIso()
-    }));
+    const reordered = [...visible, ...hidden].map((task, idx) => {
+      const nextTask = withKairosRank(task, idx);
+      return {
+        ...nextTask,
+        updatedAt: nowIso()
+      };
+    });
 
     commitTasks(reordered);
   };
@@ -174,17 +174,19 @@ function App() {
 
     const imported = lines.map((line, idx) => {
       const parsed = parseQuickInput(line);
-      return makeTask({
-        id: createId(),
-        title: parsed.title,
-        rawInput: line,
-        minChunkMinutes: parsed.minChunkMinutes,
-        estimatedMinutes: parsed.estimatedMinutes,
-        dueAt: parsed.dueAt,
-        tags: parsed.tags,
-        taskTraits: parsed.taskTraits,
-        extJson: { rank: idx }
-      });
+      return withKairosRank(
+        makeTask({
+          id: createId(),
+          title: parsed.title,
+          rawInput: line,
+          minChunkMinutes: parsed.minChunkMinutes,
+          estimatedMinutes: parsed.estimatedMinutes,
+          dueAt: parsed.dueAt,
+          tags: parsed.tags,
+          taskTraits: parsed.taskTraits
+        }),
+        idx
+      );
     });
 
     commitTasks([...imported, ...tasks]);
@@ -193,7 +195,7 @@ function App() {
   return (
     <main className="app">
       <section className="panel">
-        <h1>ReToDoScheduler</h1>
+        <h1>Norn</h1>
         <p className="muted">任务未完成：{todoCount}（Web 端不做本地持久化，数据以服务器为准）</p>
         <div className="row">
           <button onClick={() => void performSync()} disabled={isSyncing}>
@@ -244,7 +246,7 @@ function App() {
 
       <section className="panel">
         <h2>任务</h2>
-        <p className="muted">拖拽重排后会自动同步到服务器（LWW + rank）。</p>
+        <p className="muted">拖拽重排后会自动同步到服务器（LWW + Kairos rank）。</p>
         <ul className="task-list">
           {visibleTasks.map((task) => (
             <li

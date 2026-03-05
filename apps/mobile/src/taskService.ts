@@ -50,8 +50,11 @@ export const listTasks = async (): Promise<Task[]> => {
   const rows = await db.getAllAsync<Record<string, unknown>>(
     `SELECT * FROM tasks
      ORDER BY
-       CASE WHEN json_extract(ext_json, '$.rank') IS NULL THEN 1 ELSE 0 END ASC,
-       CAST(json_extract(ext_json, '$.rank') AS INTEGER) ASC,
+       CASE
+         WHEN COALESCE(json_extract(ext_json, '$.kairos.rank'), json_extract(ext_json, '$.rank')) IS NULL THEN 1
+         ELSE 0
+       END ASC,
+       CAST(COALESCE(json_extract(ext_json, '$.kairos.rank'), json_extract(ext_json, '$.rank')) AS INTEGER) ASC,
        updated_at DESC`
   );
   return rows.map(rowToTask);

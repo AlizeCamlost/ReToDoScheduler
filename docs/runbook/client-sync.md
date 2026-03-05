@@ -37,7 +37,7 @@ Then reinstall iOS app from Xcode (`Cmd + R`) to refresh runtime config.
 
 - Task changes in web are pushed immediately and polled every 7 seconds.
 - Task changes in iOS are pushed after actions and polled every 7 seconds.
-- Drag-reorder rank is synchronized by `extJson.rank` and rendered consistently.
+- Drag-reorder rank is synchronized by `extJson.kairos.rank` (fallback `extJson.rank`) and rendered consistently.
 - Conflict rule is LWW by `updatedAt`.
 
 ## Notes
