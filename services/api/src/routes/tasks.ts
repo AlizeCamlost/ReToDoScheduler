@@ -81,7 +81,7 @@ const rowToTask = (row: Record<string, unknown>): SyncTaskPayload => ({
 
 const fetchAllTasks = async (): Promise<SyncTaskPayload[]> => {
   const result = await pool.query<Record<string, unknown>>(
-    "SELECT * FROM tasks ORDER BY updated_at DESC"
+    "SELECT * FROM tasks ORDER BY COALESCE((ext_json->>'rank')::int, 2147483647) ASC, updated_at DESC"
   );
   return result.rows.map(rowToTask);
 };
@@ -141,6 +141,25 @@ const upsertOneTask = async (task: SyncTaskPayload): Promise<void> => {
 };
 
 const taskRoutes: FastifyPluginAsync = async (app) => {
+  const requiredToken = process.env.API_AUTH_TOKEN;
+  if (!requiredToken) {
+    throw new Error("Missing API_AUTH_TOKEN");
+  }
+
+  app.addHook("onRequest", async (request, reply) => {
+    const header = request.headers.authorization;
+    if (!header || !header.startsWith("Bearer ")) {
+      reply.code(401);
+      return reply.send({ error: "Unauthorized" });
+    }
+
+    const token = header.slice("Bearer ".length).trim();
+    if (token !== requiredToken) {
+      reply.code(401);
+      return reply.send({ error: "Unauthorized" });
+    }
+  });
+
   app.get("/v1/tasks", async () => {
     const items = await fetchAllTasks();
     return { items };

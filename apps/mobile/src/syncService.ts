@@ -1,4 +1,5 @@
 import type { Task } from "@retodo/core";
+import { API_AUTH_TOKEN, API_BASE_URL } from "./config";
 import { getOrCreateDeviceId, listTasks, upsertTasks } from "./taskService";
 
 const parseItems = (payload: unknown): Task[] => {
@@ -8,23 +9,20 @@ const parseItems = (payload: unknown): Task[] => {
   return data.items as Task[];
 };
 
-export const normalizeServerUrl = (input: string): string => {
+const normalizeBaseUrl = (input: string): string => {
   const raw = input.trim();
   if (!raw) return "";
-
-  const withScheme = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
-  try {
-    const parsed = new URL(withScheme);
-    return parsed.toString().replace(/\/+$/, "");
-  } catch {
-    throw new Error("服务器地址格式错误，请输入类似 http://1.2.3.4:8787");
-  }
+  return raw.replace(/\/+$/, "");
 };
 
-export const syncTasksWithServer = async (baseUrlInput: string): Promise<{ synced: number }> => {
-  const baseUrl = normalizeServerUrl(baseUrlInput);
+export const syncTasksWithServer = async (): Promise<{ synced: number }> => {
+  const baseUrl = normalizeBaseUrl(API_BASE_URL);
   if (!baseUrl) {
-    throw new Error("Missing server URL");
+    throw new Error("Missing API_BASE_URL");
+  }
+
+  if (!API_AUTH_TOKEN) {
+    throw new Error("Missing EXPO_PUBLIC_API_AUTH_TOKEN");
   }
 
   const [deviceId, localTasks] = await Promise.all([getOrCreateDeviceId(), listTasks()]);
@@ -34,7 +32,8 @@ export const syncTasksWithServer = async (baseUrlInput: string): Promise<{ synce
     response = await fetch(`${baseUrl}/v1/tasks/sync`, {
       method: "POST",
       headers: {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        authorization: `Bearer ${API_AUTH_TOKEN}`
       },
       body: JSON.stringify({
         deviceId,

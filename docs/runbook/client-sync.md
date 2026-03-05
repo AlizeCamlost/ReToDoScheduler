@@ -4,23 +4,40 @@
 
 - Server API is reachable from your phone and laptop.
 - `GET http://<server-ip>:8787/health` returns `{ "ok": true, ... }`.
+- Server has `API_AUTH_TOKEN` configured.
+- Web and iOS clients use the same auth token.
 
-## Web setup
+## Token setup
 
-1. Start web app.
-2. In the top server URL field, fill `http://<server-ip>:8787`.
-3. Click `立即同步` once.
+### Web
 
-## iPhone setup
+```bash
+cp apps/web/.env.example apps/web/.env
+```
 
-1. Open iOS app.
-2. Fill server URL with `http://<server-ip>:8787`.
-3. Tap `保存地址` then `立即同步`.
+Set `VITE_API_AUTH_TOKEN` in `apps/web/.env`.
+
+### iOS
+
+```bash
+cp apps/mobile/.env.example apps/mobile/.env
+```
+
+Set `EXPO_PUBLIC_API_AUTH_TOKEN` in `apps/mobile/.env`.
+
+Then reinstall iOS app from Xcode (`Cmd + R`) to refresh runtime config.
+
+## Fixed server URL behavior
+
+- Web uses built-in API URL: `http://43.159.136.45:8787`.
+- iOS uses built-in API URL: `http://43.159.136.45:8787`.
+- UI no longer exposes editable server URL field.
 
 ## Expected behavior
 
-- Task changes in web are pushed within ~1 second and polled every 7 seconds.
+- Task changes in web are pushed immediately and polled every 7 seconds.
 - Task changes in iOS are pushed after actions and polled every 7 seconds.
+- Drag-reorder rank is synchronized by `extJson.rank` and rendered consistently.
 - Conflict rule is LWW by `updatedAt`.
 
 ## Notes
@@ -30,7 +47,7 @@
 
 ## iOS troubleshooting: `Network request failed`
 
-1. In iPhone Safari open `http://<server-ip>:8787/health` first.
+1. In iPhone Safari open `http://43.159.136.45:8787/health` first.
 2. If Safari fails, fix server firewall/security-group (port `8787`) or use reverse proxy `443`.
-3. If Safari works but app fails, reinstall latest iOS build from Xcode (to ensure latest Info.plist and sync code).
-4. In app server URL field, use full URL with scheme (for example `http://1.2.3.4:8787`).
+3. If Safari works but app fails, reinstall latest iOS build from Xcode.
+4. Check token mismatch: server `API_AUTH_TOKEN` must equal iOS `EXPO_PUBLIC_API_AUTH_TOKEN`.

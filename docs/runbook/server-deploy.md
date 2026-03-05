@@ -43,6 +43,7 @@ vi deploy/.env.prod
 ```
 
 Set strong database password.
+Set a strong random `API_AUTH_TOKEN` as well.
 
 ## 3. Build and start containers
 
@@ -79,6 +80,12 @@ Expected response:
 {"ok":true,"service":"retodo-api","timestamp":"..."}
 ```
 
+Validate protected route:
+
+```bash
+curl -H "Authorization: Bearer $API_AUTH_TOKEN" http://127.0.0.1:8787/v1/tasks
+```
+
 ## 6. Log and restart ops
 
 ```bash
@@ -103,3 +110,16 @@ mkdir -p /opt/retodo/backups
 ```
 
 Then sync to Tencent COS weekly (next step to automate in CI/cron).
+
+## 9. Auto deploy helper
+
+Server-side helper script:
+
+```bash
+cd /opt/retodo
+bash scripts/server-auto-deploy.sh
+```
+
+GitHub Actions setup tutorial:
+
+- `docs/tutorial/github-auto-deploy-zh.md`

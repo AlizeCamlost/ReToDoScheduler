@@ -23,6 +23,7 @@ services:
     environment:
       PORT: "8787"
       DATABASE_URL: postgresql://retodo:retodo_dev_password@db:5432/retodo
+      API_AUTH_TOKEN: retodo-dev-token-change-me
     depends_on:
       - db
     volumes:

@@ -1,18 +1,13 @@
 import { makeTask, nowIso, parseQuickInput, type Task } from "@retodo/core";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  downloadMarkdown,
-  getOrCreateDeviceId,
-  loadApiBaseUrl,
-  parseMarkdownImport
-} from "./storage";
+import { API_BASE_URL } from "./config";
+import { downloadMarkdown, getOrCreateDeviceId, parseMarkdownImport } from "./storage";
 import { pullRemoteTasks, pushAndPullTasks } from "./sync";
 
 const createId = (): string =>
   (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`).toString();
 
-const sortByUpdatedAt = (items: Task[]): Task[] =>
-  [...items].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+const sortByServerOrder = (items: Task[]): Task[] => [...items];
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -21,7 +16,6 @@ function App() {
   const [manualMinChunk, setManualMinChunk] = useState<string>("");
   const [manualEstimate, setManualEstimate] = useState<string>("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [apiBaseUrl, setApiBaseUrl] = useState<string>(() => loadApiBaseUrl());
   const [syncMessage, setSyncMessage] = useState("未同步");
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -41,20 +35,19 @@ function App() {
   );
 
   const applyRemoteTasks = (incoming: Task[]) => {
-    const sorted = sortByUpdatedAt(incoming);
+    const sorted = sortByServerOrder(incoming);
     setTasks(sorted);
     tasksRef.current = sorted;
   };
 
   const performSync = async (tasksToPush?: Task[]) => {
-    const baseUrl = apiBaseUrl.trim();
-    if (!baseUrl || syncInFlightRef.current) return;
+    if (syncInFlightRef.current) return;
 
     syncInFlightRef.current = true;
     setIsSyncing(true);
 
     try {
-      const remote = await pushAndPullTasks(baseUrl, deviceIdRef.current, tasksToPush ?? tasksRef.current);
+      const remote = await pushAndPullTasks(API_BASE_URL, deviceIdRef.current, tasksToPush ?? tasksRef.current);
       applyRemoteTasks(remote);
       setSyncMessage(`已同步 ${new Date().toLocaleTimeString()}`);
     } catch (error) {
@@ -67,11 +60,10 @@ function App() {
   };
 
   const pullOnly = async () => {
-    const baseUrl = apiBaseUrl.trim();
-    if (!baseUrl || syncInFlightRef.current) return;
+    if (syncInFlightRef.current) return;
 
     try {
-      const remote = await pullRemoteTasks(baseUrl);
+      const remote = await pullRemoteTasks(API_BASE_URL);
       applyRemoteTasks(remote);
       setSyncMessage(`已拉取 ${new Date().toLocaleTimeString()}`);
     } catch (error) {
@@ -88,7 +80,7 @@ function App() {
 
   useEffect(() => {
     void pullOnly();
-  }, [apiBaseUrl]);
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -98,7 +90,7 @@ function App() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [apiBaseUrl]);
+  }, []);
 
   const addTask = () => {
     if (!quickInput.trim()) return;
@@ -180,7 +172,7 @@ function App() {
     const lines = parseMarkdownImport(text);
     if (lines.length === 0) return;
 
-    const imported = lines.map((line) => {
+    const imported = lines.map((line, idx) => {
       const parsed = parseQuickInput(line);
       return makeTask({
         id: createId(),
@@ -190,7 +182,8 @@ function App() {
         estimatedMinutes: parsed.estimatedMinutes,
         dueAt: parsed.dueAt,
         tags: parsed.tags,
-        taskTraits: parsed.taskTraits
+        taskTraits: parsed.taskTraits,
+        extJson: { rank: idx }
       });
     });
 
@@ -203,12 +196,6 @@ function App() {
         <h1>ReToDoScheduler</h1>
         <p className="muted">任务未完成：{todoCount}（Web 端不做本地持久化，数据以服务器为准）</p>
         <div className="row">
-          <input
-            type="text"
-            value={apiBaseUrl}
-            onChange={(event) => setApiBaseUrl(event.target.value)}
-            placeholder="服务器地址，例如：http://1.2.3.4:8787"
-          />
           <button onClick={() => void performSync()} disabled={isSyncing}>
             {isSyncing ? "同步中" : "立即同步"}
           </button>
@@ -257,7 +244,7 @@ function App() {
 
       <section className="panel">
         <h2>任务</h2>
-        <p className="muted">拖拽重排后会自动同步到服务器（LWW）。</p>
+        <p className="muted">拖拽重排后会自动同步到服务器（LWW + rank）。</p>
         <ul className="task-list">
           {visibleTasks.map((task) => (
             <li

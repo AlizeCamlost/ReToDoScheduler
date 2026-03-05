@@ -11,8 +11,6 @@ export const getOrCreateDeviceId = (): string => {
   return sessionDeviceId;
 };
 
-export const loadApiBaseUrl = (): string => "http://127.0.0.1:8787";
-
 export const downloadMarkdown = (tasks: Task[]): void => {
   const lines = tasks.map((task) => {
     const status = task.status === "done" ? "x" : " ";

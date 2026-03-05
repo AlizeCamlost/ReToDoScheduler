@@ -137,7 +137,7 @@ Monorepo 价值：
 1. `apps/mobile/src/db.ts`：建库建表（`tasks` + `settings`）。
 2. `apps/mobile/src/taskService.ts`：本地 CRUD + upsert + 设置项保存。
 3. `apps/mobile/src/syncService.ts`：调用 `/v1/tasks/sync`。
-4. `apps/mobile/App.tsx`：UI、服务器地址输入、同步按钮、轮询同步。
+4. `apps/mobile/App.tsx`：UI、同步按钮、轮询同步（服务器地址内置）。
 
 工作机制：
 
@@ -268,7 +268,7 @@ Monorepo 价值：
 6. 接 PostgreSQL，写 `tasks` 表。
 7. 实现 `/v1/tasks/sync` + `ON CONFLICT` + `updated_at` 条件。
 8. 客户端做“本地写 + push + pull”。
-9. 加服务器地址配置与设备 ID。
+9. 加固定服务器地址配置、Bearer Token 与设备 ID。
 10. 处理删除策略（先软删除/归档）。
 11. Docker 化 API+DB，写迁移脚本。
 12. 写 runbook 和一键脚本，固化日常操作。
@@ -292,9 +292,8 @@ Monorepo 价值：
 
 1. 上 HTTPS（域名 + 反向代理 + 证书）。
 2. 同步升级为 `sync_ops + cursor`。
-3. 同步升级为增量 `sync_ops + cursor`，减少全量传输成本。
-4. 增加鉴权（单用户 token + 设备绑定）。
-5. 增加自动备份与恢复演练。
+3. 增加 token 轮换策略与设备级吊销能力。
+4. 增加自动备份与恢复演练。
 
 ## 10. 你应该重点阅读哪些源码
 

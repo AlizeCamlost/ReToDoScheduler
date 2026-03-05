@@ -47,7 +47,13 @@ WHERE excluded.updated_at > tasks.updated_at`;
 
 export const listTasks = async (): Promise<Task[]> => {
   const db = await getDb();
-  const rows = await db.getAllAsync<Record<string, unknown>>("SELECT * FROM tasks ORDER BY updated_at DESC");
+  const rows = await db.getAllAsync<Record<string, unknown>>(
+    `SELECT * FROM tasks
+     ORDER BY
+       CASE WHEN json_extract(ext_json, '$.rank') IS NULL THEN 1 ELSE 0 END ASC,
+       CAST(json_extract(ext_json, '$.rank') AS INTEGER) ASC,
+       updated_at DESC`
+  );
   return rows.map(rowToTask);
 };
 

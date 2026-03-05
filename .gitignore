@@ -3,6 +3,8 @@ node_modules
 .env
 .env.*
 !deploy/.env.prod.example
+!apps/web/.env.example
+!apps/mobile/.env.example
 dist
 build
 coverage

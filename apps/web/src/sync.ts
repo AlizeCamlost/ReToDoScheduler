@@ -1,4 +1,5 @@
 import type { Task } from "@retodo/core";
+import { API_AUTH_TOKEN } from "./config";
 
 const buildUrl = (baseUrl: string, path: string): string => {
   const normalized = baseUrl.trim().replace(/\/+$/, "");
@@ -39,7 +40,14 @@ const parseItems = (payload: unknown): Task[] => {
 };
 
 export const pullRemoteTasks = async (baseUrl: string): Promise<Task[]> => {
-  const response = await fetch(buildUrl(baseUrl, "/v1/tasks"));
+  if (!API_AUTH_TOKEN) {
+    throw new Error("Missing VITE_API_AUTH_TOKEN");
+  }
+  const response = await fetch(buildUrl(baseUrl, "/v1/tasks"), {
+    headers: {
+      authorization: `Bearer ${API_AUTH_TOKEN}`
+    }
+  });
   if (!response.ok) {
     throw new Error(`Pull failed (${response.status})`);
   }
@@ -51,10 +59,14 @@ export const pushAndPullTasks = async (
   deviceId: string,
   tasks: Task[]
 ): Promise<Task[]> => {
+  if (!API_AUTH_TOKEN) {
+    throw new Error("Missing VITE_API_AUTH_TOKEN");
+  }
   const response = await fetch(buildUrl(baseUrl, "/v1/tasks/sync"), {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
+      authorization: `Bearer ${API_AUTH_TOKEN}`
     },
     body: JSON.stringify({
       deviceId,

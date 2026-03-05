@@ -11,20 +11,12 @@ import {
 } from "react-native";
 import type { Task } from "@retodo/core";
 import { initializeDb } from "./src/db";
-import { normalizeServerUrl, syncTasksWithServer } from "./src/syncService";
-import {
-  addTaskFromQuickInput,
-  archiveTask,
-  getSetting,
-  listTasks,
-  setSetting,
-  toggleTaskDone
-} from "./src/taskService";
+import { syncTasksWithServer } from "./src/syncService";
+import { addTaskFromQuickInput, archiveTask, listTasks, toggleTaskDone } from "./src/taskService";
 
 export default function App() {
   const [input, setInput] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [serverUrl, setServerUrl] = useState("");
   const [syncMessage, setSyncMessage] = useState("未同步");
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -37,15 +29,14 @@ export default function App() {
     setTasks(next);
   };
 
-  const syncNow = async (baseUrlOverride?: string) => {
-    const baseUrl = (baseUrlOverride ?? serverUrl).trim();
-    if (!baseUrl || syncInFlightRef.current) return;
+  const syncNow = async () => {
+    if (syncInFlightRef.current) return;
 
     syncInFlightRef.current = true;
     setIsSyncing(true);
 
     try {
-      const result = await syncTasksWithServer(baseUrl);
+      const result = await syncTasksWithServer();
       await refresh();
       setSyncMessage(`已同步 ${result.synced} 项，${new Date().toLocaleTimeString()}`);
     } catch (error) {
@@ -61,37 +52,18 @@ export default function App() {
     const boot = async () => {
       await initializeDb();
       await refresh();
-      const savedUrl = await getSetting("server_url");
-      if (savedUrl) {
-        setServerUrl(savedUrl);
-      }
+      await syncNow();
     };
     void boot();
   }, []);
 
   useEffect(() => {
-    if (!serverUrl.trim()) return;
-
     const timer = setInterval(() => {
       void syncNow();
     }, 7000);
 
     return () => clearInterval(timer);
-  }, [serverUrl]);
-
-  const onSaveServerUrl = async () => {
-    try {
-      const normalized = normalizeServerUrl(serverUrl);
-      setServerUrl(normalized);
-      await setSetting("server_url", normalized);
-      if (normalized) {
-        await syncNow(normalized);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setSyncMessage(`同步失败: ${message}`);
-    }
-  };
+  }, []);
 
   const addTask = async () => {
     if (!input.trim()) return;
@@ -104,18 +76,9 @@ export default function App() {
   return (
     <SafeAreaView style={styles.page}>
       <Text style={styles.title}>ReToDoScheduler</Text>
-      <Text style={styles.subtitle}>iPhone 离线优先 + 简易同步</Text>
+      <Text style={styles.subtitle}>iPhone 离线优先 + 固定服务器同步</Text>
       <View style={styles.column}>
-        <TextInput
-          style={styles.input}
-          value={serverUrl}
-          onChangeText={setServerUrl}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder="服务器地址，例如：http://1.2.3.4:8787"
-        />
         <View style={styles.row}>
-          <Button title="保存地址" onPress={() => void onSaveServerUrl()} />
           <Button title={isSyncing ? "同步中" : "立即同步"} onPress={() => void syncNow()} />
         </View>
         <Text style={styles.syncLabel}>{syncMessage}</Text>

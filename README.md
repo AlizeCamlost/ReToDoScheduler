@@ -23,6 +23,13 @@ npm --prefix apps/mobile run prebuild:ios
 npm run ios:dev
 ```
 
+Before running sync-enabled clients, configure auth token locally:
+
+```bash
+cp apps/web/.env.example apps/web/.env
+cp apps/mobile/.env.example apps/mobile/.env
+```
+
 ## Current status (Phase 1)
 
 - Monorepo scaffold is ready.
@@ -40,8 +47,10 @@ npm run ios:dev
 ## Sync setup (MVP)
 
 - Start API server and ensure `GET /health` works.
-- In web app, fill the server URL input (for example `http://<server-ip>:8787`).
-- In iOS app, fill and save the same server URL.
+- Set `API_AUTH_TOKEN` on server and same token in:
+  - `apps/web/.env` as `VITE_API_AUTH_TOKEN`
+  - `apps/mobile/.env` as `EXPO_PUBLIC_API_AUTH_TOKEN`
+- Web and iOS now use built-in fixed API URL (`http://43.159.136.45:8787`).
 - Trigger `立即同步` on either side. The other side will receive updates on next poll.
 
 ## Deployment
@@ -51,3 +60,4 @@ npm run ios:dev
 - iPhone startup runbook (中文): `docs/runbook/ios-startup-zh.md`
 - Client sync runbook: `docs/runbook/client-sync.md`
 - Full architecture tutorial (中文): `docs/tutorial/retodo-architecture-and-build-zh.md`
+- GitHub auto deploy tutorial (中文): `docs/tutorial/github-auto-deploy-zh.md`

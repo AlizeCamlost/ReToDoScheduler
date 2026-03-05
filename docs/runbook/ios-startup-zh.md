@@ -61,31 +61,39 @@ npm run ios:dev
 
 ## 与服务器同步（当前 MVP）
 
-1. 确保服务器可达：
+1. 先配置 iOS token：
 
 ```bash
-curl http://<server-ip>:8787/health
+cp apps/mobile/.env.example apps/mobile/.env
 ```
 
-2. iOS App 顶部输入服务器地址：
+在 `apps/mobile/.env` 中设置：
 
 ```text
-http://<server-ip>:8787
+EXPO_PUBLIC_API_AUTH_TOKEN=<与你服务器一致的token>
 ```
 
-3. 点击 `保存地址`，再点 `立即同步`。
+2. 确保服务器可达：
 
-4. Web 端也填同一个地址并点 `立即同步`，两端即可互相看到更新。
+```bash
+curl http://43.159.136.45:8787/health
+```
+
+3. 重新 `Cmd + R` 安装 app 后，点击 `立即同步`。
+
+说明：
+
+- iOS 端服务器地址已内置为 `http://43.159.136.45:8787`。
+- UI 不再提供地址输入框。
 
 ## 常见问题
 
 1. 白屏：通常是 Debug 模式下 Metro 未启动。先 `npm run ios:dev` 再重启 app。
 2. 构建很慢、风扇响：首次 Xcode 编译 Pods/Hermes 正常，后续会快很多。
 3. 手机同步报 `Network request failed`：
-   - 先在 iPhone Safari 打开 `http://<server-ip>:8787/health` 验证连通性。
+   - 先在 iPhone Safari 打开 `http://43.159.136.45:8787/health` 验证连通性。
    - Safari 不通：检查云服务器安全组/防火墙端口 `8787`。
-   - Safari 可通但 App 不通：重新用最新代码 `Cmd + R` 安装 app。
-   - 地址输入必须包含协议头，例如 `http://<server-ip>:8787`。
+   - Safari 可通但 App 不通：检查 `EXPO_PUBLIC_API_AUTH_TOKEN` 与服务器 `API_AUTH_TOKEN` 是否一致，并重新安装 app。
 
 ## 维护约定
 
