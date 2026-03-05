@@ -9,13 +9,43 @@ jobs:
   deploy-prod:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate deploy inputs
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_HOST || vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER != '' && secrets.DEPLOY_USER || vars.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH != '' && secrets.DEPLOY_PATH || vars.DEPLOY_PATH }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          missing=0
+
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "::error::Missing DEPLOY_HOST (set secret DEPLOY_HOST or repo variable DEPLOY_HOST)"
+            missing=1
+          fi
+          if [ -z "$DEPLOY_USER" ]; then
+            echo "::error::Missing DEPLOY_USER (set secret DEPLOY_USER or repo variable DEPLOY_USER)"
+            missing=1
+          fi
+          if [ -z "$DEPLOY_PATH" ]; then
+            echo "::error::Missing DEPLOY_PATH (set secret DEPLOY_PATH or repo variable DEPLOY_PATH)"
+            missing=1
+          fi
+          if [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "::error::Missing DEPLOY_SSH_KEY (set as Actions secret)"
+            missing=1
+          fi
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
+          host: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_HOST || vars.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER != '' && secrets.DEPLOY_USER || vars.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
+          port: ${{ secrets.DEPLOY_PORT != '' && secrets.DEPLOY_PORT || vars.DEPLOY_PORT || '22' }}
           script: |
-            cd ${{ secrets.DEPLOY_PATH }}
+            cd ${{ secrets.DEPLOY_PATH != '' && secrets.DEPLOY_PATH || vars.DEPLOY_PATH }}
             bash scripts/server-auto-deploy.sh

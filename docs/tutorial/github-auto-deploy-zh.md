@@ -73,6 +73,10 @@ curl http://127.0.0.1:8787/health
 
 ## 6. 常见失败与处理
 
+1. `Error: missing server host`：`DEPLOY_HOST` 为空。到 GitHub 仓库 `Settings -> Secrets and variables -> Actions` 设置：
+   - Secret `DEPLOY_HOST`，或 Variable `DEPLOY_HOST`
+   - 推荐同时设置 `DEPLOY_USER`、`DEPLOY_PATH`（也支持 Secret/Variable）
+   - `DEPLOY_SSH_KEY` 必须用 Secret
 1. `Permission denied (publickey)`：`DEPLOY_SSH_KEY` 错或公钥未加入服务器。
 2. `Missing deploy/.env.prod`：服务器未配置生产环境变量文件。
 3. `API auth 401`：客户端 token 与服务端 `API_AUTH_TOKEN` 不一致。
