@@ -73,7 +73,7 @@ Monorepo 价值：
 ### 3.2 当前数据流
 
 1. 用户在 iOS/Web 新增任务。
-2. 先写本地存储（iOS SQLite，Web localStorage）。
+2. 先写本地存储（iOS SQLite），Web 端以内存态编辑并以服务器为唯一数据源。
 3. 客户端调用 `POST /v1/tasks/sync` 上传本地任务列表。
 4. 服务端按 LWW upsert 到 PostgreSQL。
 5. 服务端返回合并后的任务列表。
@@ -154,14 +154,14 @@ Monorepo 价值：
 
 关键文件：
 
-1. `apps/web/src/storage.ts`：localStorage、设备ID、服务器地址保存。
+1. `apps/web/src/storage.ts`：会话级设备ID与导入导出辅助函数。
 2. `apps/web/src/sync.ts`：pull/push API + LWW 合并。
 3. `apps/web/src/App.tsx`：任务列表、拖拽、同步控制。
 
 工作机制：
 
-1. 本地改动后延迟短推送（避免每次输入都立即请求）。
-2. 每 7 秒 pull 一次做“最终收敛”。
+1. 本地改动先写内存态，然后立即 push 到服务端。
+2. 每 7 秒 pull 一次，把服务端状态覆盖到页面，保证收敛。
 
 ### 5.4 API 端（`services/api`）
 
@@ -263,7 +263,7 @@ Monorepo 价值：
 1. 初始化 monorepo（`apps/mobile`, `apps/web`, `services/api`, `packages/core`）。
 2. 在 `core` 定义统一 `Task` 类型。
 3. 先做 iOS 本地 SQLite CRUD，保证离线可用。
-4. 再做 Web 本地 CRUD（先 localStorage，后续再换 IndexedDB）。
+4. 再做 Web 基础 CRUD（以内存态操作 + 服务端同步）。
 5. 搭 API：先 `health`，再 `tasks` 路由。
 6. 接 PostgreSQL，写 `tasks` 表。
 7. 实现 `/v1/tasks/sync` + `ON CONFLICT` + `updated_at` 条件。
@@ -292,7 +292,7 @@ Monorepo 价值：
 
 1. 上 HTTPS（域名 + 反向代理 + 证书）。
 2. 同步升级为 `sync_ops + cursor`。
-3. Web 本地存储升级到 IndexedDB。
+3. 同步升级为增量 `sync_ops + cursor`，减少全量传输成本。
 4. 增加鉴权（单用户 token + 设备绑定）。
 5. 增加自动备份与恢复演练。
 
@@ -306,7 +306,7 @@ Monorepo 价值：
 4. `services/api/src/routes/tasks.ts`
 5. `services/db/migrations/001_init.sql`
 
-这五个文件能帮你理解“模型 -> 本地存储 -> 同步协议 -> 服务端合并 -> 持久化”的完整闭环。
+这五个文件能帮你理解“模型 -> 客户端状态 -> 同步协议 -> 服务端合并 -> 持久化”的完整闭环。
 
 ## 11. 实操练习（建议你亲自做）
 
@@ -336,4 +336,3 @@ Monorepo 价值：
 2. 启动命令变化（iOS/Web/API）。
 3. 部署方式变化（compose、CI/CD、环境变量）。
 4. 安全策略变化（ATS、HTTP/HTTPS、鉴权）。
-

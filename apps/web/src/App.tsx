@@ -4,25 +4,18 @@ import {
   downloadMarkdown,
   getOrCreateDeviceId,
   loadApiBaseUrl,
-  loadTasks,
-  parseMarkdownImport,
-  saveApiBaseUrl,
-  saveTasks
+  parseMarkdownImport
 } from "./storage";
-import { mergeByLww, pullRemoteTasks, pushAndPullTasks } from "./sync";
+import { pullRemoteTasks, pushAndPullTasks } from "./sync";
 
 const createId = (): string =>
   (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`).toString();
 
-const taskSignature = (items: Task[]): string =>
-  JSON.stringify(
-    [...items]
-      .sort((a, b) => a.id.localeCompare(b.id))
-      .map((item) => [item.id, item.updatedAt, item.status, item.title])
-  );
+const sortByUpdatedAt = (items: Task[]): Task[] =>
+  [...items].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
 function App() {
-  const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [quickInput, setQuickInput] = useState("");
   const [showDetails, setShowDetails] = useState(false);
   const [manualMinChunk, setManualMinChunk] = useState<string>("");
@@ -34,32 +27,26 @@ function App() {
 
   const tasksRef = useRef(tasks);
   const deviceIdRef = useRef(getOrCreateDeviceId());
-  const syncTimerRef = useRef<number | null>(null);
   const syncInFlightRef = useRef(false);
 
   useEffect(() => {
     tasksRef.current = tasks;
   }, [tasks]);
 
-  const visibleTasks = useMemo(
-    () => tasks.filter((task) => task.status !== "archived"),
-    [tasks]
-  );
+  const visibleTasks = useMemo(() => tasks.filter((task) => task.status !== "archived"), [tasks]);
 
   const todoCount = useMemo(
     () => visibleTasks.filter((task) => task.status !== "done").length,
     [visibleTasks]
   );
 
-  const mergeRemoteTasks = (incoming: Task[]) => {
-    const merged = mergeByLww(tasksRef.current, incoming);
-    if (taskSignature(merged) === taskSignature(tasksRef.current)) return;
-    setTasks(merged);
-    saveTasks(merged);
-    tasksRef.current = merged;
+  const applyRemoteTasks = (incoming: Task[]) => {
+    const sorted = sortByUpdatedAt(incoming);
+    setTasks(sorted);
+    tasksRef.current = sorted;
   };
 
-  const performSync = async () => {
+  const performSync = async (tasksToPush?: Task[]) => {
     const baseUrl = apiBaseUrl.trim();
     if (!baseUrl || syncInFlightRef.current) return;
 
@@ -67,8 +54,8 @@ function App() {
     setIsSyncing(true);
 
     try {
-      const remote = await pushAndPullTasks(baseUrl, deviceIdRef.current, tasksRef.current);
-      mergeRemoteTasks(remote);
+      const remote = await pushAndPullTasks(baseUrl, deviceIdRef.current, tasksToPush ?? tasksRef.current);
+      applyRemoteTasks(remote);
       setSyncMessage(`已同步 ${new Date().toLocaleTimeString()}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -85,34 +72,22 @@ function App() {
 
     try {
       const remote = await pullRemoteTasks(baseUrl);
-      mergeRemoteTasks(remote);
-    } catch {
-      // Pull is best effort in MVP.
+      applyRemoteTasks(remote);
+      setSyncMessage(`已拉取 ${new Date().toLocaleTimeString()}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSyncMessage(`拉取失败: ${message}`);
     }
   };
 
-  const scheduleSync = () => {
-    if (!apiBaseUrl.trim()) return;
-    if (syncTimerRef.current) {
-      window.clearTimeout(syncTimerRef.current);
-    }
-    syncTimerRef.current = window.setTimeout(() => {
-      void performSync();
-    }, 600);
-  };
-
-  const commitTasks = (next: Task[], origin: "local" | "remote" = "local") => {
+  const commitTasks = (next: Task[]) => {
     setTasks(next);
-    saveTasks(next);
     tasksRef.current = next;
-    if (origin === "local") {
-      scheduleSync();
-    }
+    void performSync(next);
   };
 
   useEffect(() => {
-    saveApiBaseUrl(apiBaseUrl);
-    void performSync();
+    void pullOnly();
   }, [apiBaseUrl]);
 
   useEffect(() => {
@@ -122,9 +97,6 @@ function App() {
 
     return () => {
       window.clearInterval(timer);
-      if (syncTimerRef.current) {
-        window.clearTimeout(syncTimerRef.current);
-      }
     };
   }, [apiBaseUrl]);
 
@@ -229,7 +201,7 @@ function App() {
     <main className="app">
       <section className="panel">
         <h1>ReToDoScheduler</h1>
-        <p className="muted">任务未完成：{todoCount}</p>
+        <p className="muted">任务未完成：{todoCount}（Web 端不做本地持久化，数据以服务器为准）</p>
         <div className="row">
           <input
             type="text"

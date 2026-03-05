@@ -27,7 +27,7 @@ npm run ios:dev
 
 - Monorepo scaffold is ready.
 - Core task model and defaults are implemented.
-- Web local CRUD + basic server sync is implemented.
+- Web uses server as source of truth (no local task persistence) with basic sync.
 - Mobile SQLite local CRUD + basic server sync is implemented.
 - API has `/health`, `/v1/tasks`, and `/v1/tasks/sync`.
 

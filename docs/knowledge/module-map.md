@@ -12,7 +12,7 @@
 
 ## apps/web
 - Browser execution and quick management.
-- Uses local storage and basic sync via `/v1/tasks/sync`.
+- Uses server as source of truth and basic sync via `/v1/tasks/sync`.
 
 ## services/api
 - Sync/backup/auth service boundary.
