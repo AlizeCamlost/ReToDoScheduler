@@ -12,5 +12,6 @@
         "titleBar.inactiveBackground": "#004a9499",
         "titleBar.inactiveForeground": "#e7e7e799"
     },
-    "peacock.color": "#004a94"
+    "peacock.color": "#004a94",
+    "window.title": "ReToDoScheduler"
 }
