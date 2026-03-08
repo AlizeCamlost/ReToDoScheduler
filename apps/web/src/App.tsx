@@ -1,8 +1,12 @@
 import { makeTask, nowIso, parseQuickInput, sortNornTasks, type Task, withKairosRank } from "@retodo/core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import TaskEditModal from "./components/TaskEditModal";
+import TaskItem from "./components/TaskItem";
 import { API_BASE_URL } from "./config";
 import { downloadMarkdown, getOrCreateDeviceId, parseMarkdownImport } from "./storage";
 import { pullRemoteTasks, pushAndPullTasks } from "./sync";
+
+type StatusFilter = "all" | "todo" | "done";
 
 const createId = (): string =>
   (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`).toString();
@@ -11,11 +15,16 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [quickInput, setQuickInput] = useState("");
   const [showDetails, setShowDetails] = useState(false);
-  const [manualMinChunk, setManualMinChunk] = useState<string>("");
-  const [manualEstimate, setManualEstimate] = useState<string>("");
+  const [manualMinChunk, setManualMinChunk] = useState("");
+  const [manualEstimate, setManualEstimate] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [syncMessage, setSyncMessage] = useState("未同步");
   const [isSyncing, setIsSyncing] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const tasksRef = useRef(tasks);
   const deviceIdRef = useRef(getOrCreateDeviceId());
@@ -25,74 +34,108 @@ function App() {
     tasksRef.current = tasks;
   }, [tasks]);
 
-  const visibleTasks = useMemo(() => tasks.filter((task) => task.status !== "archived"), [tasks]);
+  // ── Derived data ──
 
-  const todoCount = useMemo(
-    () => visibleTasks.filter((task) => task.status !== "done").length,
-    [visibleTasks]
-  );
+  const visibleTasks = useMemo(() => tasks.filter((t) => t.status !== "archived"), [tasks]);
 
-  const applyRemoteTasks = (incoming: Task[]) => {
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of visibleTasks) {
+      for (const tag of t.tags) set.add(tag);
+    }
+    return [...set].sort();
+  }, [visibleTasks]);
+
+  const filteredTasks = useMemo(() => {
+    let result = visibleTasks;
+
+    if (statusFilter === "todo") {
+      result = result.filter((t) => t.status !== "done");
+    } else if (statusFilter === "done") {
+      result = result.filter((t) => t.status === "done");
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+          (t.description ?? "").toLowerCase().includes(q)
+      );
+    }
+
+    if (activeTag) {
+      result = result.filter((t) => t.tags.includes(activeTag));
+    }
+
+    return result;
+  }, [visibleTasks, statusFilter, searchQuery, activeTag]);
+
+  const todoCount = useMemo(() => visibleTasks.filter((t) => t.status !== "done").length, [visibleTasks]);
+
+  const syncStatus = syncMessage.startsWith("同步失败") || syncMessage.startsWith("拉取失败") ? "error" : isSyncing ? "syncing" : "ok";
+
+  // ── Sync ──
+
+  const applyRemoteTasks = useCallback((incoming: Task[]) => {
     const sorted = sortNornTasks(incoming);
     setTasks(sorted);
     tasksRef.current = sorted;
-  };
+  }, []);
 
-  const performSync = async (tasksToPush?: Task[]) => {
+  const performSync = useCallback(
+    async (tasksToPush?: Task[]) => {
+      if (syncInFlightRef.current) return;
+      syncInFlightRef.current = true;
+      setIsSyncing(true);
+      try {
+        const remote = await pushAndPullTasks(API_BASE_URL, deviceIdRef.current, tasksToPush ?? tasksRef.current);
+        applyRemoteTasks(remote);
+        setSyncMessage(`已同步 ${new Date().toLocaleTimeString()}`);
+      } catch (error) {
+        setSyncMessage(`同步失败: ${error instanceof Error ? error.message : String(error)}`);
+      } finally {
+        syncInFlightRef.current = false;
+        setIsSyncing(false);
+      }
+    },
+    [applyRemoteTasks]
+  );
+
+  const pullOnly = useCallback(async () => {
     if (syncInFlightRef.current) return;
-
-    syncInFlightRef.current = true;
-    setIsSyncing(true);
-
-    try {
-      const remote = await pushAndPullTasks(API_BASE_URL, deviceIdRef.current, tasksToPush ?? tasksRef.current);
-      applyRemoteTasks(remote);
-      setSyncMessage(`已同步 ${new Date().toLocaleTimeString()}`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setSyncMessage(`同步失败: ${message}`);
-    } finally {
-      syncInFlightRef.current = false;
-      setIsSyncing(false);
-    }
-  };
-
-  const pullOnly = async () => {
-    if (syncInFlightRef.current) return;
-
     try {
       const remote = await pullRemoteTasks(API_BASE_URL);
       applyRemoteTasks(remote);
       setSyncMessage(`已拉取 ${new Date().toLocaleTimeString()}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setSyncMessage(`拉取失败: ${message}`);
+      setSyncMessage(`拉取失败: ${error instanceof Error ? error.message : String(error)}`);
     }
-  };
+  }, [applyRemoteTasks]);
 
-  const commitTasks = (next: Task[]) => {
-    setTasks(next);
-    tasksRef.current = next;
-    void performSync(next);
-  };
+  const commitTasks = useCallback(
+    (next: Task[]) => {
+      setTasks(next);
+      tasksRef.current = next;
+      void performSync(next);
+    },
+    [performSync]
+  );
 
   useEffect(() => {
     void pullOnly();
-  }, []);
+  }, [pullOnly]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      void pullOnly();
-    }, 7000);
+    const timer = window.setInterval(() => void pullOnly(), 7000);
+    return () => window.clearInterval(timer);
+  }, [pullOnly]);
 
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, []);
+  // ── Task actions ──
 
   const addTask = () => {
     if (!quickInput.trim()) return;
-
     const parsed = parseQuickInput(quickInput);
     const minChunk = manualMinChunk ? Number(manualMinChunk) : parsed.minChunkMinutes;
     const estimate = manualEstimate ? Number(manualEstimate) : parsed.estimatedMinutes;
@@ -116,36 +159,25 @@ function App() {
 
   const toggleDone = (taskId: string) => {
     commitTasks(
-      tasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: task.status === "done" ? "todo" : "done",
-              updatedAt: nowIso()
-            }
-          : task
+      tasks.map((t) =>
+        t.id === taskId ? { ...t, status: t.status === "done" ? ("todo" as const) : ("done" as const), updatedAt: nowIso() } : t
       )
     );
   };
 
   const archiveTask = (taskId: string) => {
-    commitTasks(
-      tasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: "archived",
-              updatedAt: nowIso()
-            }
-          : task
-      )
-    );
+    commitTasks(tasks.map((t) => (t.id === taskId ? { ...t, status: "archived" as const, updatedAt: nowIso() } : t)));
+  };
+
+  const saveEditedTask = (updated: Task) => {
+    commitTasks(tasks.map((t) => (t.id === updated.id ? updated : t)));
+    setEditingTask(null);
   };
 
   const reorder = (sourceId: string, targetId: string) => {
     if (sourceId === targetId) return;
-    const sourceIndex = visibleTasks.findIndex((task) => task.id === sourceId);
-    const targetIndex = visibleTasks.findIndex((task) => task.id === targetId);
+    const sourceIndex = visibleTasks.findIndex((t) => t.id === sourceId);
+    const targetIndex = visibleTasks.findIndex((t) => t.id === targetId);
     if (sourceIndex < 0 || targetIndex < 0) return;
 
     const visible = [...visibleTasks];
@@ -153,15 +185,12 @@ function App() {
     if (!moved) return;
     visible.splice(targetIndex, 0, moved);
 
-    const visibleIds = new Set(visible.map((task) => task.id));
-    const hidden = tasks.filter((task) => !visibleIds.has(task.id));
-    const reordered = [...visible, ...hidden].map((task, idx) => {
-      const nextTask = withKairosRank(task, idx);
-      return {
-        ...nextTask,
-        updatedAt: nowIso()
-      };
-    });
+    const visibleIds = new Set(visible.map((t) => t.id));
+    const hidden = tasks.filter((t) => !visibleIds.has(t.id));
+    const reordered = [...visible, ...hidden].map((t, idx) => ({
+      ...withKairosRank(t, idx),
+      updatedAt: nowIso()
+    }));
 
     commitTasks(reordered);
   };
@@ -192,99 +221,162 @@ function App() {
     commitTasks([...imported, ...tasks]);
   };
 
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTask();
+    }
+  };
+
+  // ── Render ──
+
   return (
     <main className="app">
-      <section className="panel">
-        <h1>Norn</h1>
-        <p className="muted">任务未完成：{todoCount}（Web 端不做本地持久化，数据以服务器为准）</p>
-        <div className="row">
-          <button onClick={() => void performSync()} disabled={isSyncing}>
-            {isSyncing ? "同步中" : "立即同步"}
+      {/* Header */}
+      <header className="header">
+        <div className="header-left">
+          <h1>Norn</h1>
+          <span className="task-count">{todoCount} 项待办</span>
+        </div>
+        <div className="sync-area">
+          <div className="sync-indicator">
+            <span className={`sync-dot ${syncStatus}`} />
+            <span className="sync-text">{syncMessage}</span>
+          </div>
+          <button
+            className="btn-icon"
+            onClick={() => void performSync()}
+            disabled={isSyncing}
+            title="立即同步"
+          >
+            {isSyncing ? "..." : "\u21BB"}
           </button>
         </div>
-        <p className="muted">{syncMessage}</p>
-        <div className="row">
+      </header>
+
+      {/* Quick input */}
+      <section className="card">
+        <div className="input-area">
           <input
+            className="input-main"
             type="text"
             value={quickInput}
-            onChange={(event) => setQuickInput(event.target.value)}
-            placeholder="输入任务，例如：明天前完成周报 90分钟 #工作 专注"
+            onChange={(e) => setQuickInput(e.target.value)}
+            onKeyDown={handleInputKeyDown}
+            placeholder="输入任务，如：明天前完成周报 90分钟 #工作 专注"
           />
-          <button onClick={addTask}>添加</button>
-        </div>
-        <div className="row" style={{ marginTop: 8 }}>
-          <button onClick={() => setShowDetails((value) => !value)}>
-            {showDetails ? "收起详情" : "展开详情"}
+          <button className="btn-add" onClick={addTask}>
+            添加
           </button>
-          <button onClick={() => downloadMarkdown(tasks)}>导出 Markdown</button>
-          <label>
-            导入 Markdown
-            <input
-              type="file"
-              accept=".md,text/markdown"
-              onChange={(event) => void importMarkdown(event.target.files?.[0] ?? null)}
-            />
+        </div>
+
+        <div className="toolbar">
+          <button className={`btn-text${showDetails ? " active" : ""}`} onClick={() => setShowDetails((v) => !v)}>
+            {showDetails ? "收起详情" : "详情"}
+          </button>
+          <button className="btn-text" onClick={() => downloadMarkdown(tasks)}>
+            导出
+          </button>
+          <label className="file-label">
+            导入
+            <input type="file" accept=".md,text/markdown" onChange={(e) => void importMarkdown(e.target.files?.[0] ?? null)} />
           </label>
         </div>
-        {showDetails ? (
-          <div className="row" style={{ marginTop: 8 }}>
+
+        {showDetails && (
+          <div className="detail-row">
             <input
+              className="detail-input"
               type="text"
-              placeholder="估时（分钟，可选）"
+              placeholder="预估时长（分钟）"
               value={manualEstimate}
-              onChange={(event) => setManualEstimate(event.target.value)}
+              onChange={(e) => setManualEstimate(e.target.value)}
             />
             <input
+              className="detail-input"
               type="text"
-              placeholder="最小拆分（分钟，可选）"
+              placeholder="最小拆分（分钟）"
               value={manualMinChunk}
-              onChange={(event) => setManualMinChunk(event.target.value)}
+              onChange={(e) => setManualMinChunk(e.target.value)}
             />
           </div>
-        ) : null}
+        )}
       </section>
 
-      <section className="panel">
-        <h2>任务</h2>
-        <p className="muted">拖拽重排后会自动同步到服务器（LWW + Kairos rank）。</p>
-        <ul className="task-list">
-          {visibleTasks.map((task) => (
-            <li
-              key={task.id}
-              className="task-item"
-              draggable
-              onDragStart={() => setDraggingId(task.id)}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={() => {
-                if (!draggingId) return;
+      {/* Filter bar */}
+      <div className="filter-bar">
+        <div className="filter-tabs">
+          {(["all", "todo", "done"] as const).map((f) => (
+            <button
+              key={f}
+              className={`filter-tab${statusFilter === f ? " active" : ""}`}
+              onClick={() => setStatusFilter(f)}
+            >
+              {{ all: "全部", todo: "待办", done: "已完成" }[f]}
+            </button>
+          ))}
+        </div>
+        <div className="search-wrapper">
+          <span className="search-icon">{"\u{1F50D}"}</span>
+          <input
+            className="search-input"
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜索任务..."
+          />
+        </div>
+      </div>
+
+      {/* Tag filter */}
+      {allTags.length > 0 && (
+        <div className="tag-filter-bar">
+          {activeTag && (
+            <button className="badge-filter active" onClick={() => setActiveTag(null)}>
+              全部
+            </button>
+          )}
+          {allTags.map((tag) => (
+            <button
+              key={tag}
+              className={`badge-filter${activeTag === tag ? " active" : ""}`}
+              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Task list */}
+      <ul className="task-list">
+        {filteredTasks.length === 0 && (
+          <li className="empty-state">
+            {visibleTasks.length === 0 ? "还没有任务，在上方输入框添加第一个任务" : "没有匹配的任务"}
+          </li>
+        )}
+        {filteredTasks.map((task) => (
+          <TaskItem
+            key={task.id}
+            task={task}
+            isDragging={draggingId === task.id}
+            onToggleDone={() => toggleDone(task.id)}
+            onArchive={() => archiveTask(task.id)}
+            onEdit={() => setEditingTask(task)}
+            onDragStart={() => setDraggingId(task.id)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => {
+              if (draggingId) {
                 reorder(draggingId, task.id);
                 setDraggingId(null);
-              }}
-            >
-              <div className="task-top">
-                <div>
-                  <div className={`task-title ${task.status === "done" ? "done" : ""}`}>{task.title}</div>
-                  <div className="muted">
-                    估时 {task.estimatedMinutes}m | 最小拆分 {task.minChunkMinutes}m
-                    {task.dueAt ? ` | 截止 ${task.dueAt.slice(0, 10)}` : ""}
-                  </div>
-                  <div>
-                    {task.tags.map((tag) => (
-                      <span key={tag} className="badge">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="actions">
-                  <button onClick={() => toggleDone(task.id)}>{task.status === "done" ? "撤销" : "完成"}</button>
-                  <button onClick={() => archiveTask(task.id)}>删除</button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+              }
+            }}
+          />
+        ))}
+      </ul>
+
+      {/* Edit modal */}
+      {editingTask && <TaskEditModal task={editingTask} onSave={saveEditedTask} onClose={() => setEditingTask(null)} />}
     </main>
   );
 }
