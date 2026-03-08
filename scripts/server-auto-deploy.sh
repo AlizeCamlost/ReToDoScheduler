@@ -29,8 +29,16 @@ echo "[deploy] Running migration..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" \
   exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /migrations/001_init.sql
 
-echo "[deploy] Health check..."
-curl -fsS http://127.0.0.1:3080/health >/tmp/retodo-health.json
-cat /tmp/retodo-health.json
-
-echo "[deploy] Completed."
+echo "[deploy] Health check (retrying up to 30s)..."
+for i in $(seq 1 10); do
+  if curl -fsS http://127.0.0.1:3080/health >/tmp/retodo-health.json 2>/dev/null; then
+    cat /tmp/retodo-health.json
+    echo ""
+    echo "[deploy] Completed."
+    exit 0
+  fi
+  echo "  attempt $i failed, waiting 3s..."
+  sleep 3
+done
+echo "[deploy] Health check failed after 30s" >&2
+exit 1
