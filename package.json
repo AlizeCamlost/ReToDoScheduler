@@ -16,6 +16,7 @@
     "dev:api": "npm --workspace services/api run dev",
     "dev:db:up": "docker compose up -d db",
     "dev:db:down": "docker compose stop db",
+    "dev:db:migrate": "bash scripts/run-migrations.sh",
     "ios:dev": "bash scripts/ios-dev.sh",
     "ios:dev:tunnel": "bash scripts/ios-dev.sh --tunnel",
     "ios:prepare": "bash scripts/ios-dev.sh --prebuild --open-xcode --no-metro"

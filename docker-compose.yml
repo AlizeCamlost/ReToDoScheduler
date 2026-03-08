@@ -1,4 +1,5 @@
-version: "3.9"
+name: retodoscheduler
+
 services:
   db:
     image: postgres:16-alpine
@@ -12,6 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - retodo_pgdata:/var/lib/postgresql/data
+      - ./services/db/migrations:/migrations:ro
 
   api:
     image: node:22-alpine

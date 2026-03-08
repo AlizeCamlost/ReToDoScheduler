@@ -25,9 +25,9 @@ set +a
 echo "[deploy] Rebuilding containers..."
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
 
-echo "[deploy] Running migration..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" \
-  exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /migrations/001_init.sql
+echo "[deploy] Running migrations..."
+COMPOSE_FILE="$COMPOSE_FILE" ENV_FILE="$ENV_FILE" \
+  bash scripts/run-migrations.sh
 
 echo "[deploy] Health check (retrying up to 30s)..."
 for i in $(seq 1 10); do
