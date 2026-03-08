@@ -30,7 +30,7 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" \
   exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /migrations/001_init.sql
 
 echo "[deploy] Health check..."
-curl -fsS http://127.0.0.1:8787/health >/tmp/retodo-health.json
+curl -fsS http://127.0.0.1:3080/health >/tmp/retodo-health.json
 cat /tmp/retodo-health.json
 
 echo "[deploy] Completed."
