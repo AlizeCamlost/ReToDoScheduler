@@ -22,8 +22,15 @@ set -a
 source "$ENV_FILE"
 set +a
 
+echo "[deploy] Cleaning up orphaned containers (if any)..."
+for name in retodo-db retodo-api retodo-web; do
+  if docker ps -a --format '{{.Names}}' | grep -qx "$name"; then
+    docker rm -f "$name" 2>/dev/null || true
+  fi
+done
+
 echo "[deploy] Rebuilding containers..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build --remove-orphans
 
 echo "[deploy] Running migrations..."
 COMPOSE_FILE="$COMPOSE_FILE" ENV_FILE="$ENV_FILE" \
