@@ -35,5 +35,19 @@ services:
     ports:
       - "8787:8787"
 
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: ""
+        VITE_API_AUTH_TOKEN: ${API_AUTH_TOKEN}
+    container_name: retodo-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+
 volumes:
   retodo_pgdata:
