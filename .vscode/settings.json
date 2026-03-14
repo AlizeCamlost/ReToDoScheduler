@@ -1,17 +1,17 @@
 {
+    "window.title": "ReToDoScheduler",
     "workbench.colorCustomizations": {
         "commandCenter.border": "#e7e7e799",
-        "sash.hoverBorder": "#0063c7",
-        "statusBar.background": "#004a94",
+        "sash.hoverBorder": "#628e6d",
+        "statusBar.background": "#4d7056",
         "statusBar.foreground": "#e7e7e7",
-        "statusBarItem.hoverBackground": "#0063c7",
-        "statusBarItem.remoteBackground": "#004a94",
+        "statusBarItem.hoverBackground": "#628e6d",
+        "statusBarItem.remoteBackground": "#4d7056",
         "statusBarItem.remoteForeground": "#e7e7e7",
-        "titleBar.activeBackground": "#004a94",
+        "titleBar.activeBackground": "#4d7056",
         "titleBar.activeForeground": "#e7e7e7",
-        "titleBar.inactiveBackground": "#004a9499",
+        "titleBar.inactiveBackground": "#4d705699",
         "titleBar.inactiveForeground": "#e7e7e799"
     },
-    "peacock.color": "#004a94",
-    "window.title": "ReToDoScheduler"
+    "peacock.color": "#4D7056"
 }
