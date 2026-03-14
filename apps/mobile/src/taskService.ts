@@ -1,27 +1,28 @@
-import { makeTask, nowIso, parseQuickInput, type Task } from "@retodo/core";
+import { embedTaskModel, makeTask, nowIso, parseQuickInput, type Task } from "@retodo/core";
 import { getDb } from "./db";
 
 const createId = (): string =>
   (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`).toString();
 
-const rowToTask = (row: Record<string, unknown>): Task => ({
-  id: String(row.id),
-  title: String(row.title),
-  rawInput: String(row.raw_input),
-  status: row.status as Task["status"],
-  estimatedMinutes: Number(row.estimated_minutes),
-  minChunkMinutes: Number(row.min_chunk_minutes),
-  dueAt: row.due_at ? String(row.due_at) : undefined,
-  importance: Number(row.importance),
-  value: Number(row.value_score),
-  difficulty: Number(row.difficulty),
-  postponability: Number(row.postponability),
-  taskTraits: JSON.parse(String(row.task_traits_json)),
-  tags: JSON.parse(String(row.tags_json)),
-  createdAt: String(row.created_at),
-  updatedAt: String(row.updated_at),
-  extJson: JSON.parse(String(row.ext_json))
-});
+const rowToTask = (row: Record<string, unknown>): Task =>
+  makeTask({
+    id: String(row.id),
+    title: String(row.title),
+    rawInput: String(row.raw_input),
+    status: row.status as Task["status"],
+    estimatedMinutes: Number(row.estimated_minutes),
+    minChunkMinutes: Number(row.min_chunk_minutes),
+    dueAt: row.due_at ? String(row.due_at) : undefined,
+    importance: Number(row.importance),
+    value: Number(row.value_score),
+    difficulty: Number(row.difficulty),
+    postponability: Number(row.postponability),
+    taskTraits: JSON.parse(String(row.task_traits_json)) as Task["taskTraits"],
+    tags: JSON.parse(String(row.tags_json)) as string[],
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+    extJson: JSON.parse(String(row.ext_json)) as Record<string, unknown>
+  });
 
 const upsertTaskSql = `INSERT INTO tasks (
   id, title, raw_input, status, estimated_minutes, min_chunk_minutes, due_at,
@@ -99,7 +100,7 @@ export const upsertTasks = async (tasks: Task[]): Promise<void> => {
         JSON.stringify(task.tags),
         task.createdAt,
         task.updatedAt,
-        JSON.stringify(task.extJson)
+        JSON.stringify(embedTaskModel(task))
       );
     }
   });

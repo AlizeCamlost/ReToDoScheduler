@@ -2,61 +2,35 @@ import type { Task } from "@retodo/core";
 
 interface TaskItemProps {
   task: Task;
-  isDragging: boolean;
   onToggleDone: () => void;
   onArchive: () => void;
   onEdit: () => void;
-  onDragStart: () => void;
-  onDragOver: (e: React.DragEvent) => void;
-  onDrop: () => void;
 }
 
-function getDueLabel(dueAt: string): { text: string; className: string } {
+const getDueLabel = (dueAt?: string): string | null => {
+  if (!dueAt) return null;
+
   const now = new Date();
   const due = new Date(dueAt);
   now.setHours(0, 0, 0, 0);
   due.setHours(0, 0, 0, 0);
-  const diffMs = due.getTime() - now.getTime();
-  const diffDays = Math.round(diffMs / 86_400_000);
 
-  if (diffDays < 0) return { text: `逾期 ${Math.abs(diffDays)} 天`, className: "due-overdue" };
-  if (diffDays === 0) return { text: "今天截止", className: "due-today" };
-  if (diffDays === 1) return { text: "明天截止", className: "due-today" };
-  if (diffDays <= 7) return { text: `${diffDays} 天后截止`, className: "due-upcoming" };
-  return { text: dueAt.slice(0, 10), className: "due-upcoming" };
-}
+  const diffDays = Math.round((due.getTime() - now.getTime()) / 86_400_000);
+  if (diffDays < 0) return `逾期 ${Math.abs(diffDays)} 天`;
+  if (diffDays === 0) return "今天截止";
+  if (diffDays === 1) return "明天截止";
+  return `${diffDays} 天后截止`;
+};
 
-export default function TaskItem({
-  task,
-  isDragging,
-  onToggleDone,
-  onArchive,
-  onEdit,
-  onDragStart,
-  onDragOver,
-  onDrop
-}: TaskItemProps) {
+export default function TaskItem({ task, onToggleDone, onArchive, onEdit }: TaskItemProps) {
   const isDone = task.status === "done";
-  const dueInfo = task.dueAt ? getDueLabel(task.dueAt) : null;
+  const dueLabel = getDueLabel(task.dueAt);
 
   return (
-    <li
-      className={`task-item${isDragging ? " dragging" : ""}${isDone ? " done-item" : ""}`}
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-    >
-      <span className="drag-handle" title="拖拽排序">
-        ⠿
-      </span>
-
+    <li className={`task-item${isDone ? " done-item" : ""}`}>
       <button
         className={`task-checkbox${isDone ? " checked" : ""}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleDone();
-        }}
+        onClick={onToggleDone}
         title={isDone ? "标记未完成" : "标记完成"}
       />
 
@@ -65,14 +39,16 @@ export default function TaskItem({
 
         <div className="task-meta">
           <span>估时 {task.estimatedMinutes}m</span>
-          <span className="task-meta-sep">拆分 {task.minChunkMinutes}m</span>
-          {dueInfo && (
-            <span className={`task-meta-sep ${dueInfo.className}`}>{dueInfo.text}</span>
-          )}
+          <span className="task-meta-sep">最小块 {task.minChunkMinutes}m</span>
+          <span className="task-meta-sep">按时收益 {task.scheduleValue.rewardOnTime}</span>
+          <span className="task-meta-sep">错过损失 {task.scheduleValue.penaltyMissed}</span>
+          {dueLabel && <span className="task-meta-sep">{dueLabel}</span>}
         </div>
 
-        {task.tags.length > 0 && (
+        {(task.dependsOnTaskIds.length > 0 || task.steps.length > 0 || task.tags.length > 0) && (
           <div className="task-tags">
+            {task.dependsOnTaskIds.length > 0 && <span className="badge subtle">依赖 {task.dependsOnTaskIds.length}</span>}
+            {task.steps.length > 0 && <span className="badge subtle">步骤 {task.steps.length}</span>}
             {task.tags.map((tag) => (
               <span key={tag} className="badge">
                 #{tag}
@@ -82,15 +58,11 @@ export default function TaskItem({
         )}
       </div>
 
-      <div className="task-actions">
-        <button
-          className="btn-action danger"
-          onClick={(e) => {
-            e.stopPropagation();
-            onArchive();
-          }}
-          title="删除"
-        >
+      <div className="task-actions visible">
+        <button className="btn-action" onClick={onEdit}>
+          编辑
+        </button>
+        <button className="btn-action danger" onClick={onArchive}>
           删除
         </button>
       </div>

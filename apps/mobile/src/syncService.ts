@@ -1,4 +1,4 @@
-import type { Task } from "@retodo/core";
+import { makeTask, type Task } from "@retodo/core";
 import { API_AUTH_TOKEN, API_BASE_URL } from "./config";
 import { getOrCreateDeviceId, listTasks, upsertTasks } from "./taskService";
 
@@ -6,7 +6,35 @@ const parseItems = (payload: unknown): Task[] => {
   if (!payload || typeof payload !== "object") return [];
   const data = payload as { items?: unknown };
   if (!Array.isArray(data.items)) return [];
-  return data.items as Task[];
+  return data.items
+    .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+    .map((item) => {
+      const next: Parameters<typeof makeTask>[0] = {
+        id: String(item.id),
+        title: String(item.title),
+        rawInput: String(item.rawInput),
+        description: typeof item.description === "string" ? item.description : undefined,
+        status: (item.status as Task["status"]) ?? "todo",
+        estimatedMinutes: Number(item.estimatedMinutes),
+        minChunkMinutes: Number(item.minChunkMinutes),
+        dueAt: typeof item.dueAt === "string" ? item.dueAt : undefined,
+        importance: Number(item.importance),
+        value: Number(item.value),
+        difficulty: Number(item.difficulty),
+        postponability: Number(item.postponability),
+        tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag)) : [],
+        createdAt: String(item.createdAt),
+        updatedAt: String(item.updatedAt),
+        extJson:
+          typeof item.extJson === "object" && item.extJson ? (item.extJson as Record<string, unknown>) : {}
+      };
+
+      if (typeof item.taskTraits === "object" && item.taskTraits) {
+        next.taskTraits = item.taskTraits as Task["taskTraits"];
+      }
+
+      return makeTask(next);
+    });
 };
 
 const normalizeBaseUrl = (input: string): string => {

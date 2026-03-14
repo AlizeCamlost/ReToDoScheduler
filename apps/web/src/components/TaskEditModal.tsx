@@ -1,111 +1,178 @@
-import { nowIso, type Task, type FocusLevel, type Interruptibility, type LocationType, type DeviceType } from "@retodo/core";
-import { type FormEvent, useState, useRef, useCallback, useEffect } from "react";
+import {
+  makeTask,
+  nowIso,
+  type DeviceType,
+  type FocusLevel,
+  type Interruptibility,
+  type LocationType,
+  type Task,
+  type TaskStepTemplate
+} from "@retodo/core";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface TaskEditModalProps {
   task: Task;
+  allTasks: Task[];
   onSave: (updated: Task) => void;
   onClose: () => void;
 }
 
-export default function TaskEditModal({ task, onSave, onClose }: TaskEditModalProps) {
+interface EditableStep extends TaskStepTemplate {}
+
+const slugify = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\u4e00-\u9fa5-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
+
+const normalizeSteps = (steps: EditableStep[]): TaskStepTemplate[] =>
+  steps
+    .map((step, index) => {
+      const title = step.title.trim() || `步骤 ${index + 1}`;
+      const id = step.id.trim() || slugify(title) || `step-${index + 1}`;
+      return {
+        id,
+        title,
+        estimatedMinutes: Math.max(1, Number(step.estimatedMinutes) || 30),
+        minChunkMinutes: Math.max(1, Number(step.minChunkMinutes) || 25),
+        dependsOnStepIds: step.dependsOnStepIds.filter(Boolean)
+      };
+    })
+    .filter((step) => step.title.trim().length > 0);
+
+export default function TaskEditModal({ task, allTasks, onSave, onClose }: TaskEditModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [estimatedMinutes, setEstimatedMinutes] = useState(String(task.estimatedMinutes));
   const [minChunkMinutes, setMinChunkMinutes] = useState(String(task.minChunkMinutes));
   const [dueAt, setDueAt] = useState(task.dueAt?.slice(0, 10) ?? "");
-  const [tags, setTags] = useState<string[]>([...task.tags]);
-  const [tagInput, setTagInput] = useState("");
-  const [importance, setImportance] = useState(String(task.importance));
-  const [difficulty, setDifficulty] = useState(String(task.difficulty));
+  const [tagsInput, setTagsInput] = useState(task.tags.join(", "));
+  const [rewardOnTime, setRewardOnTime] = useState(String(task.scheduleValue.rewardOnTime));
+  const [penaltyMissed, setPenaltyMissed] = useState(String(task.scheduleValue.penaltyMissed));
+  const [dependsOnTaskIds, setDependsOnTaskIds] = useState<string[]>(task.dependsOnTaskIds);
+  const [steps, setSteps] = useState<EditableStep[]>(
+    task.steps.length > 0
+      ? task.steps.map((step) => ({ ...step }))
+      : []
+  );
   const [focus, setFocus] = useState<FocusLevel>(task.taskTraits.focus);
   const [interruptibility, setInterruptibility] = useState<Interruptibility>(task.taskTraits.interruptibility);
   const [location, setLocation] = useState<LocationType>(task.taskTraits.location);
   const [device, setDevice] = useState<DeviceType>(task.taskTraits.device);
-  const [parallelizable, setParallelizable] = useState(task.taskTraits.parallelizable);
 
-  const overlayRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
 
-  const handleOverlayClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === overlayRef.current) onClose();
-    },
-    [onClose]
-  );
-
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const addTag = () => {
-    const raw = tagInput.trim().replace(/^#/, "");
-    if (raw && !tags.includes(raw)) {
-      setTags([...tags, raw]);
-    }
-    setTagInput("");
+  const dependencyCandidates = useMemo(
+    () => allTasks.filter((candidate) => candidate.id !== task.id && candidate.status !== "archived"),
+    [allTasks, task.id]
+  );
+
+  const handleOverlayClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (event.target === overlayRef.current) onClose();
+    },
+    [onClose]
+  );
+
+  const toggleDependency = (taskId: string) => {
+    setDependsOnTaskIds((current) =>
+      current.includes(taskId) ? current.filter((id) => id !== taskId) : [...current, taskId]
+    );
   };
 
-  const removeTag = (tag: string) => {
-    setTags(tags.filter((t) => t !== tag));
+  const updateStep = (index: number, patch: Partial<EditableStep>) => {
+    setSteps((current) =>
+      current.map((step, currentIndex) => (currentIndex === index ? { ...step, ...patch } : step))
+    );
   };
 
-  const handleTagKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addTag();
-    }
-    if (e.key === "Backspace" && tagInput === "" && tags.length > 0) {
-      setTags(tags.slice(0, -1));
-    }
+  const removeStep = (index: number) => {
+    setSteps((current) => current.filter((_, currentIndex) => currentIndex !== index));
   };
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const addStep = () => {
+    setSteps((current) => [
+      ...current,
+      {
+        id: `step-${current.length + 1}`,
+        title: "",
+        estimatedMinutes: 30,
+        minChunkMinutes: 25,
+        dependsOnStepIds: current.length > 0 ? [current[current.length - 1]?.id ?? ""] : []
+      }
+    ]);
+  };
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
     if (!title.trim()) return;
 
-    const est = Number(estimatedMinutes);
-    const chunk = Number(minChunkMinutes);
-    const imp = Number(importance);
-    const diff = Number(difficulty);
+    const normalizedSteps = normalizeSteps(steps);
+    const validStepIds = new Set(normalizedSteps.map((step) => step.id));
+    const filteredSteps = normalizedSteps.map((step) => ({
+      ...step,
+      dependsOnStepIds: step.dependsOnStepIds.filter((stepId) => validStepIds.has(stepId) && stepId !== step.id)
+    }));
 
-    const updated: Task = {
+    const updated = makeTask({
       ...task,
       title: title.trim(),
+      rawInput: task.rawInput || title.trim(),
       description: description.trim() || undefined,
-      estimatedMinutes: Number.isFinite(est) && est > 0 ? est : task.estimatedMinutes,
-      minChunkMinutes: Number.isFinite(chunk) && chunk > 0 ? chunk : task.minChunkMinutes,
-      dueAt: dueAt ? new Date(dueAt + "T23:59:59").toISOString() : undefined,
-      importance: Number.isFinite(imp) ? Math.max(0, Math.min(1, imp)) : task.importance,
-      difficulty: Number.isFinite(diff) ? Math.max(0, Math.min(1, diff)) : task.difficulty,
-      tags,
-      taskTraits: { focus, interruptibility, location, device, parallelizable },
+      estimatedMinutes: Math.max(1, Number(estimatedMinutes) || task.estimatedMinutes),
+      minChunkMinutes: Math.max(1, Number(minChunkMinutes) || task.minChunkMinutes),
+      dueAt: dueAt ? new Date(`${dueAt}T23:59:59`).toISOString() : undefined,
+      tags: tagsInput
+        .split(",")
+        .map((tag) => tag.trim().replace(/^#/, ""))
+        .filter(Boolean),
+      scheduleValue: {
+        rewardOnTime: Math.max(0, Number(rewardOnTime) || task.scheduleValue.rewardOnTime),
+        penaltyMissed: Math.max(0, Number(penaltyMissed) || task.scheduleValue.penaltyMissed)
+      },
+      dependsOnTaskIds,
+      steps: filteredSteps,
+      taskTraits: {
+        ...task.taskTraits,
+        focus,
+        interruptibility,
+        location,
+        device,
+        parallelizable: false
+      },
       updatedAt: nowIso()
-    };
+    });
 
     onSave(updated);
   };
 
   return (
     <div className="modal-overlay" ref={overlayRef} onClick={handleOverlayClick}>
-      <div className="modal" role="dialog" aria-label="编辑任务">
+      <div className="modal modal-wide" role="dialog" aria-label="编辑任务">
         <div className="modal-header">
           <h2>编辑任务</h2>
           <button className="btn-close" onClick={onClose} title="关闭">
-            ✕
+            ×
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form className="modal-form" onSubmit={handleSubmit}>
           <div className="modal-body">
-            {/* 基本信息 */}
             <div className="form-section">
               <div className="form-section-title">基本信息</div>
               <div className="form-group">
@@ -116,218 +183,232 @@ export default function TaskEditModal({ task, onSave, onClose }: TaskEditModalPr
                   ref={titleRef}
                   id="edit-title"
                   className="form-input"
-                  type="text"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(event) => setTitle(event.target.value)}
                   required
                 />
               </div>
               <div className="form-group">
-                <label className="form-label" htmlFor="edit-desc">
+                <label className="form-label" htmlFor="edit-description">
                   描述
                 </label>
                 <textarea
-                  id="edit-desc"
+                  id="edit-description"
                   className="form-textarea"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={2}
-                  placeholder="可选"
+                  onChange={(event) => setDescription(event.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="edit-tags">
+                  标签
+                </label>
+                <input
+                  id="edit-tags"
+                  className="form-input"
+                  value={tagsInput}
+                  onChange={(event) => setTagsInput(event.target.value)}
+                  placeholder="逗号分隔，例如：工作, ddl"
                 />
               </div>
             </div>
 
-            {/* 时间 */}
             <div className="form-section">
-              <div className="form-section-title">时间</div>
+              <div className="form-section-title">约束与价值</div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="edit-est">
-                    预估时长（分钟）
-                  </label>
+                  <label className="form-label">总耗时（分钟）</label>
                   <input
-                    id="edit-est"
                     className="form-input"
                     type="number"
                     min="1"
                     value={estimatedMinutes}
-                    onChange={(e) => setEstimatedMinutes(e.target.value)}
+                    onChange={(event) => setEstimatedMinutes(event.target.value)}
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="edit-chunk">
-                    最小拆分（分钟）
-                  </label>
+                  <label className="form-label">最小块（分钟）</label>
                   <input
-                    id="edit-chunk"
                     className="form-input"
                     type="number"
                     min="1"
                     value={minChunkMinutes}
-                    onChange={(e) => setMinChunkMinutes(e.target.value)}
+                    onChange={(event) => setMinChunkMinutes(event.target.value)}
                   />
                 </div>
               </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="edit-due">
-                  截止日期
-                </label>
-                <input
-                  id="edit-due"
-                  className="form-input"
-                  type="date"
-                  value={dueAt}
-                  onChange={(e) => setDueAt(e.target.value)}
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">截止日期</label>
+                  <input className="form-input" type="date" value={dueAt} onChange={(event) => setDueAt(event.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">按时收益</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    value={rewardOnTime}
+                    onChange={(event) => setRewardOnTime(event.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">错过损失</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    value={penaltyMissed}
+                    onChange={(event) => setPenaltyMissed(event.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* 标签 */}
             <div className="form-section">
-              <div className="form-section-title">标签</div>
-              <div className="tag-input-area">
-                {tags.map((tag) => (
-                  <span key={tag} className="tag-chip">
-                    #{tag}
-                    <button type="button" onClick={() => removeTag(tag)} title="移除标签">
-                      ✕
-                    </button>
-                  </span>
-                ))}
-                <input
-                  className="tag-input"
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  onBlur={addTag}
-                  placeholder={tags.length === 0 ? "输入标签后回车添加" : ""}
-                />
-              </div>
+              <div className="form-section-title">任务依赖</div>
+              {dependencyCandidates.length === 0 ? (
+                <div className="helper-text">当前没有可依赖的其他任务。</div>
+              ) : (
+                <div className="dependency-grid">
+                  {dependencyCandidates.map((candidate) => (
+                    <label key={candidate.id} className="dependency-option">
+                      <input
+                        type="checkbox"
+                        checked={dependsOnTaskIds.includes(candidate.id)}
+                        onChange={() => toggleDependency(candidate.id)}
+                      />
+                      <span>{candidate.title}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* 特征 */}
+            <div className="form-section">
+              <div className="form-section-header">
+                <div className="form-section-title">子步骤</div>
+                <button type="button" className="btn-text" onClick={addStep}>
+                  添加步骤
+                </button>
+              </div>
+              {steps.length === 0 && <div className="helper-text">留空表示该任务直接作为一个调度单元。</div>}
+              {steps.map((step, index) => (
+                <div key={`${step.id}-${index}`} className="step-card">
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">步骤 ID</label>
+                      <input
+                        className="form-input"
+                        value={step.id}
+                        onChange={(event) => updateStep(index, { id: event.target.value })}
+                        placeholder={`step-${index + 1}`}
+                      />
+                    </div>
+                    <div className="form-group grow">
+                      <label className="form-label">步骤标题</label>
+                      <input
+                        className="form-input"
+                        value={step.title}
+                        onChange={(event) => updateStep(index, { title: event.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">耗时</label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min="1"
+                        value={step.estimatedMinutes}
+                        onChange={(event) => updateStep(index, { estimatedMinutes: Number(event.target.value) })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">最小块</label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min="1"
+                        value={step.minChunkMinutes}
+                        onChange={(event) => updateStep(index, { minChunkMinutes: Number(event.target.value) })}
+                      />
+                    </div>
+                    <div className="form-group grow">
+                      <label className="form-label">依赖步骤 ID（逗号分隔）</label>
+                      <input
+                        className="form-input"
+                        value={step.dependsOnStepIds.join(", ")}
+                        onChange={(event) =>
+                          updateStep(index, {
+                            dependsOnStepIds: event.target.value
+                              .split(",")
+                              .map((value) => value.trim())
+                              .filter(Boolean)
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="step-actions">
+                    <button type="button" className="btn-action danger" onClick={() => removeStep(index)}>
+                      删除步骤
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="form-section">
               <div className="form-section-title">任务特征</div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="edit-focus">
-                    专注度
-                  </label>
-                  <select
-                    id="edit-focus"
-                    className="form-select"
-                    value={focus}
-                    onChange={(e) => setFocus(e.target.value as FocusLevel)}
-                  >
+                  <label className="form-label">专注度</label>
+                  <select className="form-select" value={focus} onChange={(event) => setFocus(event.target.value as FocusLevel)}>
                     <option value="high">高</option>
                     <option value="medium">中</option>
                     <option value="low">低</option>
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="edit-interrupt">
-                    可中断性
-                  </label>
+                  <label className="form-label">可中断性</label>
                   <select
-                    id="edit-interrupt"
                     className="form-select"
                     value={interruptibility}
-                    onChange={(e) => setInterruptibility(e.target.value as Interruptibility)}
+                    onChange={(event) => setInterruptibility(event.target.value as Interruptibility)}
                   >
                     <option value="low">低</option>
                     <option value="medium">中</option>
                     <option value="high">高</option>
                   </select>
                 </div>
-              </div>
-              <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label" htmlFor="edit-location">
-                    场所
-                  </label>
-                  <select
-                    id="edit-location"
-                    className="form-select"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value as LocationType)}
-                  >
+                  <label className="form-label">场所</label>
+                  <select className="form-select" value={location} onChange={(event) => setLocation(event.target.value as LocationType)}>
                     <option value="any">不限</option>
                     <option value="indoor">室内</option>
                     <option value="outdoor">室外</option>
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="edit-device">
-                    设备
-                  </label>
-                  <select
-                    id="edit-device"
-                    className="form-select"
-                    value={device}
-                    onChange={(e) => setDevice(e.target.value as DeviceType)}
-                  >
+                  <label className="form-label">设备</label>
+                  <select className="form-select" value={device} onChange={(event) => setDevice(event.target.value as DeviceType)}>
                     <option value="any">不限</option>
                     <option value="desktop">桌面</option>
-                    <option value="mobile">手机</option>
+                    <option value="mobile">移动</option>
                   </select>
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-checkbox-row">
-                  <input
-                    type="checkbox"
-                    checked={parallelizable}
-                    onChange={(e) => setParallelizable(e.target.checked)}
-                  />
-                  可并行执行
-                </label>
-              </div>
-            </div>
-
-            {/* 评分 */}
-            <div className="form-section">
-              <div className="form-section-title">评分参数</div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="edit-importance">
-                    重要度 (0-1)
-                  </label>
-                  <input
-                    id="edit-importance"
-                    className="form-input"
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={importance}
-                    onChange={(e) => setImportance(e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label" htmlFor="edit-difficulty">
-                    难度 (0-1)
-                  </label>
-                  <input
-                    id="edit-difficulty"
-                    className="form-input"
-                    type="number"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value)}
-                  />
                 </div>
               </div>
             </div>
           </div>
 
           <div className="modal-footer">
-            <button type="button" className="btn-cancel" onClick={onClose}>
+            <button type="button" className="btn-secondary" onClick={onClose}>
               取消
             </button>
-            <button type="submit" className="btn-save">
+            <button type="submit" className="btn-primary">
               保存
             </button>
           </div>

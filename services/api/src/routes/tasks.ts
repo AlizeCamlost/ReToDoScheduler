@@ -1,27 +1,8 @@
+import { embedTaskModel, makeTask, type Task } from "@retodo/core";
 import type { FastifyPluginAsync } from "fastify";
 import { pool } from "../db.js";
 
-type TaskStatus = "todo" | "doing" | "done" | "archived";
-
-interface SyncTaskPayload {
-  id: string;
-  title: string;
-  rawInput: string;
-  description?: string | undefined;
-  status: TaskStatus;
-  estimatedMinutes: number;
-  minChunkMinutes: number;
-  dueAt?: string | undefined;
-  importance: number;
-  value: number;
-  difficulty: number;
-  postponability: number;
-  taskTraits: Record<string, unknown>;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-  extJson: Record<string, unknown>;
-}
+type SyncTaskPayload = Task;
 
 interface SyncBody {
   deviceId: string;
@@ -38,12 +19,12 @@ const coerceTask = (value: unknown): SyncTaskPayload | null => {
 
   if (typeof item.createdAt !== "string" || typeof item.updatedAt !== "string") return null;
 
-  return {
+  const next: Parameters<typeof makeTask>[0] = {
     id: item.id,
     title: item.title,
     rawInput: item.rawInput,
     description: typeof item.description === "string" ? item.description : undefined,
-    status: (item.status as TaskStatus) ?? "todo",
+    status: (item.status as Task["status"]) ?? "todo",
     estimatedMinutes: Number(item.estimatedMinutes ?? 30),
     minChunkMinutes: Number(item.minChunkMinutes ?? 25),
     dueAt: typeof item.dueAt === "string" ? item.dueAt : undefined,
@@ -51,33 +32,39 @@ const coerceTask = (value: unknown): SyncTaskPayload | null => {
     value: Number(item.value ?? 3),
     difficulty: Number(item.difficulty ?? 3),
     postponability: Number(item.postponability ?? 3),
-    taskTraits: typeof item.taskTraits === "object" && item.taskTraits ? (item.taskTraits as Record<string, unknown>) : {},
     tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag)) : [],
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     extJson: typeof item.extJson === "object" && item.extJson ? (item.extJson as Record<string, unknown>) : {}
   };
+
+  if (typeof item.taskTraits === "object" && item.taskTraits) {
+    next.taskTraits = item.taskTraits as Task["taskTraits"];
+  }
+
+  return makeTask(next);
 };
 
-const rowToTask = (row: Record<string, unknown>): SyncTaskPayload => ({
-  id: String(row.id),
-  title: String(row.title),
-  rawInput: String(row.raw_input),
-  description: row.description ? String(row.description) : undefined,
-  status: String(row.status) as TaskStatus,
-  estimatedMinutes: Number(row.estimated_minutes),
-  minChunkMinutes: Number(row.min_chunk_minutes),
-  dueAt: row.due_at ? new Date(String(row.due_at)).toISOString() : undefined,
-  importance: Number(row.importance),
-  value: Number(row.value_score),
-  difficulty: Number(row.difficulty),
-  postponability: Number(row.postponability),
-  taskTraits: row.task_traits_json as Record<string, unknown>,
-  tags: Array.isArray(row.tags_json) ? (row.tags_json as string[]) : [],
-  createdAt: new Date(String(row.created_at)).toISOString(),
-  updatedAt: new Date(String(row.updated_at)).toISOString(),
-  extJson: (row.ext_json as Record<string, unknown>) ?? {}
-});
+const rowToTask = (row: Record<string, unknown>): SyncTaskPayload =>
+  makeTask({
+    id: String(row.id),
+    title: String(row.title),
+    rawInput: String(row.raw_input),
+    description: row.description ? String(row.description) : undefined,
+    status: String(row.status) as Task["status"],
+    estimatedMinutes: Number(row.estimated_minutes),
+    minChunkMinutes: Number(row.min_chunk_minutes),
+    dueAt: row.due_at ? new Date(String(row.due_at)).toISOString() : undefined,
+    importance: Number(row.importance),
+    value: Number(row.value_score),
+    difficulty: Number(row.difficulty),
+    postponability: Number(row.postponability),
+    taskTraits: row.task_traits_json as Task["taskTraits"],
+    tags: Array.isArray(row.tags_json) ? (row.tags_json as string[]) : [],
+    createdAt: new Date(String(row.created_at)).toISOString(),
+    updatedAt: new Date(String(row.updated_at)).toISOString(),
+    extJson: (row.ext_json as Record<string, unknown>) ?? {}
+  });
 
 const fetchAllTasks = async (): Promise<SyncTaskPayload[]> => {
   const result = await pool.query<Record<string, unknown>>(
@@ -136,7 +123,7 @@ const upsertOneTask = async (task: SyncTaskPayload): Promise<void> => {
       task.postponability,
       JSON.stringify(task.taskTraits),
       JSON.stringify(task.tags),
-      JSON.stringify(task.extJson),
+      JSON.stringify(embedTaskModel(task)),
       task.createdAt,
       task.updatedAt
     ]
