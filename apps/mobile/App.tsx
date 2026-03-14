@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
-  FlatList,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -12,31 +11,14 @@ import {
 } from "react-native";
 import {
   DEFAULT_TIME_TEMPLATE,
-  createDefaultComparator,
-  refreshSchedule,
+  buildSchedulePresentation,
   type Task
 } from "@retodo/core";
+import SchedulePanel from "./src/components/SchedulePanel";
+import TaskPoolPanel from "./src/components/TaskPoolPanel";
 import { initializeDb } from "./src/db";
 import { syncTasksWithServer } from "./src/syncService";
 import { addTaskFromQuickInput, archiveTask, listTasks, toggleTaskDone } from "./src/taskService";
-
-const HORIZON_OPTIONS = [
-  { label: "1天", days: 1 },
-  { label: "7天", days: 7 },
-  { label: "21天", days: 21 }
-] as const;
-
-const addDays = (source: Date, days: number): Date => {
-  const next = new Date(source);
-  next.setDate(next.getDate() + days);
-  return next;
-};
-
-const formatClock = (source: string): string =>
-  new Date(source).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
-
-const formatDay = (source: string): string =>
-  new Date(source).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric", weekday: "short" });
 
 export default function App() {
   const [input, setInput] = useState("");
@@ -48,8 +30,8 @@ export default function App() {
   const syncInFlightRef = useRef(false);
 
   const visibleTasks = useMemo(() => tasks.filter((task) => task.status !== "archived"), [tasks]);
-  const scheduleView = useMemo(
-    () => refreshSchedule(visibleTasks, DEFAULT_TIME_TEMPLATE, new Date(), addDays(new Date(), horizonDays), createDefaultComparator()),
+  const { scheduleView } = useMemo(
+    () => buildSchedulePresentation(visibleTasks, DEFAULT_TIME_TEMPLATE, horizonDays),
     [visibleTasks, horizonDays]
   );
 
@@ -122,105 +104,22 @@ export default function App() {
           <Text style={styles.syncLabel}>{syncMessage}</Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>观察窗口</Text>
-          <View style={styles.tabRow}>
-            {HORIZON_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.days}
-                onPress={() => setHorizonDays(option.days)}
-                style={[styles.tab, horizonDays === option.days && styles.tabActive]}
-              >
-                <Text style={[styles.tabText, horizonDays === option.days && styles.tabTextActive]}>{option.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <SchedulePanel horizonDays={horizonDays} onChangeHorizon={setHorizonDays} scheduleView={scheduleView} styles={styles} />
 
-          {scheduleView.warnings.length > 0 && (
-            <View style={styles.warningList}>
-              {scheduleView.warnings.map((warning, index) => (
-                <Text key={`${warning.code}-${index}`} style={[styles.warningItem, warning.severity === "danger" && styles.warningDanger]}>
-                  {warning.message}
-                </Text>
-              ))}
-            </View>
-          )}
-
-          <Text style={styles.sectionTitle}>时间块</Text>
-          {scheduleView.blocks.length === 0 ? (
-            <Text style={styles.helper}>当前窗口内还没有排入时间块。</Text>
-          ) : (
-            scheduleView.blocks.map((block) => {
-              const step = scheduleView.orderedSteps.find((item) => item.stepId === block.stepId);
-              return (
-                <View key={block.id} style={styles.blockCard}>
-                  <Text style={styles.blockDay}>{formatDay(block.startAt)}</Text>
-                  <Text style={styles.blockTime}>
-                    {formatClock(block.startAt)} - {formatClock(block.endAt)}
-                  </Text>
-                  <Text style={styles.blockTitle}>
-                    {step?.taskTitle ?? "任务"} / {step?.title ?? "步骤"}
-                  </Text>
-                </View>
-              );
-            })
-          )}
-
-          <Text style={styles.sectionTitle}>任务序列</Text>
-          {scheduleView.orderedSteps.map((step) => (
-            <View key={step.stepId} style={styles.orderedCard}>
-              <Text style={styles.orderedTitle}>
-                {step.taskTitle}
-                {step.title !== step.taskTitle ? ` / ${step.title}` : ""}
-              </Text>
-              <Text style={styles.orderedMeta}>
-                已排 {step.plannedMinutes}m | 剩余 {step.remainingMinutes}m
-                {step.dueAt ? ` | DDL ${step.dueAt.slice(0, 10)}` : ""}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>任务池</Text>
-          <FlatList
-            data={visibleTasks}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <View style={styles.taskCard}>
-                <View style={styles.taskTop}>
-                  <View style={styles.taskContent}>
-                    <Text style={[styles.taskTitle, item.status === "done" && styles.done]}>{item.title}</Text>
-                    <Text style={styles.meta}>
-                      估时 {item.estimatedMinutes}m | 最小块 {item.minChunkMinutes}m | 奖励 {item.scheduleValue.rewardOnTime} | 损失 {item.scheduleValue.penaltyMissed}
-                    </Text>
-                  </View>
-                  <View style={styles.actions}>
-                    <TouchableOpacity
-                      onPress={() =>
-                        void toggleTaskDone(item)
-                          .then(refresh)
-                          .then(() => syncNow())
-                      }
-                    >
-                      <Text style={styles.link}>{item.status === "done" ? "撤销" : "完成"}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() =>
-                        void archiveTask(item.id)
-                          .then(refresh)
-                          .then(() => syncNow())
-                      }
-                    >
-                      <Text style={styles.linkDanger}>删除</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            )}
-          />
-        </View>
+        <TaskPoolPanel
+          tasks={visibleTasks}
+          styles={styles}
+          onToggleDone={(task) =>
+            void toggleTaskDone(task)
+              .then(refresh)
+              .then(() => syncNow())
+          }
+          onArchive={(taskId) =>
+            void archiveTask(taskId)
+              .then(refresh)
+              .then(() => syncNow())
+          }
+        />
       </ScrollView>
     </SafeAreaView>
   );

@@ -1,4 +1,4 @@
-import type { Task } from "@retodo/core";
+import { describeTaskMeta, type Task } from "@retodo/core";
 
 interface TaskItemProps {
   task: Task;
@@ -38,10 +38,7 @@ export default function TaskItem({ task, onToggleDone, onArchive, onEdit }: Task
         <div className={`task-title${isDone ? " done" : ""}`}>{task.title}</div>
 
         <div className="task-meta">
-          <span>估时 {task.estimatedMinutes}m</span>
-          <span className="task-meta-sep">最小块 {task.minChunkMinutes}m</span>
-          <span className="task-meta-sep">按时收益 {task.scheduleValue.rewardOnTime}</span>
-          <span className="task-meta-sep">错过损失 {task.scheduleValue.penaltyMissed}</span>
+          <span>{describeTaskMeta(task)}</span>
           {dueLabel && <span className="task-meta-sep">{dueLabel}</span>}
         </div>
 

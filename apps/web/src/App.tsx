@@ -1,70 +1,23 @@
 import {
   DEFAULT_TIME_TEMPLATE,
-  createDefaultComparator,
+  buildQuickTask,
+  buildSchedulePresentation,
   makeTask,
-  parseQuickInput,
-  refreshSchedule,
-  type ScheduleBlock,
   type Task,
   type TimeTemplate,
   type WeeklyTimeRange
 } from "@retodo/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import SchedulePanel from "./components/SchedulePanel";
 import TaskEditModal from "./components/TaskEditModal";
-import TaskItem from "./components/TaskItem";
+import TaskPoolPanel from "./components/TaskPoolPanel";
+import TimeTemplateEditor from "./components/TimeTemplateEditor";
 import { API_BASE_URL } from "./config";
 import { downloadMarkdown, getOrCreateDeviceId, loadTimeTemplate, parseMarkdownImport, saveTimeTemplate } from "./storage";
 import { pullRemoteTasks, pushAndPullTasks } from "./sync";
 
-const HORIZON_OPTIONS = [
-  { label: "1 天", days: 1 },
-  { label: "7 天", days: 7 },
-  { label: "21 天", days: 21 },
-  { label: "42 天", days: 42 }
-] as const;
-
-const WEEKDAY_OPTIONS = [
-  { value: 1, label: "周一" },
-  { value: 2, label: "周二" },
-  { value: 3, label: "周三" },
-  { value: 4, label: "周四" },
-  { value: 5, label: "周五" },
-  { value: 6, label: "周六" },
-  { value: 7, label: "周日" }
-] as const;
-
 const createId = (): string =>
   (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.round(Math.random() * 100000)}`).toString();
-
-const addDays = (source: Date, days: number): Date => {
-  const next = new Date(source);
-  next.setDate(next.getDate() + days);
-  return next;
-};
-
-const formatDay = (source: string): string =>
-  new Date(source).toLocaleDateString("zh-CN", { month: "short", day: "numeric", weekday: "short" });
-
-const formatClock = (source: string): string =>
-  new Date(source).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false });
-
-const groupBlocksByDay = (blocks: ScheduleBlock[]): Array<{ day: string; blocks: ScheduleBlock[] }> => {
-  const grouped = new Map<string, ScheduleBlock[]>();
-
-  for (const block of blocks) {
-    const key = block.startAt.slice(0, 10);
-    const list = grouped.get(key) ?? [];
-    list.push(block);
-    grouped.set(key, list);
-  }
-
-  return [...grouped.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([day, dayBlocks]) => ({
-      day,
-      blocks: dayBlocks.sort((a, b) => a.startAt.localeCompare(b.startAt))
-    }));
-};
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -91,11 +44,11 @@ function App() {
 
   const visibleTasks = useMemo(() => tasks.filter((task) => task.status !== "archived"), [tasks]);
 
-  const horizonEnd = useMemo(() => addDays(new Date(), horizonDays), [horizonDays]);
-  const scheduleView = useMemo(
-    () => refreshSchedule(visibleTasks, timeTemplate, new Date(), horizonEnd, createDefaultComparator()),
-    [visibleTasks, timeTemplate, horizonEnd]
+  const schedulePresentation = useMemo(
+    () => buildSchedulePresentation(visibleTasks, timeTemplate, horizonDays),
+    [visibleTasks, timeTemplate, horizonDays]
   );
+  const { scheduleView, blocksByDay } = schedulePresentation;
 
   const orderedTaskIds = useMemo(() => {
     const ids = new Set<string>();
@@ -119,8 +72,6 @@ function App() {
         task.tags.some((tag) => tag.toLowerCase().includes(query))
     );
   }, [orderedTaskIds, searchQuery, visibleTasks]);
-
-  const blocksByDay = useMemo(() => groupBlocksByDay(scheduleView.blocks), [scheduleView.blocks]);
 
   const applyRemoteTasks = useCallback((incoming: Task[]) => {
     setTasks(incoming);
@@ -177,17 +128,7 @@ function App() {
 
   const addTask = () => {
     if (!quickInput.trim()) return;
-    const parsed = parseQuickInput(quickInput.trim());
-    const nextTask = makeTask({
-      id: createId(),
-      title: parsed.title,
-      rawInput: quickInput.trim(),
-      estimatedMinutes: parsed.estimatedMinutes,
-      minChunkMinutes: parsed.minChunkMinutes,
-      dueAt: parsed.dueAt,
-      tags: parsed.tags,
-      taskTraits: parsed.taskTraits
-    });
+    const nextTask = buildQuickTask(createId(), quickInput);
 
     commitTasks([nextTask, ...tasks]);
     setQuickInput("");
@@ -227,17 +168,7 @@ function App() {
     if (lines.length === 0) return;
 
     const imported = lines.map((line) => {
-      const parsed = parseQuickInput(line);
-      return makeTask({
-        id: createId(),
-        title: parsed.title,
-        rawInput: line,
-        estimatedMinutes: parsed.estimatedMinutes,
-        minChunkMinutes: parsed.minChunkMinutes,
-        dueAt: parsed.dueAt,
-        tags: parsed.tags,
-        taskTraits: parsed.taskTraits
-      });
+      return buildQuickTask(createId(), line);
     });
 
     commitTasks([...imported, ...tasks]);
@@ -323,158 +254,30 @@ function App() {
         </div>
 
         {templateOpen && (
-          <div className="template-editor">
-            <div className="template-header">
-              <div>
-                <div className="panel-title">时间模板</div>
-                <div className="panel-caption">周模板作为背景容量输入，不直接和调度策略耦合。</div>
-              </div>
-              <button className="btn-text" onClick={addRange}>
-                添加时间段
-              </button>
-            </div>
-            <div className="template-list">
-              {timeTemplate.weeklyRanges.map((range) => (
-                <div key={range.id} className="template-row">
-                  <select
-                    className="form-select"
-                    value={range.weekday}
-                    onChange={(event) => updateRange(range.id, { weekday: Number(event.target.value) as WeeklyTimeRange["weekday"] })}
-                  >
-                    {WEEKDAY_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    className="form-input"
-                    type="time"
-                    value={range.startTime}
-                    onChange={(event) => updateRange(range.id, { startTime: event.target.value })}
-                  />
-                  <input
-                    className="form-input"
-                    type="time"
-                    value={range.endTime}
-                    onChange={(event) => updateRange(range.id, { endTime: event.target.value })}
-                  />
-                  <button className="btn-action danger" onClick={() => removeRange(range.id)}>
-                    删除
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <TimeTemplateEditor
+            timeTemplate={timeTemplate}
+            onAddRange={addRange}
+            onUpdateRange={updateRange}
+            onRemoveRange={removeRange}
+          />
         )}
       </section>
 
-      <section className="card">
-        <div className="panel-header">
-          <div>
-            <div className="panel-title">动态调度视图</div>
-            <div className="panel-caption">查看时按当前任务池、时间模板和观察窗口实时重算。</div>
-          </div>
-          <div className="horizon-tabs">
-            {HORIZON_OPTIONS.map((option) => (
-              <button
-                key={option.days}
-                className={`btn-text${horizonDays === option.days ? " active" : ""}`}
-                onClick={() => setHorizonDays(option.days)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <SchedulePanel
+        horizonDays={horizonDays}
+        onChangeHorizon={setHorizonDays}
+        scheduleView={scheduleView}
+        blocksByDay={blocksByDay}
+      />
 
-        {scheduleView.warnings.length > 0 && (
-          <div className="warning-list">
-            {scheduleView.warnings.map((warning, index) => (
-              <div key={`${warning.code}-${index}`} className={`warning-item ${warning.severity}`}>
-                {warning.message}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="schedule-grid">
-          <div className="schedule-column">
-            <div className="subpanel-title">时间块</div>
-            {blocksByDay.length === 0 && <div className="empty-panel">当前窗口内还没有排入任何时间块。</div>}
-            {blocksByDay.map((group) => (
-              <div key={group.day} className="day-group">
-                <div className="day-heading">{formatDay(group.blocks[0]?.startAt ?? `${group.day}T00:00:00`)}</div>
-                <div className="block-list">
-                  {group.blocks.map((block) => {
-                    const step = scheduleView.orderedSteps.find((item) => item.stepId === block.stepId);
-                    return (
-                      <div key={block.id} className="schedule-block">
-                        <div className="schedule-block-time">
-                          {formatClock(block.startAt)} - {formatClock(block.endAt)}
-                        </div>
-                        <div className="schedule-block-title">
-                          {step?.taskTitle ?? "任务"} / {step?.title ?? "步骤"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="schedule-column">
-            <div className="subpanel-title">任务序列</div>
-            <div className="ordered-list">
-              {scheduleView.orderedSteps.map((step) => (
-                <div key={step.stepId} className={`ordered-item${step.remainingMinutes > 0 ? " unscheduled" : ""}`}>
-                  <div className="ordered-title">
-                    {step.taskTitle}
-                    {step.title !== step.taskTitle && <span className="ordered-step-name"> / {step.title}</span>}
-                  </div>
-                  <div className="ordered-meta">
-                    <span>已排 {step.plannedMinutes}m</span>
-                    <span className="task-meta-sep">剩余 {step.remainingMinutes}m</span>
-                    {step.dueAt && <span className="task-meta-sep">DDL {step.dueAt.slice(0, 10)}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="card">
-        <div className="panel-header">
-          <div>
-            <div className="panel-title">任务池</div>
-            <div className="panel-caption">任务、依赖、子步骤都在这里维护。</div>
-          </div>
-          <div className="search-wrapper compact">
-            <span className="search-icon">🔍</span>
-            <input
-              className="search-input"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="搜索任务"
-            />
-          </div>
-        </div>
-
-        <ul className="task-list">
-          {filteredTasks.length === 0 && <li className="empty-state">没有匹配的任务</li>}
-          {filteredTasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onToggleDone={() => toggleDone(task.id)}
-              onArchive={() => archiveTask(task.id)}
-              onEdit={() => setEditingTask(task)}
-            />
-          ))}
-        </ul>
-      </section>
+      <TaskPoolPanel
+        tasks={filteredTasks}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        onToggleDone={toggleDone}
+        onArchive={archiveTask}
+        onEdit={setEditingTask}
+      />
 
       {editingTask && (
         <TaskEditModal task={editingTask} allTasks={tasks} onSave={saveEditedTask} onClose={() => setEditingTask(null)} />

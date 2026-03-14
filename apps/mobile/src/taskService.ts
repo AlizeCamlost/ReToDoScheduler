@@ -1,4 +1,4 @@
-import { embedTaskModel, makeTask, nowIso, parseQuickInput, type Task } from "@retodo/core";
+import { buildQuickTask, embedTaskModel, makeTask, nowIso, type Task } from "@retodo/core";
 import { getDb } from "./db";
 
 const createId = (): string =>
@@ -62,17 +62,7 @@ export const listTasks = async (): Promise<Task[]> => {
 };
 
 export const addTaskFromQuickInput = async (rawInput: string): Promise<void> => {
-  const parsed = parseQuickInput(rawInput);
-  const task = makeTask({
-    id: createId(),
-    title: parsed.title,
-    rawInput,
-    estimatedMinutes: parsed.estimatedMinutes,
-    minChunkMinutes: parsed.minChunkMinutes,
-    dueAt: parsed.dueAt,
-    tags: parsed.tags,
-    taskTraits: parsed.taskTraits
-  });
+  const task = buildQuickTask(createId(), rawInput);
 
   await upsertTasks([task]);
 };
