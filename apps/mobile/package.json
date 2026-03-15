@@ -2,27 +2,11 @@
   "name": "@retodo/mobile",
   "private": true,
   "version": "0.1.0",
-  "main": "index.js",
   "scripts": {
-    "dev": "expo start",
-    "ios": "expo run:ios",
-    "prebuild:ios": "NPM_CONFIG_REGISTRY=https://registry.npmjs.org/ CI=1 expo prebuild --platform ios --clean",
-    "open:xcode": "open ios/ReToDoScheduler.xcworkspace",
-    "build": "tsc -p tsconfig.json --noEmit",
-    "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "echo \"No tests yet\"",
-    "android": "expo run:android"
-  },
-  "dependencies": {
-    "@retodo/core": "file:../../packages/core",
-    "expo": "~52.0.28",
-    "expo-build-properties": "^1.0.10",
-    "expo-sqlite": "~15.0.6",
-    "react": "18.3.1",
-    "react-native": "0.76.6"
-  },
-  "devDependencies": {
-    "@types/react": "^18.3.12",
-    "typescript": "^5.7.3"
+    "open:xcode": "open ios/ReToDoScheduler.xcodeproj",
+    "build": "SDK=$(xcrun --sdk iphoneos --show-sdk-path) && mkdir -p ios/.swift-module-cache && xcrun swiftc -typecheck -sdk \"$SDK\" -target arm64-apple-ios16.0 -module-cache-path ios/.swift-module-cache $(find ios/ReToDoScheduler -name '*.swift' -print | sort)",
+    "lint": "SDK=$(xcrun --sdk iphoneos --show-sdk-path) && mkdir -p ios/.swift-module-cache && xcrun swiftc -typecheck -sdk \"$SDK\" -target arm64-apple-ios16.0 -module-cache-path ios/.swift-module-cache $(find ios/ReToDoScheduler -name '*.swift' -print | sort)",
+    "xcode:build": "xcodebuild -project ios/ReToDoScheduler.xcodeproj -scheme ReToDoScheduler -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build",
+    "test": "echo \"No tests yet\""
   }
 }

@@ -8,13 +8,13 @@ The project must deliver iPhone offline-first usage and web access while keeping
 
 ## Decision
 Use a TypeScript monorepo with:
-- React Native (Expo) for mobile
+- native SwiftUI for mobile
 - React + Vite for web
 - Fastify for API
 - PostgreSQL for server persistence
 - Shared `packages/core` for domain model and scheduling logic
 
 ## Consequences
-- One shared language across clients/server reduces duplicated logic.
-- Web and mobile can reuse parsing/scoring/scheduling behavior.
+- One shared language across web/server reduces duplicated logic.
+- Web reuses `packages/core`; mobile keeps a native Swift implementation aligned to the same domain model.
 - API and persistence can evolve without forcing immediate client rewrites.

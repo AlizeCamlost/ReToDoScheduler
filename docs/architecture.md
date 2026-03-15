@@ -31,7 +31,7 @@ apps/web + apps/mobile
 各层职责：
 
 - `apps/web`: 浏览器端任务管理与调度视图
-- `apps/mobile`: iPhone 端本地任务管理、同步与调度视图
+- `apps/mobile`: SwiftUI 原生 iPhone 端，本地任务管理、同步与调度视图
 - `packages/core`: 共享任务模型、默认值、快速输入解析、调度器与前端 view-model 逻辑
 - `services/api`: 认证、同步、持久化边界
 - `services/db`: PostgreSQL schema 与迁移
@@ -58,9 +58,9 @@ apps/web + apps/mobile
 
 ### apps/mobile
 
-- iPhone-first 入口
-- 使用 SQLite 做本地持久化
-- 使用与 Web 相同的共享任务模型和调度器
+- iPhone-first 原生入口
+- 使用 SwiftUI、本地 JSON 持久化和 `UserDefaults` 设置
+- 内置一份 Swift 调度实现，语义对齐当前任务池与动态调度模型
 
 ### services/api
 
