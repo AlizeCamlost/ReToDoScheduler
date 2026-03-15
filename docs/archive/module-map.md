@@ -30,3 +30,4 @@
 - domain: data model and business definitions.
 - runbook: operational procedures (backup/recovery/deploy).
 - knowledge: long-lived design intent for Norn/Kairos layering.
+> Archived module map. The current architecture truth source is [architecture.md](../architecture.md).

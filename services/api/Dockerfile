@@ -2,6 +2,7 @@ FROM node:22-alpine AS build
 WORKDIR /app/services/api
 
 COPY services/api/package.json ./package.json
+COPY packages/core /app/packages/core
 RUN npm install
 
 COPY tsconfig.base.json /app/tsconfig.base.json
@@ -14,8 +15,10 @@ ENV NODE_ENV=production
 ENV PORT=8787
 
 COPY services/api/package.json ./package.json
+COPY packages/core /app/packages/core
 RUN npm install --omit=dev
-COPY --from=build /app/services/api/dist ./dist
+COPY tsconfig.base.json /app/tsconfig.base.json
+COPY services/api ./
 
 EXPOSE 8787
-CMD ["node", "dist/index.js"]
+CMD ["npm", "run", "start"]

@@ -98,3 +98,4 @@ curl http://43.159.136.45:8787/health
 ## 维护约定
 
 后续每次扩展 iOS 启动流程或同步行为，都以本文件作为“最新步骤”进行同步更新。
+> Archived startup guide. Use [ios.md](../ios.md) for the current iOS workflow and [client-sync.md](../client-sync.md) for sync details.

@@ -335,3 +335,4 @@ Monorepo 价值：
 2. 启动命令变化（iOS/Web/API）。
 3. 部署方式变化（compose、CI/CD、环境变量）。
 4. 安全策略变化（ATS、HTTP/HTTPS、鉴权）。
+> Archived tutorial. The current architecture truth source is [architecture.md](../architecture.md).

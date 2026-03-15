@@ -11,7 +11,7 @@ Norn is a local-first todo scheduler for iPhone + Web with incremental sync.
 - `packages/core`: shared domain model and rules:
   - `norn/*`: stable core model and ordering surface.
   - `kairos/*`: dynamic decision cursor (rank/strategy metadata).
-- `docs`: ADRs, domain docs, and runbooks.
+- `docs`: current specs, runbooks, ADRs, and archived drafts.
 
 ## Quick start
 
@@ -57,9 +57,11 @@ cp apps/mobile/.env.example apps/mobile/.env
 
 ## Deployment
 
-- Server deploy runbook: `docs/runbook/server-deploy.md`
-- iPhone install runbook: `docs/runbook/ios-device-install.md`
-- iPhone startup runbook (中文): `docs/runbook/ios-startup-zh.md`
-- Client sync runbook: `docs/runbook/client-sync.md`
-- Full architecture tutorial (中文): `docs/tutorial/retodo-architecture-and-build-zh.md`
-- GitHub auto deploy tutorial (中文): `docs/tutorial/github-auto-deploy-zh.md`
+- Docs index: `docs/README.md`
+- Architecture: `docs/architecture.md`
+- Product model: `docs/product-model.md`
+- Scheduling model: `docs/scheduling-model.md`
+- Server deploy runbook: `docs/server-deploy.md`
+- iOS setup runbook: `docs/ios.md`
+- Client sync runbook: `docs/client-sync.md`
+- Recovery runbook: `docs/recovery.md`

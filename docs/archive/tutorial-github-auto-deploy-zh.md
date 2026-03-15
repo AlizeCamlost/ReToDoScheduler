@@ -99,3 +99,4 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up 
 2. 服务器开启防火墙，仅开放必要端口。
 3. 后续改为 HTTPS（80/443 + 反向代理）。
 4. 定期轮换 `API_AUTH_TOKEN` 和部署 key。
+> Archived tutorial. The current deployment truth source is [server-deploy.md](../server-deploy.md).

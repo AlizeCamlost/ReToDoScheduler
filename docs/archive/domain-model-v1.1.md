@@ -16,3 +16,4 @@
 - `Task.taskTraits`: trait object used for hard/soft slot matching.
 - `TimeSlot.slotTraits`: properties of the slot (focus, interruption, location, device).
 - `Task.extJson`: extension field for future rules/philosophy dimensions.
+> Archived domain draft. The current scheduling truth source is [scheduling-model.md](../scheduling-model.md).

@@ -608,3 +608,4 @@ Task *──1 Stakeholder       (干系人关联, 未来扩展)
 ### A.5 日志验证
 
 28 篇用户日志 (2025.12 ~ 2026.3) 验证了以下设计概念与用户自发描述同构：争得 vs 避祸光谱、三层架构、时间块日历、任务最小分割粒度、Kairos 多维度。
+> Superseded by [product-model.md](../product-model.md) and [scheduling-model.md](../scheduling-model.md). Retained for project history.

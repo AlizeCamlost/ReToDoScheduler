@@ -41,3 +41,4 @@ When ready:
 - In Xcode, `Product -> Archive`
 - Then `Distribute App -> App Store Connect -> Upload`
 - Increment build number before each upload (`ios.buildNumber` in app config)
+> Archived install guide. Use [ios.md](../ios.md) for the current iOS workflow.
