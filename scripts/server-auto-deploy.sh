@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/deploy/.env.prod"
 COMPOSE_FILE="${ROOT_DIR}/deploy/docker-compose.prod.yml"
+DEPLOY_BRANCH="${1:-${DEPLOY_BRANCH:-main}}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing $ENV_FILE. Copy deploy/.env.prod.example and fill values first." >&2
@@ -12,10 +13,16 @@ fi
 
 cd "$ROOT_DIR"
 
-echo "[deploy] Pulling latest main..."
-git fetch origin main
-git checkout main
-git pull --ff-only origin main
+echo "[deploy] Pulling latest ${DEPLOY_BRANCH}..."
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  echo "[deploy] Refusing to overwrite uncommitted changes in deploy checkout" >&2
+  git status --short >&2
+  exit 1
+fi
+
+git fetch origin "$DEPLOY_BRANCH"
+git checkout -B "$DEPLOY_BRANCH" "origin/$DEPLOY_BRANCH"
+git reset --hard "origin/$DEPLOY_BRANCH"
 
 set -a
 # shellcheck source=/dev/null

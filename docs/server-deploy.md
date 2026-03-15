@@ -89,21 +89,35 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod res
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod ps
 ```
 
-## 9. 自动部署概览
+## 9. 手动部署工作流
 
-当前自动部署链路：
+当前推荐流程：
 
-1. push 到 `main`
-2. GitHub Actions 触发 deploy workflow
-3. 通过 SSH 登录服务器
-4. 执行 `scripts/server-auto-deploy.sh`
+1. 本地完成提交整理，可以正常 `git rebase`
+2. 推送到 GitHub；如有需要也可以 `git push --force-with-lease`
+3. 打开 GitHub Actions 中的 `deploy` workflow
+4. 点击 `Run workflow`
+5. 选择要部署的分支，默认 `main`
+6. 等待 GitHub 通过 SSH 登录服务器并执行部署
 
-自动部署仍要求服务器已完成以下前置准备：
+服务器部署目录会先执行以下同步逻辑，再进入容器重建：
+
+```bash
+git fetch origin <branch>
+git checkout -B <branch> origin/<branch>
+git reset --hard origin/<branch>
+```
+
+这意味着服务器以远端分支为准，可以接受你重写提交历史后的强推送；只要服务器检出目录没有未提交的人工改动，部署就不会因为 `rebase` 或 `push -f` 卡在 fast-forward。
+
+手动部署仍要求服务器已完成以下前置准备：
 
 - 仓库目录已存在
 - `deploy/.env.prod` 已配置
 - 手动部署链路已验证可用
 - GitHub Secrets / SSH key 已正确配置
+
+如果服务器工作区存在未提交修改，workflow 会拒绝覆盖并打印 `git status`，避免误删服务器上的临时补丁。
 
 更细的历史教程保留在 [archive/tutorial-github-auto-deploy-zh.md](archive/tutorial-github-auto-deploy-zh.md)。
 
