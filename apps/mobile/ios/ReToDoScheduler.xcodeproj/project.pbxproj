@@ -27,25 +27,25 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		B00000000000000000000001 /* ReToDoSchedulerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/ReToDoSchedulerApp.swift; sourceTree = "<group>"; };
-		B00000000000000000000002 /* AppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppView.swift; sourceTree = "<group>"; };
-		B00000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Domain/Models.swift; sourceTree = "<group>"; };
-		B00000000000000000000004 /* TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Services/TaskRepository.swift; sourceTree = "<group>"; };
-		B00000000000000000000005 /* ScheduleEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Scheduling/ScheduleEngine.swift; sourceTree = "<group>"; };
-		B00000000000000000000006 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Services/SyncService.swift; sourceTree = "<group>"; };
-		B00000000000000000000007 /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/AppViewModel.swift; sourceTree = "<group>"; };
+		B00000000000000000000001 /* ReToDoSchedulerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReToDoSchedulerApp.swift; sourceTree = "<group>"; };
+		B00000000000000000000002 /* AppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppView.swift; sourceTree = "<group>"; };
+		B00000000000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		B00000000000000000000004 /* TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRepository.swift; sourceTree = "<group>"; };
+		B00000000000000000000005 /* ScheduleEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEngine.swift; sourceTree = "<group>"; };
+		B00000000000000000000006 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
+		B00000000000000000000007 /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
 		B00000000000000000000008 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B00000000000000000000009 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B0000000000000000000000A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		B0000000000000000000000B /* ReToDoScheduler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = ReToDoScheduler.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		B00000000000000000000010 /* QuickAddSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/TaskPool/QuickAddSection.swift; sourceTree = "<group>"; };
-		B00000000000000000000011 /* TaskPoolSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/TaskPool/TaskPoolSection.swift; sourceTree = "<group>"; };
-		B00000000000000000000012 /* TaskEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/TaskPool/TaskEditorSheet.swift; sourceTree = "<group>"; };
-		B00000000000000000000013 /* ScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Schedule/ScheduleSection.swift; sourceTree = "<group>"; };
-		B00000000000000000000014 /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Settings/SettingsSheet.swift; sourceTree = "<group>"; };
-		B00000000000000000000015 /* TimeTemplateEditorSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/TimeTemplate/TimeTemplateEditorSection.swift; sourceTree = "<group>"; };
-		B00000000000000000000016 /* TaskEditorDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Support/TaskEditorDraft.swift; sourceTree = "<group>"; };
-		B00000000000000000000017 /* AppFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared/Support/AppFormatters.swift; sourceTree = "<group>"; };
+		B00000000000000000000010 /* QuickAddSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddSection.swift; sourceTree = "<group>"; };
+		B00000000000000000000011 /* TaskPoolSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPoolSection.swift; sourceTree = "<group>"; };
+		B00000000000000000000012 /* TaskEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskEditorSheet.swift; sourceTree = "<group>"; };
+		B00000000000000000000013 /* ScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleSection.swift; sourceTree = "<group>"; };
+		B00000000000000000000014 /* SettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheet.swift; sourceTree = "<group>"; };
+		B00000000000000000000015 /* TimeTemplateEditorSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeTemplateEditorSection.swift; sourceTree = "<group>"; };
+		B00000000000000000000016 /* TaskEditorDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskEditorDraft.swift; sourceTree = "<group>"; };
+		B00000000000000000000017 /* AppFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFormatters.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,21 +70,9 @@
 		D00000000000000000000002 /* ReToDoScheduler */ = {
 			isa = PBXGroup;
 			children = (
-				B00000000000000000000001 /* ReToDoSchedulerApp.swift */,
-				B00000000000000000000002 /* AppView.swift */,
-				B00000000000000000000007 /* AppViewModel.swift */,
-				B00000000000000000000003 /* Models.swift */,
-				B00000000000000000000016 /* TaskEditorDraft.swift */,
-				B00000000000000000000017 /* AppFormatters.swift */,
-				B00000000000000000000004 /* TaskRepository.swift */,
-				B00000000000000000000005 /* ScheduleEngine.swift */,
-				B00000000000000000000006 /* SyncService.swift */,
-				B00000000000000000000010 /* QuickAddSection.swift */,
-				B00000000000000000000011 /* TaskPoolSection.swift */,
-				B00000000000000000000012 /* TaskEditorSheet.swift */,
-				B00000000000000000000013 /* ScheduleSection.swift */,
-				B00000000000000000000014 /* SettingsSheet.swift */,
-				B00000000000000000000015 /* TimeTemplateEditorSection.swift */,
+				D00000000000000000000004 /* App */,
+				D00000000000000000000005 /* Features */,
+				D00000000000000000000006 /* Shared */,
 				B00000000000000000000008 /* Assets.xcassets */,
 				B00000000000000000000009 /* Info.plist */,
 				B0000000000000000000000A /* PrivacyInfo.xcprivacy */,
@@ -98,6 +86,106 @@
 				B0000000000000000000000B /* ReToDoScheduler.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000004 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000001 /* ReToDoSchedulerApp.swift */,
+				B00000000000000000000002 /* AppView.swift */,
+				B00000000000000000000007 /* AppViewModel.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000005 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				D00000000000000000000007 /* TaskPool */,
+				D00000000000000000000008 /* Schedule */,
+				D00000000000000000000009 /* Settings */,
+				D0000000000000000000000A /* TimeTemplate */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000006 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				D0000000000000000000000B /* Domain */,
+				D0000000000000000000000C /* Scheduling */,
+				D0000000000000000000000D /* Services */,
+				D0000000000000000000000E /* Support */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000007 /* TaskPool */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000010 /* QuickAddSection.swift */,
+				B00000000000000000000011 /* TaskPoolSection.swift */,
+				B00000000000000000000012 /* TaskEditorSheet.swift */,
+			);
+			path = TaskPool;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000008 /* Schedule */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000013 /* ScheduleSection.swift */,
+			);
+			path = Schedule;
+			sourceTree = "<group>";
+		};
+		D00000000000000000000009 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000014 /* SettingsSheet.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000A /* TimeTemplate */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000015 /* TimeTemplateEditorSection.swift */,
+			);
+			path = TimeTemplate;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000B /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000003 /* Models.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000C /* Scheduling */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000005 /* ScheduleEngine.swift */,
+			);
+			path = Scheduling;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000D /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000004 /* TaskRepository.swift */,
+				B00000000000000000000006 /* SyncService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		D0000000000000000000000E /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000016 /* TaskEditorDraft.swift */,
+				B00000000000000000000017 /* AppFormatters.swift */,
+			);
+			path = Support;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
