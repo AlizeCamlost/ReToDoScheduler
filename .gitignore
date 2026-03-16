@@ -11,6 +11,7 @@ apps/mobile/ios/build/
 apps/mobile/ios/.swift-module-cache/
 apps/mobile/ios/.xcode.env.local
 apps/mobile/ios/.swiftpm/
+/.deriveddata/
 apps/mobile/ios/**/.DS_Store
 apps/mobile/ios/**/xcuserdata/
 apps/mobile/ios/**/*.xcuserdatad/

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct TaskEditorSheet: View {
+  @FocusState private var isInputFocused: Bool
+
   let editingTaskID: String?
   let allTasks: [Task]
   let initialDraft: TaskEditorDraft
@@ -29,23 +31,30 @@ struct TaskEditorSheet: View {
       Form {
         Section("基本信息") {
           TextField("标题", text: $draft.title)
+            .focused($isInputFocused)
           TextField("描述", text: $draft.description, axis: .vertical)
+            .focused($isInputFocused)
           TextField("标签（逗号分隔）", text: $draft.tagsText)
+            .focused($isInputFocused)
         }
 
         Section("约束与价值") {
           TextField("总耗时（分钟）", text: $draft.estimatedMinutes)
             .keyboardType(.numberPad)
+            .focused($isInputFocused)
           TextField("最小块（分钟）", text: $draft.minChunkMinutes)
             .keyboardType(.numberPad)
+            .focused($isInputFocused)
           Toggle("设置截止日期", isOn: $draft.hasDueDate)
           if draft.hasDueDate {
             DatePicker("截止日期", selection: $draft.dueDate, displayedComponents: .date)
           }
           TextField("按时收益", text: $draft.rewardOnTime)
             .keyboardType(.numberPad)
+            .focused($isInputFocused)
           TextField("错过损失", text: $draft.penaltyMissed)
             .keyboardType(.numberPad)
+            .focused($isInputFocused)
         }
 
         Section("任务依赖") {
@@ -95,23 +104,27 @@ struct TaskEditorSheet: View {
             )
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
+            .focused($isInputFocused)
 
             TextField(
               "步骤标题",
               text: binding(for: step.id, keyPath: \.title)
             )
+            .focused($isInputFocused)
 
             TextField(
               "耗时（分钟）",
               text: binding(for: step.id, keyPath: \.estimatedMinutes)
             )
             .keyboardType(.numberPad)
+            .focused($isInputFocused)
 
             TextField(
               "最小块（分钟）",
               text: binding(for: step.id, keyPath: \.minChunkMinutes)
             )
             .keyboardType(.numberPad)
+            .focused($isInputFocused)
 
             TextField(
               "依赖步骤 ID（逗号分隔）",
@@ -119,6 +132,7 @@ struct TaskEditorSheet: View {
             )
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
+            .focused($isInputFocused)
 
             Button("删除步骤", role: .destructive) {
               draft.removeStep(id: step.id)
@@ -152,14 +166,31 @@ struct TaskEditorSheet: View {
           }
         }
       }
+      .scrollDismissesKeyboard(.interactively)
+      .simultaneousGesture(
+        TapGesture().onEnded {
+          isInputFocused = false
+        }
+      )
       .navigationTitle(editingTaskID == nil ? "新建任务" : "编辑任务")
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
-          Button("取消", action: onCancel)
+          Button("取消") {
+            isInputFocused = false
+            onCancel()
+          }
         }
         ToolbarItem(placement: .confirmationAction) {
           Button("保存") {
+            isInputFocused = false
             onSave(draft)
+          }
+        }
+        ToolbarItemGroup(placement: .keyboard) {
+          Spacer()
+
+          Button("完成") {
+            isInputFocused = false
           }
         }
       }

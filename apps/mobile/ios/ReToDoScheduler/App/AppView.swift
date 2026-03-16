@@ -2,16 +2,21 @@ import SwiftUI
 
 struct AppView: View {
   @StateObject private var viewModel = AppViewModel()
+  @FocusState private var isInputFocused: Bool
 
   var body: some View {
     NavigationStack {
       List {
         QuickAddSection(
           input: $viewModel.input,
+          keyboardFocus: $isInputFocused,
           syncMessage: viewModel.syncMessage,
           isSyncing: viewModel.isSyncing,
           onAdd: { _Concurrency.Task { await viewModel.addTask() } },
-          onSync: { _Concurrency.Task { await viewModel.syncNow() } }
+          onSync: {
+            isInputFocused = false
+            _Concurrency.Task { await viewModel.syncNow() }
+          }
         )
 
         ScheduleSection(
@@ -23,21 +28,48 @@ struct AppView: View {
 
         TaskPoolSection(
           searchQuery: $viewModel.searchQuery,
+          keyboardFocus: $isInputFocused,
           tasks: viewModel.filteredTasks,
-          onCreateDetailedTask: viewModel.openCreateTaskEditor,
-          onToggleDone: { task in _Concurrency.Task { await viewModel.toggleDone(task) } },
-          onArchive: { task in _Concurrency.Task { await viewModel.archive(task) } },
-          onEdit: viewModel.openEditor
+          onCreateDetailedTask: {
+            isInputFocused = false
+            viewModel.openCreateTaskEditor()
+          },
+          onToggleDone: { task in
+            isInputFocused = false
+            _Concurrency.Task { await viewModel.toggleDone(task) }
+          },
+          onArchive: { task in
+            isInputFocused = false
+            _Concurrency.Task { await viewModel.archive(task) }
+          },
+          onEdit: { task in
+            isInputFocused = false
+            viewModel.openEditor(for: task)
+          }
         )
       }
       .listStyle(.insetGrouped)
+      .scrollDismissesKeyboard(.interactively)
+      .simultaneousGesture(
+        TapGesture().onEnded {
+          isInputFocused = false
+        }
+      )
       .navigationTitle("任务池")
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           Button {
+            isInputFocused = false
             viewModel.showingSettings = true
           } label: {
             Image(systemName: "gearshape")
+          }
+        }
+        ToolbarItemGroup(placement: .keyboard) {
+          Spacer()
+
+          Button("完成") {
+            isInputFocused = false
           }
         }
       }

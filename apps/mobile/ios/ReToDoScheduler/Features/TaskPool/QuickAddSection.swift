@@ -2,6 +2,7 @@ import SwiftUI
 
 struct QuickAddSection: View {
   @Binding var input: String
+  var keyboardFocus: FocusState<Bool>.Binding
   let syncMessage: String
   let isSyncing: Bool
   let onAdd: () -> Void
@@ -16,6 +17,9 @@ struct QuickAddSection: View {
 
         TextField("输入任务，例如：周报 90分钟 明天 #工作", text: $input, axis: .vertical)
           .textFieldStyle(.roundedBorder)
+          .focused(keyboardFocus)
+          .submitLabel(.done)
+          .onSubmit(onAdd)
 
         HStack {
           Button("添加任务", action: onAdd)

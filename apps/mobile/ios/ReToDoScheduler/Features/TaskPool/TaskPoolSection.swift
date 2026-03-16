@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TaskPoolSection: View {
   @Binding var searchQuery: String
+  var keyboardFocus: FocusState<Bool>.Binding
   let tasks: [Task]
   let onCreateDetailedTask: () -> Void
   let onToggleDone: (Task) -> Void
@@ -13,6 +14,8 @@ struct TaskPoolSection: View {
       TextField("搜索任务", text: $searchQuery)
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled()
+        .focused(keyboardFocus)
+        .submitLabel(.done)
 
       Button("新建详情任务", action: onCreateDetailedTask)
 

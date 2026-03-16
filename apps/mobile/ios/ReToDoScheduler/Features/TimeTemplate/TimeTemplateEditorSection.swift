@@ -12,6 +12,7 @@ private let weekdayLabels: [(value: Int, label: String)] = [
 
 struct TimeTemplateEditorSection: View {
   @Binding var timeTemplate: TimeTemplate
+  var keyboardFocus: FocusState<Bool>.Binding
 
   var body: some View {
     Section {
@@ -36,6 +37,7 @@ struct TimeTemplateEditorSection: View {
         )
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled()
+        .focused(keyboardFocus)
 
         TextField(
           "结束时间",
@@ -43,6 +45,7 @@ struct TimeTemplateEditorSection: View {
         )
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled()
+        .focused(keyboardFocus)
 
         Button("删除时间段", role: .destructive) {
           timeTemplate.weeklyRanges.remove(at: index)
