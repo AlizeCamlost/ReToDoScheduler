@@ -1,8 +1,29 @@
 import SwiftUI
 
+enum AppInputFocusTarget: Hashable {
+  case taskSearch
+  case quickAdd
+}
+
 struct AppView: View {
-  @StateObject private var viewModel = AppViewModel()
-  @FocusState private var isInputFocused: Bool
+  @StateObject private var viewModel: AppViewModel
+  @FocusState private var focusedField: AppInputFocusTarget?
+  private let shouldBootstrap: Bool
+  @State private var isChromeExpanded = false
+  @State private var chromeHeight: CGFloat = 0
+  @State private var chromeDragOffset: CGFloat = 0
+
+  @MainActor
+  init(shouldBootstrap: Bool = true) {
+    _viewModel = StateObject(wrappedValue: AppViewModel())
+    self.shouldBootstrap = shouldBootstrap
+  }
+
+  @MainActor
+  init(viewModel: AppViewModel, shouldBootstrap: Bool = true) {
+    _viewModel = StateObject(wrappedValue: viewModel)
+    self.shouldBootstrap = shouldBootstrap
+  }
 
   var body: some View {
     NavigationStack {
@@ -10,99 +31,55 @@ struct AppView: View {
         AppBackdrop(perspective: viewModel.currentPerspective)
 
         TabView(selection: $viewModel.currentPerspective) {
-          TaskPoolSection(
-            searchQuery: $viewModel.searchQuery,
-            keyboardFocus: $isInputFocused,
-            tasks: viewModel.filteredTasks,
-            onCreateDetailedTask: {
-              isInputFocused = false
-              viewModel.openCreateTaskEditor()
-            },
-            onToggleDone: { task in
-              isInputFocused = false
-              _Concurrency.Task { await viewModel.toggleDone(task) }
-            },
-            onArchive: { task in
-              isInputFocused = false
-              _Concurrency.Task { await viewModel.archive(task) }
-            },
-            onOpenDetail: { task in
-              isInputFocused = false
-              withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
-                viewModel.openTaskDetail(task)
-              }
-            },
-            onEdit: { task in
-              isInputFocused = false
-              viewModel.openEditor(for: task)
-            }
-          )
-          .tag(HomePerspective.tasks)
+          taskPoolPage
+            .tag(HomePerspective.tasks)
 
-          ScheduleSection(
-            calendarMode: $viewModel.calendarMode,
-            scheduleView: viewModel.scheduleView,
-            titleForBlock: viewModel.taskTitle(for:),
-            taskForBlock: viewModel.task(for:),
-            taskForID: viewModel.task(for:),
-            onSelectTask: { task in
-              isInputFocused = false
-              withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
-                viewModel.openTaskDetail(task)
-              }
-            }
-          )
-          .tag(HomePerspective.calendar)
+          schedulePage
+            .tag(HomePerspective.calendar)
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
-        .padding(.top, 112)
-        .ignoresSafeArea(edges: .bottom)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(ViewHierarchyClipDisabler())
         .onChange(of: viewModel.currentPerspective) { _ in
-          isInputFocused = false
+          focusedField = nil
+          collapseChrome()
         }
 
-        VStack(spacing: 0) {
-          AppChromeHeader(
-            currentPerspective: $viewModel.currentPerspective,
-            syncMessage: viewModel.syncMessage,
-            isSyncing: viewModel.isSyncing,
-            onSync: {
-              isInputFocused = false
-              _Concurrency.Task { await viewModel.syncNow() }
-            },
-            onSettings: {
-              isInputFocused = false
-              viewModel.showingSettings = true
-            }
-          )
-          .padding(.horizontal, 20)
-          .padding(.top, 8)
-
-          Spacer()
-        }
-        .ignoresSafeArea(edges: .top)
-
-        VStack {
-          Spacer()
-
-          if viewModel.currentPerspective == .tasks {
-            QuickAddSection(
-              input: $viewModel.input,
-              keyboardFocus: $isInputFocused,
-              syncMessage: viewModel.syncMessage,
-              isSyncing: viewModel.isSyncing,
-              onAdd: { _Concurrency.Task { await viewModel.addTask() } },
-              onSync: {
-                isInputFocused = false
-                _Concurrency.Task { await viewModel.syncNow() }
-              }
-            )
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+        AppChromeHeader(
+          currentPerspective: $viewModel.currentPerspective,
+          syncMessage: viewModel.syncMessage,
+          isSyncing: viewModel.isSyncing,
+          onSync: {
+            focusedField = nil
+            _Concurrency.Task { await viewModel.syncNow() }
+          },
+          onSettings: {
+            focusedField = nil
+            viewModel.showingSettings = true
           }
-        }
-        .ignoresSafeArea(edges: .bottom)
+        )
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .background(
+          GeometryReader { geometry in
+            Color.clear
+              .preference(key: ChromeHeightPreferenceKey.self, value: geometry.size.height)
+          }
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .offset(y: chromeOffsetY)
+        .allowsHitTesting(isChromeInteractive)
+        .simultaneousGesture(chromeDragGesture)
+
+        Color.clear
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+          .overlay(alignment: .top) {
+            Color.clear
+              .frame(height: 72)
+              .contentShape(Rectangle())
+              .gesture(chromeDragGesture)
+              .allowsHitTesting(!isChromeExpanded)
+          }
 
         if let task = viewModel.selectedTask {
           TaskDetailOverlay(
@@ -125,8 +102,52 @@ struct AppView: View {
           .transition(.opacity.combined(with: .move(edge: .bottom)))
           .zIndex(10)
         }
+      }      
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        if viewModel.currentPerspective == .tasks {
+          quickAddDock
+        }
       }
+      .background(ViewHierarchyClipDisabler())
       .toolbar(.hidden, for: .navigationBar)
+      .toolbar {
+        ToolbarItemGroup(placement: .keyboard) {
+          Spacer()
+
+          Button("完成") {
+            focusedField = nil
+          }
+        }
+      }
+      .contentShape(Rectangle())
+      .simultaneousGesture(
+        TapGesture().onEnded {
+          focusedField = nil
+          collapseChrome()
+        }
+      )
+      .onPreferenceChange(ChromeHeightPreferenceKey.self) { height in
+        chromeHeight = height
+      }
+      .onChange(of: focusedField) { _ in
+        collapseChrome()
+      }
+      .onChange(of: viewModel.showingSettings) { isPresented in
+        if isPresented {
+          focusedField = nil
+          collapseChrome()
+        }
+      }
+      .onChange(of: viewModel.showingTaskEditor) { isPresented in
+        if isPresented {
+          focusedField = nil
+          collapseChrome()
+        }
+      }
+      .onChange(of: viewModel.selectedTaskID) { _ in
+        focusedField = nil
+        collapseChrome()
+      }
       .sheet(isPresented: $viewModel.showingSettings) {
         SettingsSheet(
           apiBaseURL: $viewModel.apiBaseURL,
@@ -148,9 +169,186 @@ struct AppView: View {
         )
       }
       .task {
+        guard shouldBootstrap else { return }
         await viewModel.bootstrap()
       }
     }
+  }
+
+  private var chromeHiddenDistance: CGFloat {
+    max(chromeHeight + 20, 180)
+  }
+
+  private var taskPoolPage: some View {
+    TaskPoolSection(
+      searchQuery: $viewModel.searchQuery,
+      keyboardFocus: $focusedField,
+      tasks: viewModel.filteredTasks,
+      onCreateDetailedTask: {
+        focusedField = nil
+        viewModel.openCreateTaskEditor()
+      },
+      onToggleDone: { task in
+        focusedField = nil
+        _Concurrency.Task { await viewModel.toggleDone(task) }
+      },
+      onArchive: { task in
+        focusedField = nil
+        _Concurrency.Task { await viewModel.archive(task) }
+      },
+      onOpenDetail: { task in
+        focusedField = nil
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+          viewModel.openTaskDetail(task)
+        }
+      },
+      onEdit: { task in
+        focusedField = nil
+        viewModel.openEditor(for: task)
+      }
+    )
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .contentShape(Rectangle())
+  }
+
+  private var quickAddDock: some View {
+    ZStack(alignment: .bottom) {
+      QuickAddDockBackground()
+
+      QuickAddDockSurface(isFocused: focusedField == .quickAdd) {
+        QuickAddSection(
+          input: $viewModel.input,
+          keyboardFocus: $focusedField,
+          syncMessage: viewModel.syncMessage,
+          isSyncing: viewModel.isSyncing,
+          onAdd: {
+            focusedField = nil
+            _Concurrency.Task { await viewModel.addTask() }
+          },
+          onSync: {
+            focusedField = nil
+            _Concurrency.Task { await viewModel.syncNow() }
+          }
+        )
+      }
+    }
+    .frame(maxWidth: .infinity)
+    .background(ViewHierarchyClipDisabler())
+    .transition(.move(edge: .bottom).combined(with: .opacity))
+  }
+
+  private var schedulePage: some View {
+    ScheduleSection(
+      calendarMode: $viewModel.calendarMode,
+      scheduleView: viewModel.scheduleView,
+      titleForBlock: viewModel.taskTitle(for:),
+      taskForBlock: viewModel.task(for:),
+      taskForID: viewModel.task(for:),
+      onSelectTask: { task in
+        focusedField = nil
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+          viewModel.openTaskDetail(task)
+        }
+      }
+    )
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .contentShape(Rectangle())
+  }
+
+  private var chromeOffsetY: CGFloat {
+    -chromeHiddenDistance + chromeRevealDistance
+  }
+
+  private var chromeRevealDistance: CGFloat {
+    rubberBandedChromeRevealDistance(chromeRestingRevealDistance + chromeDragOffset)
+  }
+
+  private var chromeRestingRevealDistance: CGFloat {
+    isChromeExpanded ? chromeHiddenDistance : 0
+  }
+
+  private var isChromeInteractive: Bool {
+    isChromeExpanded || abs(chromeDragOffset) > 0.5
+  }
+
+  private var chromeDragGesture: some Gesture {
+    DragGesture(minimumDistance: 10)
+      .onChanged { value in
+        chromeDragOffset = value.translation.height
+      }
+      .onEnded { value in
+        let projectedRevealDistance = clampedChromeRevealDistance(
+          chromeRestingRevealDistance + value.predictedEndTranslation.height
+        )
+        let shouldExpand = projectedRevealDistance > (chromeHiddenDistance * 0.45)
+
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+          isChromeExpanded = shouldExpand
+          chromeDragOffset = 0
+        }
+      }
+  }
+
+  private func collapseChrome() {
+    withAnimation(.spring(response: 0.24, dampingFraction: 0.92)) {
+      isChromeExpanded = false
+      chromeDragOffset = 0
+    }
+  }
+
+  private func clampedChromeRevealDistance(_ distance: CGFloat) -> CGFloat {
+    min(max(distance, 0), chromeHiddenDistance)
+  }
+
+  private func rubberBandedChromeRevealDistance(_ distance: CGFloat) -> CGFloat {
+    let clampedDistance = clampedChromeRevealDistance(distance)
+
+    if distance > chromeHiddenDistance {
+      let overflow = distance - chromeHiddenDistance
+      let resistedOverflow = linearlyDampedOverflow(
+        overflow,
+        initialGain: 0.48,
+        dampingPerPoint: 0.010,
+        minimumGain: 0.10,
+        maxVisibleOverflow: 50
+      )
+      return chromeHiddenDistance + resistedOverflow
+    }
+
+    if distance < 0 {
+      let overflow = abs(distance)
+      let resistedOverflow = linearlyDampedOverflow(
+        overflow,
+        initialGain: 0.24,
+        dampingPerPoint: 0.012,
+        minimumGain: 0.06,
+        maxVisibleOverflow: 12
+      )
+      return -resistedOverflow
+    }
+
+    return clampedDistance
+  }
+
+  private func linearlyDampedOverflow(
+    _ overflow: CGFloat,
+    initialGain: CGFloat,
+    dampingPerPoint: CGFloat,
+    minimumGain: CGFloat,
+    maxVisibleOverflow: CGFloat
+  ) -> CGFloat {
+    guard overflow > 0 else { return 0 }
+
+    let clampedMinimumGain = min(initialGain, minimumGain)
+    let slope = max(dampingPerPoint, 0.0001)
+    let threshold = max((initialGain - clampedMinimumGain) / slope, 0)
+    let linearRegion = min(overflow, threshold)
+    let integratedLinearRegion =
+      (initialGain * linearRegion) - (0.5 * slope * linearRegion * linearRegion)
+    let tailOverflow = max(overflow - threshold, 0)
+    let integratedTail = tailOverflow * clampedMinimumGain
+
+    return min(integratedLinearRegion + integratedTail, maxVisibleOverflow)
   }
 }
 
@@ -241,6 +439,8 @@ private struct HeaderIconButton: View {
 }
 
 private struct AppBackdrop: View {
+  @Environment(\.colorScheme) private var colorScheme
+
   let perspective: HomePerspective
 
   var body: some View {
@@ -253,13 +453,13 @@ private struct AppBackdrop: View {
       .ignoresSafeArea()
 
       Circle()
-        .fill(accentColor.opacity(0.18))
+        .fill(accentColor.opacity(colorScheme == .dark ? 0.28 : 0.18))
         .frame(width: 300, height: 300)
         .blur(radius: 16)
         .offset(x: perspective == .tasks ? -120 : 110, y: -250)
 
       RoundedRectangle(cornerRadius: 80, style: .continuous)
-        .fill(Color.white.opacity(0.08))
+        .fill(floatingCardColor)
         .frame(width: perspective == .tasks ? 220 : 260, height: perspective == .tasks ? 420 : 360)
         .rotationEffect(.degrees(perspective == .tasks ? -18 : 12))
         .offset(x: perspective == .tasks ? 170 : -140, y: 120)
@@ -274,18 +474,30 @@ private struct AppBackdrop: View {
   }
 
   private var gradientColors: [Color] {
-    switch perspective {
-    case .tasks:
+    switch (perspective, colorScheme) {
+    case (.tasks, .light):
       return [
         Color(red: 0.97, green: 0.93, blue: 0.88),
         Color(red: 0.90, green: 0.94, blue: 0.98),
         Color(red: 0.96, green: 0.96, blue: 0.98)
       ]
-    case .calendar:
+    case (.calendar, .light):
       return [
         Color(red: 0.90, green: 0.95, blue: 0.99),
         Color(red: 0.84, green: 0.90, blue: 0.98),
         Color(red: 0.94, green: 0.94, blue: 0.98)
+      ]
+    case (.tasks, .dark):
+      return [
+        Color(red: 0.16, green: 0.14, blue: 0.13),
+        Color(red: 0.12, green: 0.16, blue: 0.20),
+        Color(red: 0.09, green: 0.10, blue: 0.12)
+      ]
+    case (.calendar, .dark):
+      return [
+        Color(red: 0.10, green: 0.14, blue: 0.18),
+        Color(red: 0.08, green: 0.12, blue: 0.18),
+        Color(red: 0.08, green: 0.09, blue: 0.12)
       ]
     }
   }
@@ -293,6 +505,131 @@ private struct AppBackdrop: View {
   private var accentColor: Color {
     perspective == .tasks ? Color.orange : Color.blue
   }
+
+  private var floatingCardColor: Color {
+    colorScheme == .dark ? Color.white.opacity(0.06) : Color.white.opacity(0.08)
+  }
+}
+
+@MainActor
+private extension AppViewModel {
+  static func preview() -> AppViewModel {
+    let viewModel = AppViewModel()
+    viewModel.tasks = AppViewPreviewFixtures.tasks
+    viewModel.timeTemplate = AppViewPreviewFixtures.timeTemplate
+    viewModel.syncMessage = "已同步 3 项，09:41"
+    viewModel.apiBaseURL = "http://43.159.136.45:8787"
+    viewModel.apiAuthToken = "preview-token"
+    viewModel.currentPerspective = .tasks
+    viewModel.calendarMode = .week
+    return viewModel
+  }
+}
+
+private enum AppViewPreviewFixtures {
+  static let planningTask = Task(
+    id: "task-plan-launch",
+    title: "准备 TestFlight 发布",
+    rawInput: "准备 TestFlight 发布 90分钟 明天 #iOS",
+    description: "整理截图、检查隐私说明并完成最后一轮自测。",
+    estimatedMinutes: 90,
+    minChunkMinutes: 30,
+    dueAt: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
+    importance: 5,
+    value: 5,
+    difficulty: 4,
+    postponability: 1,
+    taskTraits: TaskTraits(
+      focus: .high,
+      interruptibility: .low,
+      location: .indoor,
+      device: .desktop,
+      parallelizable: false
+    ),
+    tags: ["ios", "release"],
+    scheduleValue: TaskValueSpec(rewardOnTime: 18, penaltyMissed: 40),
+    steps: [
+      TaskStepTemplate(
+        id: "screenshots",
+        title: "更新商店截图",
+        estimatedMinutes: 30,
+        minChunkMinutes: 15,
+        dependsOnStepIds: []
+      ),
+      TaskStepTemplate(
+        id: "privacy",
+        title: "核对隐私配置",
+        estimatedMinutes: 20,
+        minChunkMinutes: 10,
+        dependsOnStepIds: ["screenshots"]
+      )
+    ]
+  )
+
+  static let syncTask = Task(
+    id: "task-sync-debug",
+    title: "排查同步报错",
+    rawInput: "排查同步报错 45分钟 今天 #后端",
+    description: "检查 token、容器端口和 API 健康状态。",
+    status: .doing,
+    estimatedMinutes: 45,
+    minChunkMinutes: 15,
+    dueAt: Date(),
+    importance: 4,
+    value: 4,
+    difficulty: 3,
+    postponability: 2,
+    taskTraits: TaskTraits(
+      focus: .medium,
+      interruptibility: .medium,
+      location: .indoor,
+      device: .desktop,
+      parallelizable: false
+    ),
+    tags: ["backend", "sync"],
+    scheduleValue: TaskValueSpec(rewardOnTime: 12, penaltyMissed: 20)
+  )
+
+  static let cleanupTask = Task(
+    id: "task-cleanup",
+    title: "清理旧构建产物",
+    rawInput: "清理旧构建产物 20分钟 #维护",
+    description: "移除不再使用的预览资源和缓存。",
+    status: .done,
+    estimatedMinutes: 20,
+    minChunkMinutes: 10,
+    importance: 2,
+    value: 2,
+    difficulty: 1,
+    postponability: 5,
+    taskTraits: TaskTraits(
+      focus: .low,
+      interruptibility: .high,
+      location: .indoor,
+      device: .desktop,
+      parallelizable: true
+    ),
+    tags: ["maintain"]
+  )
+
+  static let tasks: [Task] = [
+    planningTask,
+    syncTask,
+    cleanupTask
+  ]
+
+  static let timeTemplate = TimeTemplate(
+    timezone: TimeZone.current.identifier,
+    weeklyRanges: [
+      WeeklyTimeRange(id: "1-morning", weekday: 1, startTime: "09:00", endTime: "12:00"),
+      WeeklyTimeRange(id: "1-afternoon", weekday: 1, startTime: "14:00", endTime: "18:00"),
+      WeeklyTimeRange(id: "2-morning", weekday: 2, startTime: "09:30", endTime: "12:30")
+    ]
+  )
+}
+
+#Preview("App Home") {
+  AppView(viewModel: .preview(), shouldBootstrap: false)
 }
 
 private struct GridGlow: View {
@@ -319,6 +656,122 @@ private struct GridGlow: View {
       .blur(radius: 0.4)
     }
     .ignoresSafeArea()
+  }
+}
+
+private struct ChromeHeightPreferenceKey: PreferenceKey {
+  static var defaultValue: CGFloat = 0
+
+  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+    value = max(value, nextValue())
+  }
+}
+
+private struct ViewHierarchyClipDisabler: UIViewRepresentable {
+  func makeUIView(context: Context) -> UIView {
+    let view = UIView(frame: .zero)
+    view.backgroundColor = .clear
+    return view
+  }
+
+  func updateUIView(_ uiView: UIView, context: Context) {
+    DispatchQueue.main.async {
+      var current: UIView? = uiView
+      var topmostView: UIView?
+
+      while let view = current {
+        view.clipsToBounds = false
+        view.layer.masksToBounds = false
+        topmostView = view
+        current = view.superview
+      }
+
+      if let topmostView {
+        disableClippingRecursively(in: topmostView)
+      }
+
+      if let window = uiView.window {
+        window.clipsToBounds = false
+        window.layer.masksToBounds = false
+      }
+    }
+  }
+
+  private func disableClippingRecursively(in view: UIView) {
+    view.clipsToBounds = false
+    view.layer.masksToBounds = false
+
+    for subview in view.subviews {
+      disableClippingRecursively(in: subview)
+    }
+  }
+}
+
+private struct QuickAddDockBackground: View {
+  private let dockInset: CGFloat = 10
+
+  var body: some View {
+    GeometryReader { geometry in
+      let bottomInset = max(geometry.safeAreaInsets.bottom, dockInset)
+
+      ContainerRelativeShape()
+      .inset(by: dockInset)
+      .fill(.ultraThinMaterial)
+      .overlay(
+        ContainerRelativeShape()
+          .inset(by: dockInset)
+          .strokeBorder(Color.white.opacity(0.58), lineWidth: 1)
+      )
+      .shadow(color: Color.black.opacity(0.12), radius: 26, y: 8)
+      .frame(height: 92 + bottomInset)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+      .ignoresSafeArea(edges: .bottom)
+    }
+    .frame(height: 124)
+  }
+}
+
+private struct QuickAddDockSurface<Content: View>: View {
+  let isFocused: Bool
+  @ViewBuilder let content: () -> Content
+
+  private let surfaceInset: CGFloat = 30
+  private let dockInset: CGFloat = 30
+
+  var body: some View {
+    GeometryReader { geometry in
+      let bottomInset = max(geometry.safeAreaInsets.bottom, dockInset)
+
+      ContainerRelativeShape()
+        .inset(by: surfaceInset)
+        .fill(Color.white.opacity(isFocused ? 0.94 : 0.88))
+        .overlay(
+          ContainerRelativeShape()
+            .inset(by: surfaceInset)
+            .strokeBorder(Color.white.opacity(isFocused ? 0.94 : 0.84), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(isFocused ? 0.10 : 0.07), radius: isFocused ? 24 : 18, y: 8)
+        .frame(height: 92 + bottomInset)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .overlay {
+          content()
+            .scaleEffect(isFocused ? 1.01 : 1, anchor: .center)
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+    .frame(height: 124)
+    .animation(.spring(response: 0.30, dampingFraction: 0.82), value: isFocused)
+  }
+}
+
+extension View {
+  @ViewBuilder
+  func appScrollOverflowVisible() -> some View {
+    if #available(iOS 17.0, *) {
+      self.scrollClipDisabled()
+    } else {
+      self
+    }
   }
 }
 

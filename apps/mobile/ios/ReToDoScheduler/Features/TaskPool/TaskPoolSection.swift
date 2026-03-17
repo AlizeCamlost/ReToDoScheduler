@@ -2,7 +2,7 @@ import SwiftUI
 
 struct TaskPoolSection: View {
   @Binding var searchQuery: String
-  var keyboardFocus: FocusState<Bool>.Binding
+  var keyboardFocus: FocusState<AppInputFocusTarget?>.Binding
   let tasks: [Task]
   let onCreateDetailedTask: () -> Void
   let onToggleDone: (Task) -> Void
@@ -21,14 +21,6 @@ struct TaskPoolSection: View {
   var body: some View {
     ScrollView(showsIndicators: false) {
       VStack(alignment: .leading, spacing: 24) {
-        VStack(alignment: .leading, spacing: 10) {
-          Text("任务流")
-            .font(.system(size: 32, weight: .bold, design: .rounded))
-          Text("以线性视角整理待办，并始终保留一个能快速落笔的输入口。")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-        }
-
         VStack(alignment: .leading, spacing: 14) {
           HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
@@ -36,7 +28,7 @@ struct TaskPoolSection: View {
             TextField("搜索任务、标签或描述", text: $searchQuery)
               .textInputAutocapitalization(.never)
               .autocorrectionDisabled()
-              .focused(keyboardFocus)
+              .focused(keyboardFocus, equals: .taskSearch)
               .submitLabel(.done)
           }
           .padding(.horizontal, 16)
@@ -45,25 +37,15 @@ struct TaskPoolSection: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
               .fill(Color.white.opacity(0.54))
           )
-
-          Button(action: onCreateDetailedTask) {
-            Label("新建详情任务", systemImage: "square.and.pencil")
-              .font(.subheadline.weight(.semibold))
-              .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.borderedProminent)
-          .tint(Color.black.opacity(0.82))
         }
 
         if let highlightedTask {
           VStack(alignment: .leading, spacing: 12) {
             Text("当前聚焦")
               .font(.headline.weight(.semibold))
-            TaskPoolCard(
+            FocusedTaskCard(
               task: highlightedTask,
-              emphasized: true,
               onToggleDone: { onToggleDone(highlightedTask) },
-              onArchive: { onArchive(highlightedTask) },
               onOpenDetail: { onOpenDetail(highlightedTask) },
               onEdit: { onEdit(highlightedTask) }
             )
@@ -77,16 +59,13 @@ struct TaskPoolSection: View {
           if tasks.isEmpty {
             EmptyTaskPoolCard()
           } else {
-            ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
-              TaskPoolCard(
-                task: task,
-                emphasized: index == 0,
-                onToggleDone: { onToggleDone(task) },
-                onArchive: { onArchive(task) },
-                onOpenDetail: { onOpenDetail(task) },
-                onEdit: { onEdit(task) }
-              )
-            }
+            TaskQueueTimeline(
+              tasks: tasks,
+              onToggleDone: onToggleDone,
+              onArchive: onArchive,
+              onOpenDetail: onOpenDetail,
+              onEdit: onEdit
+            )
           }
 
           if !secondaryTasks.isEmpty {
@@ -121,15 +100,18 @@ struct TaskPoolSection: View {
         }
       }
       .padding(.horizontal, 20)
-      .padding(.top, 12)
-      .padding(.bottom, 168)
+//      .padding(.top, 12)
+//      .padding(.bottom, 168)
     }
+    .appScrollOverflowVisible()
+    .scrollDismissesKeyboard(.interactively)
   }
 }
 
 private struct TaskPoolCard: View {
   let task: Task
   let emphasized: Bool
+  var timelineColor: Color? = nil
   let onToggleDone: () -> Void
   let onArchive: () -> Void
   let onOpenDetail: () -> Void
@@ -148,29 +130,14 @@ private struct TaskPoolCard: View {
 
   var body: some View {
     HStack(alignment: .top, spacing: 14) {
-      VStack(spacing: 0) {
-        Circle()
-          .fill(task.status.accentColor)
-          .frame(width: emphasized ? 15 : 13, height: emphasized ? 15 : 13)
-          .overlay(
-            Circle()
-              .strokeBorder(Color.white.opacity(0.8), lineWidth: 2)
-          )
-          .padding(.top, 10)
-
-        RoundedRectangle(cornerRadius: 999, style: .continuous)
-          .fill(
-            LinearGradient(
-              colors: [task.status.accentColor.opacity(0.55), task.status.accentColor.opacity(0.04)],
-              startPoint: .top,
-              endPoint: .bottom
-            )
-          )
-          .frame(width: 2)
-          .frame(maxHeight: .infinity)
-          .padding(.top, 8)
-          .padding(.bottom, 6)
-      }
+      Circle()
+        .fill(timelineColor ?? task.status.accentColor)
+        .frame(width: emphasized ? 15 : 13, height: emphasized ? 15 : 13)
+        .overlay(
+          Circle()
+            .strokeBorder(Color.white.opacity(0.8), lineWidth: 2)
+        )
+        .padding(.top, 10)
 
       VStack(alignment: .leading, spacing: 12) {
         Button(action: onOpenDetail) {
@@ -262,6 +229,110 @@ private struct TaskPoolCard: View {
   }
 }
 
+private struct FocusedTaskCard: View {
+  let task: Task
+  let onToggleDone: () -> Void
+  let onOpenDetail: () -> Void
+  let onEdit: () -> Void
+
+  private var focusMeta: [String] {
+    var items = [task.status.displayName, "估时 \(task.estimatedMinutes) 分钟"]
+    if let dueLabel = AppFormatters.dueLabel(for: task.dueAt) {
+      items.append(dueLabel)
+    }
+    return items
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
+          Text(task.title)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(2)
+
+          HStack(spacing: 8) {
+            ForEach(focusMeta, id: \.self) { item in
+              Text(item)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(item == task.status.displayName ? task.status.accentColor : Color.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.56), in: Capsule())
+            }
+          }
+        }
+
+        Spacer()
+
+        Button(action: onOpenDetail) {
+          Image(systemName: "arrow.up.right")
+            .font(.subheadline.weight(.bold))
+            .frame(width: 34, height: 34)
+            .background(Color.white.opacity(0.58), in: Circle())
+        }
+        .buttonStyle(.plain)
+      }
+
+      HStack(spacing: 10) {
+        Button(task.status == .done ? "标为待办" : "完成", action: onToggleDone)
+          .buttonStyle(.borderedProminent)
+          .tint(task.status == .done ? Color.gray.opacity(0.6) : task.status.accentColor)
+
+        Button("编辑", action: onEdit)
+          .buttonStyle(.bordered)
+      }
+    }
+    .padding(18)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      RoundedRectangle(cornerRadius: 28, style: .continuous)
+        .fill(Color.white.opacity(0.72))
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 28, style: .continuous)
+        .strokeBorder(Color.white.opacity(0.36), lineWidth: 1)
+    )
+    .shadow(color: Color.black.opacity(0.08), radius: 14, y: 6)
+  }
+}
+
+private struct TaskQueueTimeline: View {
+  let tasks: [Task]
+  let onToggleDone: (Task) -> Void
+  let onArchive: (Task) -> Void
+  let onOpenDetail: (Task) -> Void
+  let onEdit: (Task) -> Void
+
+  private let timelineColor = Color.primary.opacity(0.16)
+
+  var body: some View {
+    ZStack(alignment: .topLeading) {
+      RoundedRectangle(cornerRadius: 999, style: .continuous)
+        .fill(timelineColor)
+        .frame(width: 2)
+        .padding(.leading, 6)
+        .padding(.top, 18)
+        .padding(.bottom, 18)
+
+      VStack(alignment: .leading, spacing: 14) {
+        ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
+          TaskPoolCard(
+            task: task,
+            emphasized: index == 0,
+            timelineColor: timelineColor,
+            onToggleDone: { onToggleDone(task) },
+            onArchive: { onArchive(task) },
+            onOpenDetail: { onOpenDetail(task) },
+            onEdit: { onEdit(task) }
+          )
+        }
+      }
+    }
+  }
+}
+
 private struct EmptyTaskPoolCard: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -278,6 +349,135 @@ private struct EmptyTaskPoolCard: View {
         .fill(Color.white.opacity(0.5))
     )
   }
+}
+
+private struct TaskPoolSectionPreviewContainer: View {
+  @State private var searchQuery = ""
+  @FocusState private var focusedField: AppInputFocusTarget?
+
+  var body: some View {
+    ZStack {
+      LinearGradient(
+        colors: [
+          Color(red: 0.97, green: 0.93, blue: 0.88),
+          Color(red: 0.90, green: 0.94, blue: 0.98),
+          Color(red: 0.96, green: 0.96, blue: 0.98)
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+      )
+      .ignoresSafeArea()
+
+      TaskPoolSection(
+        searchQuery: $searchQuery,
+        keyboardFocus: $focusedField,
+        tasks: TaskPoolPreviewFixtures.tasks,
+        onCreateDetailedTask: {},
+        onToggleDone: { _ in },
+        onArchive: { _ in },
+        onOpenDetail: { _ in },
+        onEdit: { _ in }
+      )
+    }
+  }
+}
+
+private enum TaskPoolPreviewFixtures {
+  static let planningTask = Task(
+    id: "task-plan-launch",
+    title: "准备 TestFlight 发布",
+    rawInput: "准备 TestFlight 发布 90分钟 明天 #iOS",
+    description: "整理截图、检查隐私说明并完成最后一轮自测。",
+    status: .todo,
+    estimatedMinutes: 90,
+    minChunkMinutes: 30,
+    dueAt: Calendar.current.date(byAdding: .day, value: 1, to: Date()),
+    importance: 5,
+    value: 5,
+    difficulty: 4,
+    postponability: 1,
+    taskTraits: TaskTraits(
+      focus: .high,
+      interruptibility: .low,
+      location: .indoor,
+      device: .desktop,
+      parallelizable: false
+    ),
+    tags: ["ios", "release"],
+    scheduleValue: TaskValueSpec(rewardOnTime: 18, penaltyMissed: 40),
+    steps: [
+      TaskStepTemplate(
+        id: "screenshots",
+        title: "更新商店截图",
+        estimatedMinutes: 30,
+        minChunkMinutes: 15,
+        dependsOnStepIds: []
+      ),
+      TaskStepTemplate(
+        id: "privacy",
+        title: "核对隐私配置",
+        estimatedMinutes: 20,
+        minChunkMinutes: 10,
+        dependsOnStepIds: ["screenshots"]
+      )
+    ]
+  )
+
+  static let syncTask = Task(
+    id: "task-sync-debug",
+    title: "排查同步报错",
+    rawInput: "排查同步报错 45分钟 今天 #后端",
+    description: "检查 token、容器端口和 API 健康状态。",
+    status: .doing,
+    estimatedMinutes: 45,
+    minChunkMinutes: 15,
+    dueAt: Date(),
+    importance: 4,
+    value: 4,
+    difficulty: 3,
+    postponability: 2,
+    taskTraits: TaskTraits(
+      focus: .medium,
+      interruptibility: .medium,
+      location: .indoor,
+      device: .desktop,
+      parallelizable: false
+    ),
+    tags: ["backend", "sync"],
+    scheduleValue: TaskValueSpec(rewardOnTime: 12, penaltyMissed: 20)
+  )
+
+  static let cleanupTask = Task(
+    id: "task-cleanup",
+    title: "清理旧构建产物",
+    rawInput: "清理旧构建产物 20分钟 #维护",
+    description: "移除不再使用的预览资源和缓存。",
+    status: .done,
+    estimatedMinutes: 20,
+    minChunkMinutes: 10,
+    importance: 2,
+    value: 2,
+    difficulty: 1,
+    postponability: 5,
+    taskTraits: TaskTraits(
+      focus: .low,
+      interruptibility: .high,
+      location: .indoor,
+      device: .desktop,
+      parallelizable: true
+    ),
+    tags: ["maintain"]
+  )
+
+  static let tasks: [Task] = [
+    planningTask,
+    syncTask,
+    cleanupTask
+  ]
+}
+
+#Preview("Task Pool") {
+  TaskPoolSectionPreviewContainer()
 }
 
 extension TaskStatus {

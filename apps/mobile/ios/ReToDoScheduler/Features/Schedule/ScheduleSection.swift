@@ -116,6 +116,7 @@ struct ScheduleSection: View {
       .padding(.top, 12)
       .padding(.bottom, 48)
     }
+    .appScrollOverflowVisible()
   }
 }
 
