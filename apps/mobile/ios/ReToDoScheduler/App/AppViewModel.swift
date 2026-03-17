@@ -1,6 +1,51 @@
 import Foundation
 import SwiftUI
 
+enum HomePerspective: Int, CaseIterable, Identifiable {
+  case tasks
+  case calendar
+
+  var id: Int { rawValue }
+
+  var title: String {
+    switch self {
+    case .tasks: return "任务流"
+    case .calendar: return "时间格"
+    }
+  }
+
+  var subtitle: String {
+    switch self {
+    case .tasks: return "线性查看和收集任务"
+    case .calendar: return "从时间维度查看排期"
+    }
+  }
+}
+
+enum CalendarDisplayMode: String, CaseIterable, Identifiable {
+  case day
+  case week
+  case month
+
+  var id: String { rawValue }
+
+  var title: String {
+    switch self {
+    case .day: return "日"
+    case .week: return "周"
+    case .month: return "月"
+    }
+  }
+
+  var horizon: HorizonOption {
+    switch self {
+    case .day: return .day
+    case .week: return .week
+    case .month: return .medium
+    }
+  }
+}
+
 @MainActor
 final class AppViewModel: ObservableObject {
   @Published var input = ""
@@ -15,6 +60,13 @@ final class AppViewModel: ObservableObject {
   @Published var showingSettings = false
   @Published var showingTaskEditor = false
   @Published var taskEditorDraft = TaskEditorDraft()
+  @Published var currentPerspective: HomePerspective = .tasks
+  @Published var calendarMode: CalendarDisplayMode = .week {
+    didSet {
+      horizon = calendarMode.horizon
+    }
+  }
+  @Published var selectedTaskID: String?
 
   private(set) var editingTaskID: String?
 
@@ -33,6 +85,11 @@ final class AppViewModel: ObservableObject {
 
   var visibleTasks: [Task] {
     tasks.filter { $0.status != .archived }
+  }
+
+  var selectedTask: Task? {
+    guard let selectedTaskID else { return nil }
+    return tasks.first { $0.id == selectedTaskID }
   }
 
   var filteredTasks: [Task] {
@@ -71,6 +128,9 @@ final class AppViewModel: ObservableObject {
 
   func refresh() async {
     tasks = await repository.listTasks()
+    if let selectedTaskID, !tasks.contains(where: { $0.id == selectedTaskID }) {
+      self.selectedTaskID = nil
+    }
   }
 
   func addTask() async {
@@ -100,6 +160,9 @@ final class AppViewModel: ObservableObject {
   func archive(_ task: Task) async {
     do {
       try await repository.archive(taskID: task.id)
+      if selectedTaskID == task.id {
+        selectedTaskID = nil
+      }
       await refresh()
       await syncNow(silentIfUnconfigured: true)
     } catch {
@@ -108,12 +171,14 @@ final class AppViewModel: ObservableObject {
   }
 
   func openCreateTaskEditor() {
+    closeTaskDetail()
     editingTaskID = nil
     taskEditorDraft = TaskEditorDraft()
     showingTaskEditor = true
   }
 
   func openEditor(for task: Task) {
+    closeTaskDetail()
     editingTaskID = task.id
     taskEditorDraft = TaskEditorDraft(task: task)
     showingTaskEditor = true
@@ -122,6 +187,14 @@ final class AppViewModel: ObservableObject {
   func closeTaskEditor() {
     showingTaskEditor = false
     editingTaskID = nil
+  }
+
+  func openTaskDetail(_ task: Task) {
+    selectedTaskID = task.id
+  }
+
+  func closeTaskDetail() {
+    selectedTaskID = nil
   }
 
   func saveTaskEditor(_ draft: TaskEditorDraft) async {
@@ -192,5 +265,13 @@ final class AppViewModel: ObservableObject {
     }
 
     return visibleTasks.first(where: { $0.id == block.taskId })?.title ?? "任务"
+  }
+
+  func task(for block: ScheduleBlock) -> Task? {
+    visibleTasks.first(where: { $0.id == block.taskId })
+  }
+
+  func task(for taskID: String) -> Task? {
+    visibleTasks.first(where: { $0.id == taskID })
   }
 }
