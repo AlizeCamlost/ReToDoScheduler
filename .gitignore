@@ -22,6 +22,15 @@ apps/mobile/ios/**/*.perspectivev3
 apps/mobile/ios/**/*.pbxuser
 apps/mobile/ios/**/*.xccheckout
 apps/mobile/ios/**/*.xcscmblueprint
+apps/mobile/ios_ng/**/xcuserdata/
+apps/mobile/ios_ng/**/*.xcuserdatad/
+apps/mobile/ios_ng/**/*.xcuserstate
+apps/mobile/ios_ng/**/*.mode1v3
+apps/mobile/ios_ng/**/*.mode2v3
+apps/mobile/ios_ng/**/*.perspectivev3
+apps/mobile/ios_ng/**/*.pbxuser
+apps/mobile/ios_ng/**/*.xccheckout
+apps/mobile/ios_ng/**/*.xcscmblueprint
 dist
 build
 coverage
