@@ -46,20 +46,12 @@ const parseItems = (payload: unknown): Task[] => {
         estimatedMinutes: Number(item.estimatedMinutes),
         minChunkMinutes: Number(item.minChunkMinutes),
         dueAt: typeof item.dueAt === "string" ? item.dueAt : undefined,
-        importance: Number(item.importance),
-        value: Number(item.value),
-        difficulty: Number(item.difficulty),
-        postponability: Number(item.postponability),
         tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag)) : [],
         createdAt: String(item.createdAt),
         updatedAt: String(item.updatedAt),
         extJson:
           typeof item.extJson === "object" && item.extJson ? (item.extJson as Record<string, unknown>) : {}
       };
-
-      if (typeof item.taskTraits === "object" && item.taskTraits) {
-        next.taskTraits = item.taskTraits as Task["taskTraits"];
-      }
 
       return makeTask(next);
     });

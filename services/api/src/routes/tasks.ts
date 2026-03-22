@@ -9,6 +9,20 @@ interface SyncBody {
   tasks: SyncTaskPayload[];
 }
 
+const LEGACY_DB_DEFAULTS = {
+  importance: 3,
+  valueScore: 3,
+  difficulty: 3,
+  postponability: 3,
+  taskTraits: {
+    focus: "medium",
+    interruptibility: "medium",
+    location: "any",
+    device: "any",
+    parallelizable: false
+  }
+} as const;
+
 const coerceTask = (value: unknown): SyncTaskPayload | null => {
   if (!value || typeof value !== "object") return null;
   const item = value as Record<string, unknown>;
@@ -28,19 +42,11 @@ const coerceTask = (value: unknown): SyncTaskPayload | null => {
     estimatedMinutes: Number(item.estimatedMinutes ?? 30),
     minChunkMinutes: Number(item.minChunkMinutes ?? 25),
     dueAt: typeof item.dueAt === "string" ? item.dueAt : undefined,
-    importance: Number(item.importance ?? 3),
-    value: Number(item.value ?? 3),
-    difficulty: Number(item.difficulty ?? 3),
-    postponability: Number(item.postponability ?? 3),
     tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag)) : [],
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
     extJson: typeof item.extJson === "object" && item.extJson ? (item.extJson as Record<string, unknown>) : {}
   };
-
-  if (typeof item.taskTraits === "object" && item.taskTraits) {
-    next.taskTraits = item.taskTraits as Task["taskTraits"];
-  }
 
   return makeTask(next);
 };
@@ -55,11 +61,6 @@ const rowToTask = (row: Record<string, unknown>): SyncTaskPayload =>
     estimatedMinutes: Number(row.estimated_minutes),
     minChunkMinutes: Number(row.min_chunk_minutes),
     dueAt: row.due_at ? new Date(String(row.due_at)).toISOString() : undefined,
-    importance: Number(row.importance),
-    value: Number(row.value_score),
-    difficulty: Number(row.difficulty),
-    postponability: Number(row.postponability),
-    taskTraits: row.task_traits_json as Task["taskTraits"],
     tags: Array.isArray(row.tags_json) ? (row.tags_json as string[]) : [],
     createdAt: new Date(String(row.created_at)).toISOString(),
     updatedAt: new Date(String(row.updated_at)).toISOString(),
@@ -117,11 +118,11 @@ const upsertOneTask = async (task: SyncTaskPayload): Promise<void> => {
       task.estimatedMinutes,
       task.minChunkMinutes,
       task.dueAt ?? null,
-      task.importance,
-      task.value,
-      task.difficulty,
-      task.postponability,
-      JSON.stringify(task.taskTraits),
+      LEGACY_DB_DEFAULTS.importance,
+      LEGACY_DB_DEFAULTS.valueScore,
+      LEGACY_DB_DEFAULTS.difficulty,
+      LEGACY_DB_DEFAULTS.postponability,
+      JSON.stringify(LEGACY_DB_DEFAULTS.taskTraits),
       JSON.stringify(task.tags),
       JSON.stringify(embedTaskModel(task)),
       task.createdAt,

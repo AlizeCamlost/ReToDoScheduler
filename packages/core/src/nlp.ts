@@ -1,9 +1,4 @@
-import {
-  DEFAULT_MIN_CHUNK_MINUTES,
-  DEFAULT_TASK_NUMERIC,
-  DEFAULT_TASK_TRAITS
-} from "./defaults";
-import type { TaskTraits } from "./types";
+import { DEFAULT_MIN_CHUNK_MINUTES, DEFAULT_TASK_NUMERIC } from "./defaults";
 
 export interface ParseResult {
   title: string;
@@ -11,7 +6,6 @@ export interface ParseResult {
   minChunkMinutes: number;
   dueAt?: string | undefined;
   tags: string[];
-  taskTraits: TaskTraits;
 }
 
 const DURATION_PATTERNS = [
@@ -73,34 +67,6 @@ const parseTags = (source: string): string[] => {
   return matched.map((tag) => tag.replace(/^#/, "").toLowerCase());
 };
 
-const parseTraits = (source: string): TaskTraits => {
-  const traits: TaskTraits = { ...DEFAULT_TASK_TRAITS };
-
-  if (/专注|深度|focus/i.test(source)) {
-    traits.focus = "high";
-    traits.interruptibility = "low";
-  }
-  if (/脑死亡|低认知|机械|挂机/i.test(source)) {
-    traits.focus = "low";
-    traits.interruptibility = "high";
-    traits.parallelizable = true;
-  }
-  if (/户外|outside|outdoor/i.test(source)) {
-    traits.location = "outdoor";
-  }
-  if (/桌面|电脑|desktop/i.test(source)) {
-    traits.device = "desktop";
-  }
-  if (/手机|mobile/i.test(source)) {
-    traits.device = "mobile";
-  }
-  if (/可并行|并行|旁听/i.test(source)) {
-    traits.parallelizable = true;
-  }
-
-  return traits;
-};
-
 const sanitizeTitle = (source: string): string =>
   source
     .replace(/#[\w\u4e00-\u9fa5-]+/g, "")
@@ -114,7 +80,6 @@ export const parseQuickInput = (input: string): ParseResult => {
     estimatedMinutes: parseDuration(input, fallbackMinutes),
     minChunkMinutes: parseMinChunk(input),
     dueAt: normalizeDateByKeyword(input),
-    tags: parseTags(input),
-    taskTraits: parseTraits(input)
+    tags: parseTags(input)
   };
 };

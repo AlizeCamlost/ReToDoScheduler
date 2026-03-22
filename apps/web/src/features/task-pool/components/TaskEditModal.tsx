@@ -1,10 +1,6 @@
 import {
   makeTask,
   nowIso,
-  type DeviceType,
-  type FocusLevel,
-  type Interruptibility,
-  type LocationType,
   type Task,
   type TaskStepTemplate
 } from "@retodo/core";
@@ -57,10 +53,6 @@ export default function TaskEditModal({ task, allTasks, onSave, onClose }: TaskE
       ? task.steps.map((step) => ({ ...step }))
       : []
   );
-  const [focus, setFocus] = useState<FocusLevel>(task.taskTraits.focus);
-  const [interruptibility, setInterruptibility] = useState<Interruptibility>(task.taskTraits.interruptibility);
-  const [location, setLocation] = useState<LocationType>(task.taskTraits.location);
-  const [device, setDevice] = useState<DeviceType>(task.taskTraits.device);
 
   const titleRef = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -147,14 +139,6 @@ export default function TaskEditModal({ task, allTasks, onSave, onClose }: TaskE
       },
       dependsOnTaskIds,
       steps: filteredSteps,
-      taskTraits: {
-        ...task.taskTraits,
-        focus,
-        interruptibility,
-        location,
-        device,
-        parallelizable: false
-      },
       updatedAt: nowIso()
     });
 
@@ -361,47 +345,6 @@ export default function TaskEditModal({ task, allTasks, onSave, onClose }: TaskE
               ))}
             </div>
 
-            <div className="form-section">
-              <div className="form-section-title">任务特征</div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">专注度</label>
-                  <select className="form-select" value={focus} onChange={(event) => setFocus(event.target.value as FocusLevel)}>
-                    <option value="high">高</option>
-                    <option value="medium">中</option>
-                    <option value="low">低</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">可中断性</label>
-                  <select
-                    className="form-select"
-                    value={interruptibility}
-                    onChange={(event) => setInterruptibility(event.target.value as Interruptibility)}
-                  >
-                    <option value="low">低</option>
-                    <option value="medium">中</option>
-                    <option value="high">高</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">场所</label>
-                  <select className="form-select" value={location} onChange={(event) => setLocation(event.target.value as LocationType)}>
-                    <option value="any">不限</option>
-                    <option value="indoor">室内</option>
-                    <option value="outdoor">室外</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">设备</label>
-                  <select className="form-select" value={device} onChange={(event) => setDevice(event.target.value as DeviceType)}>
-                    <option value="any">不限</option>
-                    <option value="desktop">桌面</option>
-                    <option value="mobile">移动</option>
-                  </select>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="modal-footer">

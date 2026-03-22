@@ -41,6 +41,8 @@ VITE_API_AUTH_TOKEN=<与服务端一致的 token>
 - 当前同步粒度是全量任务列表
 - 冲突策略是 LWW，依据 `updatedAt`
 - 删除在 MVP 中通过 `archived` 实现软删除
+- 当前对外同步 payload 使用最小 `Task` 模型：标题、raw input、状态、估时、最小块、DDL、标签、价值、依赖、步骤、并行模式、时间戳和 `extJson`
+- 服务端仍可把旧数据库列当内部兼容细节处理，但不再把旧字段暴露回客户端
 
 ## 4. 验证方法
 

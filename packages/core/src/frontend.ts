@@ -95,8 +95,7 @@ export const buildQuickTask = (id: string, rawInput: string): Task => {
     estimatedMinutes: parsed.estimatedMinutes,
     minChunkMinutes: parsed.minChunkMinutes,
     dueAt: parsed.dueAt,
-    tags: parsed.tags,
-    taskTraits: parsed.taskTraits
+    tags: parsed.tags
   });
 };
 

@@ -2,6 +2,15 @@ import SwiftUI
 
 struct SequenceTab: View {
   let tasks: [Task]
+  let onTaskTap: (Task) -> Void
+
+  init(
+    tasks: [Task],
+    onTaskTap: @escaping (Task) -> Void = { _ in }
+  ) {
+    self.tasks = tasks
+    self.onTaskTap = onTaskTap
+  }
 
   private var focusedTask: Task? {
     tasks.first { $0.status == .doing }
@@ -30,23 +39,29 @@ struct SequenceTab: View {
   }
 
   var body: some View {
-    ScrollView(showsIndicators: false) {
-      VStack(alignment: .leading, spacing: 28) {
-        focusSection
-        queueSection(title: "接下来", tasks: nearTasks)
-        queueSection(title: "较远", tasks: farTasks, dimmed: true)
+    ZStack {
+      NornScreenBackground()
+
+      ScrollView(showsIndicators: false) {
+        VStack(alignment: .leading, spacing: 28) {
+          focusSection
+          queueSection(title: "接下来", tasks: nearTasks)
+          queueSection(title: "较远", tasks: farTasks, dimmed: true)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 32)
       }
-      .padding(.horizontal, 20)
-      .padding(.top, 12)
-      .padding(.bottom, 32)
+      .scrollDismissesKeyboard(.interactively)
     }
-    .scrollDismissesKeyboard(.interactively)
   }
 
   @ViewBuilder
   private var focusSection: some View {
     if let task = focusedTask {
-      FocusCard(task: task)
+      FocusCard(task: task) {
+        onTaskTap(task)
+      }
     } else {
       EmptyFocusCard()
     }
@@ -64,7 +79,9 @@ struct SequenceTab: View {
           EmptyQueueCard(title: emptyQueueTitle(for: title), message: emptyQueueMessage(for: title), dimmed: dimmed)
         } else {
           ForEach(tasks) { task in
-            TaskCard(task: task, dimmed: dimmed)
+            TaskCard(task: task, dimmed: dimmed) {
+              onTaskTap(task)
+            }
           }
         }
       }
@@ -95,7 +112,7 @@ struct SequenceTab: View {
 }
 
 #Preview {
-  SequenceTab(tasks: Fixtures.tasks)
+  SequenceTab(tasks: NornPreviewFixtures.tasks)
 }
 
 #Preview("Empty") {
@@ -116,7 +133,7 @@ private struct EmptyFocusCard: View {
         }
         Spacer()
         Circle()
-          .fill(Color.primary.opacity(0.12))
+          .fill(NornTheme.borderStrong)
           .frame(width: 10, height: 10)
           .padding(.top, 4)
       }
@@ -139,13 +156,13 @@ private struct EmptyFocusCard: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
       RoundedRectangle(cornerRadius: 28, style: .continuous)
-        .fill(.regularMaterial)
+        .fill(NornTheme.cardSurface)
     )
     .overlay(
       RoundedRectangle(cornerRadius: 28, style: .continuous)
-        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
-    .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+    .shadow(color: NornTheme.shadow, radius: 16, y: 6)
   }
 }
 
@@ -158,7 +175,7 @@ private struct EmptyFocusPill: View {
       .foregroundStyle(.secondary)
       .padding(.horizontal, 10)
       .padding(.vertical, 5)
-      .background(Color.primary.opacity(0.06), in: Capsule())
+      .background(NornTheme.pillSurface, in: Capsule())
   }
 }
 
@@ -168,7 +185,7 @@ private struct EmptyFocusHint: View {
   var body: some View {
     HStack(spacing: 8) {
       Circle()
-        .fill(Color.primary.opacity(0.18))
+        .fill(NornTheme.borderStrong)
         .frame(width: 6, height: 6)
       Text(text)
         .font(.caption)
@@ -185,7 +202,7 @@ private struct EmptyQueueCard: View {
   var body: some View {
     HStack(alignment: .top, spacing: 14) {
       Circle()
-        .fill(Color.primary.opacity(dimmed ? 0.18 : 0.28))
+        .fill(dimmed ? NornTheme.border : NornTheme.borderStrong)
         .frame(width: 8, height: 8)
         .padding(.top, 6)
 
@@ -206,11 +223,11 @@ private struct EmptyQueueCard: View {
     .padding(.vertical, 12)
     .background(
       RoundedRectangle(cornerRadius: 18, style: .continuous)
-        .fill(dimmed ? Color.primary.opacity(0.03) : Color.primary.opacity(0.035))
+        .fill(dimmed ? NornTheme.cardSurfaceMuted : NornTheme.cardSurface)
     )
     .overlay(
       RoundedRectangle(cornerRadius: 18, style: .continuous)
-        .strokeBorder(Color.primary.opacity(dimmed ? 0.035 : 0.05), lineWidth: 1)
+        .strokeBorder(dimmed ? NornTheme.border : NornTheme.borderStrong, lineWidth: 1)
     )
   }
 }

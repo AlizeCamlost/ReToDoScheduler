@@ -16,10 +16,15 @@ struct ScheduleTab: View {
   @State private var mode: CalendarMode = .week
 
   var body: some View {
-    VStack(spacing: 0) {
-      header
-      EdgeFadeDivider()
-      placeholder
+    ZStack {
+      NornScreenBackground()
+
+      VStack(spacing: 0) {
+        header
+        EdgeFadeDivider()
+        placeholder
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
   }
 

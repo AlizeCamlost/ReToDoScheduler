@@ -8,6 +8,8 @@
 
 /* Begin PBXFileReference section */
 		211EEADE2F6A6EC8001FDEF2 /* Norn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Norn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		211EEAF02F6A6ECB001FDEF2 /* NornTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NornTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		211EEAF12F6A6ECB001FDEF2 /* NornUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NornUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +18,51 @@
 			path = Norn;
 			sourceTree = "<group>";
 		};
+		211EEAF22F6A6ECB001FDEF2 /* NornTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = NornTests;
+			sourceTree = "<group>";
+		};
+		211EEAF32F6A6ECB001FDEF2 /* NornUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = NornUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXContainerItemProxy section */
+		211EEAFA2F6A6ECB001FDEF2 = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 211EEAD62F6A6EC8001FDEF2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 211EEADD2F6A6EC8001FDEF2;
+			remoteInfo = Norn;
+		};
+		211EEAFB2F6A6ECB001FDEF2 = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 211EEAD62F6A6EC8001FDEF2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 211EEADD2F6A6EC8001FDEF2;
+			remoteInfo = Norn;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		211EEADB2F6A6EC8001FDEF2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		211EEAF42F6A6ECB001FDEF2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		211EEAF52F6A6ECB001FDEF2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +76,8 @@
 			isa = PBXGroup;
 			children = (
 				211EEAE02F6A6EC8001FDEF2 /* Norn */,
+				211EEAF22F6A6ECB001FDEF2 /* NornTests */,
+				211EEAF32F6A6ECB001FDEF2 /* NornUITests */,
 				211EEADF2F6A6EC8001FDEF2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +86,8 @@
 			isa = PBXGroup;
 			children = (
 				211EEADE2F6A6EC8001FDEF2 /* Norn.app */,
+				211EEAF02F6A6ECB001FDEF2 /* NornTests.xctest */,
+				211EEAF12F6A6ECB001FDEF2 /* NornUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +117,52 @@
 			productReference = 211EEADE2F6A6EC8001FDEF2 /* Norn.app */;
 			productType = "com.apple.product-type.application";
 		};
+		211EEAFE2F6A6ECB001FDEF2 /* NornTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 211EEB042F6A6ECB001FDEF2 /* Build configuration list for PBXNativeTarget "NornTests" */;
+			buildPhases = (
+				211EEAF62F6A6ECB001FDEF2 /* Sources */,
+				211EEAF42F6A6ECB001FDEF2 /* Frameworks */,
+				211EEAF82F6A6ECB001FDEF2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				211EEAFC2F6A6ECB001FDEF2 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				211EEAF22F6A6ECB001FDEF2 /* NornTests */,
+			);
+			name = NornTests;
+			packageProductDependencies = (
+			);
+			productName = NornTests;
+			productReference = 211EEAF02F6A6ECB001FDEF2 /* NornTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		211EEAFF2F6A6ECB001FDEF2 /* NornUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 211EEB052F6A6ECB001FDEF2 /* Build configuration list for PBXNativeTarget "NornUITests" */;
+			buildPhases = (
+				211EEAF72F6A6ECB001FDEF2 /* Sources */,
+				211EEAF52F6A6ECB001FDEF2 /* Frameworks */,
+				211EEAF92F6A6ECB001FDEF2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				211EEAFD2F6A6ECB001FDEF2 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				211EEAF32F6A6ECB001FDEF2 /* NornUITests */,
+			);
+			name = NornUITests;
+			packageProductDependencies = (
+			);
+			productName = NornUITests;
+			productReference = 211EEAF12F6A6ECB001FDEF2 /* NornUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -82,6 +175,14 @@
 				TargetAttributes = {
 					211EEADD2F6A6EC8001FDEF2 = {
 						CreatedOnToolsVersion = 26.3;
+					};
+					211EEAFE2F6A6ECB001FDEF2 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 211EEADD2F6A6EC8001FDEF2;
+					};
+					211EEAFF2F6A6ECB001FDEF2 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 211EEADD2F6A6EC8001FDEF2;
 					};
 				};
 			};
@@ -100,12 +201,28 @@
 			projectRoot = "";
 			targets = (
 				211EEADD2F6A6EC8001FDEF2 /* Norn */,
+				211EEAFE2F6A6ECB001FDEF2 /* NornTests */,
+				211EEAFF2F6A6ECB001FDEF2 /* NornUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		211EEADC2F6A6EC8001FDEF2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		211EEAF82F6A6ECB001FDEF2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		211EEAF92F6A6ECB001FDEF2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +239,34 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		211EEAF62F6A6ECB001FDEF2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		211EEAF72F6A6ECB001FDEF2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		211EEAFC2F6A6ECB001FDEF2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 211EEADD2F6A6EC8001FDEF2 /* Norn */;
+			targetProxy = 211EEAFA2F6A6ECB001FDEF2 /* PBXContainerItemProxy */;
+		};
+		211EEAFD2F6A6ECB001FDEF2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 211EEADD2F6A6EC8001FDEF2 /* Norn */;
+			targetProxy = 211EEAFB2F6A6ECB001FDEF2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		211EEAE72F6A6ECA001FDEF2 /* Debug */ = {
@@ -329,6 +473,108 @@
 			};
 			name = Release;
 		};
+		211EEB002F6A6ECB001FDEF2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3NDAPZA278;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = camloshi.NornTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Norn.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Norn";
+			};
+			name = Debug;
+		};
+		211EEB012F6A6ECB001FDEF2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3NDAPZA278;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = camloshi.NornTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Norn.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Norn";
+			};
+			name = Release;
+		};
+		211EEB022F6A6ECB001FDEF2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3NDAPZA278;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = camloshi.NornUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_TARGET_NAME = Norn;
+			};
+			name = Debug;
+		};
+		211EEB032F6A6ECB001FDEF2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3NDAPZA278;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = camloshi.NornUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_TARGET_NAME = Norn;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -346,6 +592,24 @@
 			buildConfigurations = (
 				211EEAEA2F6A6ECA001FDEF2 /* Debug */,
 				211EEAEB2F6A6ECA001FDEF2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		211EEB042F6A6ECB001FDEF2 /* Build configuration list for PBXNativeTarget "NornTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				211EEB002F6A6ECB001FDEF2 /* Debug */,
+				211EEB012F6A6ECB001FDEF2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		211EEB052F6A6ECB001FDEF2 /* Build configuration list for PBXNativeTarget "NornUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				211EEB022F6A6ECB001FDEF2 /* Debug */,
+				211EEB032F6A6ECB001FDEF2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

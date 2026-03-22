@@ -1,19 +1,6 @@
 export type TaskStatus = "todo" | "doing" | "done" | "archived";
-
-export type FocusLevel = "high" | "medium" | "low";
-export type Interruptibility = "low" | "medium" | "high";
-export type LocationType = "indoor" | "outdoor" | "any";
-export type DeviceType = "desktop" | "mobile" | "any";
 export type ConcurrencyMode = "serial";
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
-
-export interface TaskTraits {
-  focus: FocusLevel;
-  interruptibility: Interruptibility;
-  location: LocationType;
-  device: DeviceType;
-  parallelizable: boolean;
-}
 
 export interface TaskValueSpec {
   rewardOnTime: number;
@@ -37,11 +24,6 @@ export interface Task {
   estimatedMinutes: number;
   minChunkMinutes: number;
   dueAt?: string | undefined;
-  importance: number;
-  value: number;
-  difficulty: number;
-  postponability: number;
-  taskTraits: TaskTraits;
   tags: string[];
   scheduleValue: TaskValueSpec;
   dependsOnTaskIds: string[];
@@ -50,21 +32,6 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   extJson: Record<string, unknown>;
-}
-
-export interface TimeSlotTraits {
-  focus: FocusLevel;
-  interruptibility: Interruptibility;
-  location: LocationType;
-  device: DeviceType;
-  parallelCapacity: 0 | 1;
-}
-
-export interface TimeSlot {
-  id: string;
-  startAt: string;
-  endAt: string;
-  slotTraits: TimeSlotTraits;
 }
 
 export interface WeeklyTimeRange {
@@ -110,8 +77,6 @@ export interface TaskStep {
   concurrencyMode: ConcurrencyMode;
   source: "task" | "task-step";
   updatedAt: string;
-  importance: number;
-  legacyValue: number;
 }
 
 export interface TaskLink {

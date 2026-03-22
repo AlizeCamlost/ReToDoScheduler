@@ -2,20 +2,16 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.scenePhase) private var scenePhase
+  @Bindable var store: NornAppStore
 
-  let tasks: [Task]
-  @State private var currentTab: AppTab = .sequence
-  @State private var quickAddInput = ""
   @FocusState private var dockFocused: Bool
   @State private var reservedDockHeight: CGFloat = 60
 
-  init(tasks: [Task] = []) {
-    self.tasks = tasks
-  }
-
   var body: some View {
-    TabView(selection: $currentTab) {
-      SequenceTab(tasks: tasks)
+    TabView(selection: $store.currentTab) {
+      SequenceTab(tasks: store.visibleTasks) { task in
+        store.openTaskDetail(taskID: task.id)
+      }
         .safeAreaPadding(.bottom, reservedDockHeight)
         .contentShape(Rectangle())
         .onTapGesture(perform: dismissDockFocus)
@@ -26,7 +22,19 @@ struct ContentView: View {
         .onTapGesture(perform: dismissDockFocus)
         .tag(AppTab.schedule)
 
-      TaskPoolTab()
+      TaskPoolTab(
+        tasks: store.visibleTasks,
+        syncStatus: store.syncStatus,
+        onOpenSyncSettings: {
+          store.openSyncSettings()
+        },
+        onRefresh: {
+          store.refresh()
+        },
+        onTaskTap: { task in
+          store.openTaskDetail(taskID: task.id)
+        }
+      )
         .contentShape(Rectangle())
         .onTapGesture(perform: dismissDockFocus)
         .tag(AppTab.taskPool)
@@ -39,11 +47,11 @@ struct ContentView: View {
       }
     )
     .safeAreaInset(edge: .bottom, spacing: 0) {
-      if currentTab == .sequence {
+      if store.currentTab == .sequence {
         QuickAddDock(
-          input: $quickAddInput,
+          input: $store.quickAddInput,
           isFocused: $dockFocused,
-          onAdd: dismissDockFocus
+          onAdd: submitQuickAdd
         )
         .padding(.bottom, 8)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
@@ -53,8 +61,53 @@ struct ContentView: View {
         .transition(.move(edge: .bottom).combined(with: .opacity))
       }
     }
-    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentTab)
-    .onChange(of: currentTab) { _, _ in
+    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: store.currentTab)
+    .task {
+      store.bootstrap()
+    }
+    .sheet(isPresented: detailSheetPresented) {
+      if let task = store.selectedTask {
+        TaskDetailSheet(
+          task: task,
+          onToggleCompletion: {
+            store.toggleTaskCompletion(taskID: task.id)
+          },
+          onArchive: {
+            store.archiveTask(taskID: task.id)
+          },
+          onEdit: {
+            store.openTaskEditor(taskID: task.id)
+          }
+        )
+      }
+    }
+    .sheet(isPresented: editorSheetPresented) {
+      if let draft = store.taskDraft {
+        TaskEditorSheet(
+          draft: draft,
+          allTasks: store.tasks,
+          onSave: { updatedDraft in
+            store.saveTaskDraft(updatedDraft)
+          },
+          onCancel: {
+            store.closeTaskEditor()
+          }
+        )
+      }
+    }
+    .sheet(isPresented: syncSettingsSheetPresented) {
+      SyncSettingsSheet(
+        settings: store.syncSettings,
+        syncStatus: store.syncStatus,
+        onSave: { settings in
+          store.saveSyncSettings(settings)
+        },
+        onCancel: {
+          store.closeSyncSettings()
+        }
+      )
+    }
+    .onChange(of: store.currentTab) { _, _ in
       dismissDockFocus()
     }
     .onChange(of: scenePhase) { _, phase in
@@ -68,8 +121,46 @@ struct ContentView: View {
     guard dockFocused else { return }
     dockFocused = false
   }
+
+  private func submitQuickAdd() {
+    store.submitQuickAdd()
+    dismissDockFocus()
+  }
+
+  private var detailSheetPresented: Binding<Bool> {
+    Binding(
+      get: { store.selectedTask != nil },
+      set: { presented in
+        if !presented {
+          store.closeTaskDetail()
+        }
+      }
+    )
+  }
+
+  private var editorSheetPresented: Binding<Bool> {
+    Binding(
+      get: { store.taskDraft != nil },
+      set: { presented in
+        if !presented {
+          store.closeTaskEditor()
+        }
+      }
+    )
+  }
+
+  private var syncSettingsSheetPresented: Binding<Bool> {
+    Binding(
+      get: { store.isSyncSettingsPresented },
+      set: { presented in
+        if !presented {
+          store.closeSyncSettings()
+        }
+      }
+    )
+  }
 }
 
 #Preview {
-  ContentView(tasks: Fixtures.tasks)
+  ContentView(store: .preview())
 }
