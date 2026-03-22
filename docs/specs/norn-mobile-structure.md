@@ -51,9 +51,10 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - 目录骨架已经按语义重新整理
 - `NornApp.swift` 已移入 `App/`
 - 资源目录已移入 `Resources/`
-- 原有混合模型文件暂存于 `Domain/Legacy/Models.swift`
+- `Domain/App`、`Domain/Task`、`Domain/Sync` 已建立最小领域骨架
+- 原有混合模型文件已收缩为 `Domain/Legacy/Models.swift` 过渡占位
 - 共享 `Task` 模型与 sync contract 尚未收敛到本轮最小集合
-- 领域拆分、用例实现和基础设施实现尚未开始
+- 基础设施实现和用例编排尚未开始
 
 ## 3. 分层约束
 
@@ -129,8 +130,20 @@ apps/mobile/ios_ng/Norn/Norn/
   Application/
 
   Domain/
+    App/
+      AppTab.swift
     Legacy/
       Models.swift
+    Task/
+      Task.swift
+      TaskStatus.swift
+      TaskStep.swift
+      TaskScheduleValue.swift
+      TaskDraft.swift
+      QuickAddDraft.swift
+    Sync/
+      SyncSettings.swift
+      SyncStatus.swift
 
   Infrastructure/
 
@@ -145,6 +158,7 @@ apps/mobile/ios_ng/Norn/Norn/
     Shared/
       QuickAddDock.swift
       EdgeFadeDivider.swift
+      NornPreviewFixtures.swift
     Sequence/
       SequenceTab.swift
       Components/
@@ -156,12 +170,17 @@ apps/mobile/ios_ng/Norn/Norn/
       ScheduleTab.swift
 
   Utilities/
+    Formatting/
+      RelativeDueDateFormatter.swift
+      TaskDisplayFormatter.swift
 ```
 
 当前快照说明：
 
-- `Application/`、`Infrastructure/`、`Utilities/` 已建目录，但尚未落具体类型
-- `Domain/Legacy/Models.swift` 是拆分前遗留文件；本轮允许把它收缩为占位壳，但不删除文件名
+- `Application/`、`Infrastructure/` 已建目录，但尚未落具体类型
+- `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
+- `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
+- `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `UI/` 已经按页面和共享组件分层
 - `Resources/Assets.xcassets` 已从工程根平移到资源目录
 

@@ -17,7 +17,7 @@ struct FocusCard: View {
         }
         Spacer()
         Circle()
-          .fill(task.status.accentColor)
+          .fill(TaskDisplayFormatter.statusColor(for: task.status))
           .frame(width: 10, height: 10)
           .padding(.top, 4)
       }
@@ -30,12 +30,12 @@ struct FocusCard: View {
       }
 
       HStack(spacing: 8) {
-        Text(task.status.label)
+        Text(TaskDisplayFormatter.statusLabel(for: task.status))
           .font(.caption.weight(.medium))
-          .foregroundStyle(task.status.accentColor)
+          .foregroundStyle(TaskDisplayFormatter.statusColor(for: task.status))
           .padding(.horizontal, 10)
           .padding(.vertical, 5)
-          .background(task.status.accentColor.opacity(0.10), in: Capsule())
+          .background(TaskDisplayFormatter.statusColor(for: task.status).opacity(0.10), in: Capsule())
 
         Text("估时 \(task.estimatedMinutes) 分钟")
           .font(.caption)
@@ -44,7 +44,7 @@ struct FocusCard: View {
           .padding(.vertical, 5)
           .background(Color.primary.opacity(0.06), in: Capsule())
 
-        if let label = Formatters.dueLabel(for: task.dueAt) {
+        if let label = RelativeDueDateFormatter.label(for: task.dueAt) {
           Text(label)
             .font(.caption)
             .foregroundStyle(.secondary)

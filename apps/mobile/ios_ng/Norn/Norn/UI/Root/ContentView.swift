@@ -71,5 +71,5 @@ struct ContentView: View {
 }
 
 #Preview {
-  ContentView(tasks: Fixtures.tasks)
+  ContentView(tasks: NornPreviewFixtures.tasks)
 }

@@ -12,7 +12,7 @@ struct TaskCard: View {
   var body: some View {
     HStack(alignment: .top, spacing: 14) {
       Circle()
-        .fill(task.status.accentColor.opacity(dimmed ? 0.4 : 0.85))
+        .fill(TaskDisplayFormatter.statusColor(for: task.status).opacity(dimmed ? 0.4 : 0.85))
         .frame(width: 8, height: 8)
         .padding(.top, 6)
 
@@ -23,7 +23,7 @@ struct TaskCard: View {
           .lineLimit(2)
 
         HStack(spacing: 6) {
-          if let label = Formatters.dueLabel(for: task.dueAt) {
+          if let label = RelativeDueDateFormatter.label(for: task.dueAt) {
             Text(label)
               .font(.caption)
               .foregroundStyle(.secondary)

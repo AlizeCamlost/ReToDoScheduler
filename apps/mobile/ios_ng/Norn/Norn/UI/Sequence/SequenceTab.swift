@@ -95,7 +95,7 @@ struct SequenceTab: View {
 }
 
 #Preview {
-  SequenceTab(tasks: Fixtures.tasks)
+  SequenceTab(tasks: NornPreviewFixtures.tasks)
 }
 
 #Preview("Empty") {
