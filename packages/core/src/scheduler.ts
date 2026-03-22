@@ -70,8 +70,6 @@ export const createDefaultComparator = (): Comparator => ({
 
     if (a.minChunkMinutes !== b.minChunkMinutes) return b.minChunkMinutes - a.minChunkMinutes;
     if (a.rewardOnTime !== b.rewardOnTime) return b.rewardOnTime - a.rewardOnTime;
-    if (a.legacyValue !== b.legacyValue) return b.legacyValue - a.legacyValue;
-    if (a.importance !== b.importance) return b.importance - a.importance;
 
     return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
   },
@@ -177,9 +175,7 @@ export const buildTaskSteps = (tasks: Task[]): TaskStep[] => {
         dependsOnStepIds: [],
         concurrencyMode: task.concurrencyMode,
         source: "task",
-        updatedAt: task.updatedAt,
-        importance: task.importance,
-        legacyValue: task.value
+        updatedAt: task.updatedAt
       });
       continue;
     }
@@ -205,9 +201,7 @@ export const buildTaskSteps = (tasks: Task[]): TaskStep[] => {
           .filter((dependencyId): dependencyId is string => Boolean(dependencyId)),
         concurrencyMode: task.concurrencyMode,
         source: "task-step",
-        updatedAt: task.updatedAt,
-        importance: task.importance,
-        legacyValue: task.value
+        updatedAt: task.updatedAt
       });
     }
   }

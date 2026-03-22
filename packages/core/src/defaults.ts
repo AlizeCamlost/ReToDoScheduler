@@ -2,7 +2,6 @@ import type {
   ConcurrencyMode,
   Task,
   TaskStepTemplate,
-  TaskTraits,
   TaskValueSpec,
   TimeTemplate,
   Weekday,
@@ -12,20 +11,8 @@ import type {
 export const DEFAULT_MIN_CHUNK_MINUTES = 25;
 export const DEFAULT_CONCURRENCY_MODE: ConcurrencyMode = "serial";
 
-export const DEFAULT_TASK_TRAITS: TaskTraits = {
-  focus: "medium",
-  interruptibility: "medium",
-  location: "any",
-  device: "any",
-  parallelizable: false
-};
-
 export const DEFAULT_TASK_NUMERIC = {
-  estimatedMinutes: 30,
-  importance: 3,
-  value: 3,
-  difficulty: 3,
-  postponability: 3
+  estimatedMinutes: 30
 } as const;
 
 export const DEFAULT_TASK_VALUE: TaskValueSpec = {
@@ -185,11 +172,6 @@ export const makeTask = (input: Pick<Task, "id" | "title" | "rawInput"> & Partia
     estimatedMinutes,
     minChunkMinutes,
     dueAt: input.dueAt,
-    importance: normalizeNumber(input.importance, DEFAULT_TASK_NUMERIC.importance),
-    value: normalizeNumber(input.value, DEFAULT_TASK_NUMERIC.value),
-    difficulty: normalizeNumber(input.difficulty, DEFAULT_TASK_NUMERIC.difficulty),
-    postponability: normalizeNumber(input.postponability, DEFAULT_TASK_NUMERIC.postponability),
-    taskTraits: input.taskTraits ?? DEFAULT_TASK_TRAITS,
     tags: input.tags ?? [],
     scheduleValue: {
       rewardOnTime: Math.max(0, normalizeNumber(scheduleValue.rewardOnTime, DEFAULT_TASK_VALUE.rewardOnTime)),
