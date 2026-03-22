@@ -58,7 +58,8 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - `apps/web` 已跟随最小模型收敛编辑与 sync 解析
 - iOS 本地持久化边界、编码工具和 sync boundary 已落地
 - iOS 应用状态壳、用例壳和根视图组装已落地
-- Quick Add、详情、编辑、同步设置和任务池真实列表尚未接通
+- Quick Add 本地新增与已配置时的保守同步已接通
+- 详情、编辑、同步设置和任务池真实列表尚未接通
 
 ## 3. 分层约束
 
@@ -207,7 +208,7 @@ apps/mobile/ios_ng/Norn/Norn/
 当前快照说明：
 
 - `Application/State` 已落 `NornAppStore`，作为当前唯一 UI 状态入口
-- `Application/UseCases` 已落读取、快速新增、保存草稿、状态切换、归档、同步设置和同步用例壳
+- `Application/UseCases` 已落读取、快速新增、保存草稿、状态切换、归档、同步设置和同步用例
 - `Infrastructure/Persistence`、`Infrastructure/Mapping` 已落本地任务仓库、设置仓库和记录映射
 - `Infrastructure/Sync` 已落 HTTP client、sync request 和 sync response DTO
 - `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
@@ -215,6 +216,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已改为只绑定 store
+- `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
 - `UI/` 已经按页面和共享组件分层
 - `Resources/Assets.xcassets` 已从工程根平移到资源目录
 

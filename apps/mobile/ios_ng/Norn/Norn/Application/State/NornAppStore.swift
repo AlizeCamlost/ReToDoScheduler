@@ -81,7 +81,32 @@ final class NornAppStore {
   }
 
   func submitQuickAdd() {
-    quickAddInput = quickAddInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    let rawInput = quickAddInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !rawInput.isEmpty else {
+      quickAddInput = ""
+      return
+    }
+
+    do {
+      guard try quickAddTaskUseCase.execute(rawInput: rawInput) != nil else {
+        return
+      }
+
+      tasks = try loadTasksUseCase.execute()
+      quickAddInput = ""
+
+      guard syncSettings.isConfigured else {
+        return
+      }
+
+      syncStatus = .syncing
+      let settings = syncSettings
+      Swift.Task {
+        await self.performConservativeSync(settings: settings)
+      }
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
   }
 
   func openTaskDetail(taskID: String) {
@@ -118,6 +143,15 @@ final class NornAppStore {
 
     syncSettings = syncSettingsRepository.load()
     syncStatus = syncSettings.isConfigured ? .idle(lastSyncedAt: nil) : .notConfigured
+  }
+
+  private func performConservativeSync(settings: SyncSettings) async {
+    do {
+      tasks = try await syncTasksUseCase.execute(settings: settings)
+      syncStatus = .idle(lastSyncedAt: Date())
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
   }
 }
 
