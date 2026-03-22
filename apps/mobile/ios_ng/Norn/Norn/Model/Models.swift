@@ -71,7 +71,7 @@ enum Formatters {
   }
 }
 
-// MARK: - Demo Fixtures
+// MARK: - Preview Fixtures
 
 enum Fixtures {
   static let tasks: [Task] = [

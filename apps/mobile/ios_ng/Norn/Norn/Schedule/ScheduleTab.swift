@@ -18,7 +18,7 @@ struct ScheduleTab: View {
   var body: some View {
     VStack(spacing: 0) {
       header
-      Divider().opacity(0.5)
+      EdgeFadeDivider()
       placeholder
     }
   }
@@ -38,7 +38,6 @@ struct ScheduleTab: View {
     .padding(.horizontal, 20)
     .padding(.top, 12)
     .padding(.bottom, 16)
-    .background(.regularMaterial)
   }
 
   private var placeholder: some View {
