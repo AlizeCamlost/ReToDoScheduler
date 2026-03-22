@@ -23,12 +23,16 @@ struct ContentView: View {
         .tag(AppTab.schedule)
 
       TaskPoolTab(
+        tasks: store.visibleTasks,
         syncStatus: store.syncStatus,
         onOpenSyncSettings: {
           store.openSyncSettings()
         },
         onRefresh: {
           store.refresh()
+        },
+        onTaskTap: { task in
+          store.openTaskDetail(taskID: task.id)
         }
       )
         .contentShape(Rectangle())

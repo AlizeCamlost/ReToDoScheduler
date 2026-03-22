@@ -62,7 +62,8 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - 任务详情页与完成/归档动作已接通
 - 编辑器与任务保存流已接通
 - 同步设置与手动同步已接通
-- 任务池真实列表尚未接通
+- 任务池 `list` 模式已接通真实任务数据
+- 测试工程与 smoke 覆盖尚未补齐
 
 ## 3. 分层约束
 
@@ -227,6 +228,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Sequence` 卡片点击已能打开 `TaskDetailSheet`，详情动作通过 store 回写本地仓库
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环
 - `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
+- `TaskPool` 的 `list` 模式已直接绑定 store 中的可见任务序列
 - `UI/` 已经按页面和共享组件分层
 - `Resources/Assets.xcassets` 已从工程根平移到资源目录
 
