@@ -49,11 +49,11 @@ struct TaskCard: View {
       .padding(.vertical, 12)
       .background(
         RoundedRectangle(cornerRadius: 18, style: .continuous)
-          .fill(dimmed ? Color.primary.opacity(0.04) : Color.white.opacity(0.55))
+          .fill(dimmed ? NornTheme.cardSurfaceMuted : NornTheme.cardSurface)
       )
       .overlay(
         RoundedRectangle(cornerRadius: 18, style: .continuous)
-          .strokeBorder(Color.primary.opacity(dimmed ? 0.04 : 0.07), lineWidth: 1)
+          .strokeBorder(dimmed ? NornTheme.border : NornTheme.borderStrong, lineWidth: 1)
       )
     }
     .buttonStyle(.plain)

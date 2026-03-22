@@ -35,10 +35,15 @@ struct TaskPoolTab: View {
   }
 
   var body: some View {
-    VStack(spacing: 0) {
-      header
-      EdgeFadeDivider()
-      placeholder
+    ZStack {
+      NornScreenBackground()
+
+      VStack(spacing: 0) {
+        header
+        EdgeFadeDivider()
+        placeholder
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
   }
 
@@ -170,11 +175,11 @@ struct TaskPoolTab: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
       RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .fill(Color.primary.opacity(0.04))
+        .fill(NornTheme.cardSurfaceMuted)
     )
     .overlay(
       RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        .strokeBorder(NornTheme.border, lineWidth: 1)
     )
   }
 }

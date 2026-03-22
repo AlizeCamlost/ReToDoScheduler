@@ -33,15 +33,7 @@ struct TaskEditorSheet: View {
   var body: some View {
     NavigationStack {
       ZStack {
-        LinearGradient(
-          colors: [
-            Color(red: 0.98, green: 0.97, blue: 0.92),
-            Color(red: 0.94, green: 0.96, blue: 0.99)
-          ],
-          startPoint: .topLeading,
-          endPoint: .bottomTrailing
-        )
-        .ignoresSafeArea()
+        NornScreenBackground()
 
         Form {
           basicSection

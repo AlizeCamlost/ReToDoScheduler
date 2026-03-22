@@ -37,14 +37,14 @@ struct FocusCard: View {
             .foregroundStyle(TaskDisplayFormatter.statusColor(for: task.status))
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(TaskDisplayFormatter.statusColor(for: task.status).opacity(0.10), in: Capsule())
+            .background(TaskDisplayFormatter.statusColor(for: task.status).opacity(0.16), in: Capsule())
 
           Text("估时 \(task.estimatedMinutes) 分钟")
             .font(.caption)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .background(Color.primary.opacity(0.06), in: Capsule())
+            .background(NornTheme.pillSurface, in: Capsule())
 
           if let label = RelativeDueDateFormatter.label(for: task.dueAt) {
             Text(label)
@@ -52,7 +52,7 @@ struct FocusCard: View {
               .foregroundStyle(.secondary)
               .padding(.horizontal, 10)
               .padding(.vertical, 5)
-              .background(Color.primary.opacity(0.06), in: Capsule())
+              .background(NornTheme.pillSurface, in: Capsule())
           }
         }
 
@@ -61,7 +61,7 @@ struct FocusCard: View {
             ForEach(task.steps) { step in
               HStack(spacing: 8) {
                 Circle()
-                  .fill(Color.primary.opacity(0.18))
+                  .fill(NornTheme.borderStrong)
                   .frame(width: 6, height: 6)
                 Text(step.title)
                   .font(.caption)
@@ -75,13 +75,13 @@ struct FocusCard: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       .background(
         RoundedRectangle(cornerRadius: 28, style: .continuous)
-          .fill(.regularMaterial)
+          .fill(NornTheme.cardSurface)
       )
       .overlay(
         RoundedRectangle(cornerRadius: 28, style: .continuous)
-          .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+          .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
       )
-      .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+      .shadow(color: NornTheme.shadow, radius: 16, y: 6)
     }
     .buttonStyle(.plain)
   }

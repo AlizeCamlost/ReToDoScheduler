@@ -14,25 +14,29 @@ struct TaskDetailSheet: View {
 
   var body: some View {
     NavigationStack {
-      ScrollView(showsIndicators: false) {
-        VStack(alignment: .leading, spacing: 24) {
-          headerSection
-          metaSection
-          if let description = task.description, !description.isEmpty {
-            descriptionSection(description)
+      ZStack {
+        NornScreenBackground()
+
+        ScrollView(showsIndicators: false) {
+          VStack(alignment: .leading, spacing: 24) {
+            headerSection
+            metaSection
+            if let description = task.description, !description.isEmpty {
+              descriptionSection(description)
+            }
+            if !task.steps.isEmpty {
+              stepsSection
+            }
+            if !task.tags.isEmpty {
+              tagsSection
+            }
+            rawInputSection
+            actionSection
           }
-          if !task.steps.isEmpty {
-            stepsSection
-          }
-          if !task.tags.isEmpty {
-            tagsSection
-          }
-          rawInputSection
-          actionSection
+          .padding(.horizontal, 20)
+          .padding(.top, 20)
+          .padding(.bottom, 32)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, 32)
       }
       .navigationTitle("任务详情")
       .navigationBarTitleDisplayMode(.inline)
@@ -61,12 +65,12 @@ struct TaskDetailSheet: View {
         DetailPill(
           text: "估时 \(task.estimatedMinutes) 分钟",
           foreground: .secondary,
-          background: Color.primary.opacity(0.06)
+          background: NornTheme.pillSurface
         )
         DetailPill(
           text: "最小块 \(task.minChunkMinutes) 分钟",
           foreground: .secondary,
-          background: Color.primary.opacity(0.06)
+          background: NornTheme.pillSurface
         )
       }
     }
@@ -82,11 +86,11 @@ struct TaskDetailSheet: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
       RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .fill(.regularMaterial)
+        .fill(NornTheme.cardSurface)
     )
     .overlay(
       RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
+        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
   }
 
@@ -116,7 +120,7 @@ struct TaskDetailSheet: View {
           .padding(.horizontal, 14)
           .padding(.vertical, 10)
           .frame(maxWidth: .infinity, alignment: .leading)
-          .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+          .background(NornTheme.cardSurfaceMuted, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
       }
     }
@@ -139,7 +143,7 @@ struct TaskDetailSheet: View {
         .foregroundStyle(.secondary)
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(NornTheme.cardSurfaceMuted, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
   }
 
