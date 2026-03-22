@@ -20,7 +20,7 @@ struct Task: Identifiable, Hashable, Codable {
   var concurrencyMode: ConcurrencyMode
   var createdAt: Date
   var updatedAt: Date
-  var extJSON: [String: String]
+  var extJSON: [String: JSONValue]
 
   init(
     id: String,
@@ -38,7 +38,7 @@ struct Task: Identifiable, Hashable, Codable {
     concurrencyMode: ConcurrencyMode = .serial,
     createdAt: Date = Date(),
     updatedAt: Date = Date(),
-    extJSON: [String: String] = [:]
+    extJSON: [String: JSONValue] = [:]
   ) {
     self.id = id
     self.title = title

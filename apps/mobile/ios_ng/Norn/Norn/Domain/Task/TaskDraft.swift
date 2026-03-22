@@ -14,7 +14,7 @@ struct TaskDraft: Hashable {
   var dependsOnTaskIDs: [String]
   var steps: [TaskStep]
   var concurrencyMode: Task.ConcurrencyMode
-  var extJSON: [String: String]
+  var extJSON: [String: JSONValue]
 
   init(
     id: String? = nil,
@@ -30,7 +30,7 @@ struct TaskDraft: Hashable {
     dependsOnTaskIDs: [String] = [],
     steps: [TaskStep] = [],
     concurrencyMode: Task.ConcurrencyMode = .serial,
-    extJSON: [String: String] = [:]
+    extJSON: [String: JSONValue] = [:]
   ) {
     self.id = id
     self.title = title

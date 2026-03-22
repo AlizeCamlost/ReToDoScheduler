@@ -56,8 +56,8 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - `packages/core` 已收敛到本轮最小 `Task` 模型
 - `services/api` 已切到最小 sync contract，对旧数据库列只保留内部兼容
 - `apps/web` 已跟随最小模型收敛编辑与 sync 解析
-- iOS 本地持久化和 sync 适配尚未开始
-- 基础设施实现和用例编排尚未开始
+- iOS 本地持久化边界与编码工具已落地
+- iOS sync 适配和用例编排尚未开始
 
 ## 3. 分层约束
 
@@ -149,6 +149,13 @@ apps/mobile/ios_ng/Norn/Norn/
       SyncStatus.swift
 
   Infrastructure/
+    Mapping/
+      TaskRecord.swift
+    Persistence/
+      TaskRepositoryProtocol.swift
+      TaskFileRepository.swift
+      SyncSettingsRepositoryProtocol.swift
+      UserDefaultsSyncSettingsRepository.swift
 
   Resources/
     Assets.xcassets/
@@ -173,6 +180,9 @@ apps/mobile/ios_ng/Norn/Norn/
       ScheduleTab.swift
 
   Utilities/
+    Coding/
+      ISO8601DateCodec.swift
+      JSONValue.swift
     Formatting/
       RelativeDueDateFormatter.swift
       TaskDisplayFormatter.swift
@@ -180,8 +190,10 @@ apps/mobile/ios_ng/Norn/Norn/
 
 当前快照说明：
 
-- `Application/`、`Infrastructure/` 已建目录，但尚未落具体类型
+- `Application/` 已建目录，但尚未落具体类型
+- `Infrastructure/Persistence`、`Infrastructure/Mapping` 已落本地任务仓库、设置仓库和记录映射
 - `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
+- `Utilities/Coding` 已提供日期和 JSON 编解码基础能力
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `UI/` 已经按页面和共享组件分层
