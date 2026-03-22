@@ -119,7 +119,19 @@ final class NornAppStore {
 
   func openTaskEditor(taskID: String) {
     guard let task = tasks.first(where: { $0.id == taskID }) else { return }
+    closeTaskDetail()
     taskDraft = TaskDraft(task: task)
+  }
+
+  func saveTaskDraft(_ draft: TaskDraft) {
+    do {
+      _ = try saveTaskDraftUseCase.execute(draft: draft)
+      tasks = try loadTasksUseCase.execute()
+      closeTaskEditor()
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
   }
 
   func toggleTaskCompletion(taskID: String) {

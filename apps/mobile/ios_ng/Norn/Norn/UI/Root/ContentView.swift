@@ -69,6 +69,20 @@ struct ContentView: View {
         )
       }
     }
+    .sheet(isPresented: editorSheetPresented) {
+      if let draft = store.taskDraft {
+        TaskEditorSheet(
+          draft: draft,
+          allTasks: store.tasks,
+          onSave: { updatedDraft in
+            store.saveTaskDraft(updatedDraft)
+          },
+          onCancel: {
+            store.closeTaskEditor()
+          }
+        )
+      }
+    }
     .onChange(of: store.currentTab) { _, _ in
       dismissDockFocus()
     }
@@ -95,6 +109,17 @@ struct ContentView: View {
       set: { presented in
         if !presented {
           store.closeTaskDetail()
+        }
+      }
+    )
+  }
+
+  private var editorSheetPresented: Binding<Bool> {
+    Binding(
+      get: { store.taskDraft != nil },
+      set: { presented in
+        if !presented {
+          store.closeTaskEditor()
         }
       }
     )
