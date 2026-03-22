@@ -2,20 +2,14 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.scenePhase) private var scenePhase
+  @Bindable var store: NornAppStore
 
-  let tasks: [Task]
-  @State private var currentTab: AppTab = .sequence
-  @State private var quickAddInput = ""
   @FocusState private var dockFocused: Bool
   @State private var reservedDockHeight: CGFloat = 60
 
-  init(tasks: [Task] = []) {
-    self.tasks = tasks
-  }
-
   var body: some View {
-    TabView(selection: $currentTab) {
-      SequenceTab(tasks: tasks)
+    TabView(selection: $store.currentTab) {
+      SequenceTab(tasks: store.visibleTasks)
         .safeAreaPadding(.bottom, reservedDockHeight)
         .contentShape(Rectangle())
         .onTapGesture(perform: dismissDockFocus)
@@ -39,11 +33,11 @@ struct ContentView: View {
       }
     )
     .safeAreaInset(edge: .bottom, spacing: 0) {
-      if currentTab == .sequence {
+      if store.currentTab == .sequence {
         QuickAddDock(
-          input: $quickAddInput,
+          input: $store.quickAddInput,
           isFocused: $dockFocused,
-          onAdd: dismissDockFocus
+          onAdd: submitQuickAdd
         )
         .padding(.bottom, 8)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
@@ -53,8 +47,11 @@ struct ContentView: View {
         .transition(.move(edge: .bottom).combined(with: .opacity))
       }
     }
-    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: currentTab)
-    .onChange(of: currentTab) { _, _ in
+    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: store.currentTab)
+    .task {
+      store.bootstrap()
+    }
+    .onChange(of: store.currentTab) { _, _ in
       dismissDockFocus()
     }
     .onChange(of: scenePhase) { _, phase in
@@ -68,8 +65,13 @@ struct ContentView: View {
     guard dockFocused else { return }
     dockFocused = false
   }
+
+  private func submitQuickAdd() {
+    store.submitQuickAdd()
+    dismissDockFocus()
+  }
 }
 
 #Preview {
-  ContentView(tasks: NornPreviewFixtures.tasks)
+  ContentView(store: .preview())
 }

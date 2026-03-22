@@ -57,7 +57,8 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - `services/api` 已切到最小 sync contract，对旧数据库列只保留内部兼容
 - `apps/web` 已跟随最小模型收敛编辑与 sync 解析
 - iOS 本地持久化边界、编码工具和 sync boundary 已落地
-- iOS 应用层编排尚未开始
+- iOS 应用状态壳、用例壳和根视图组装已落地
+- Quick Add、详情、编辑、同步设置和任务池真实列表尚未接通
 
 ## 3. 分层约束
 
@@ -131,6 +132,16 @@ apps/mobile/ios_ng/Norn/Norn/
     NornApp.swift
 
   Application/
+    State/
+      NornAppStore.swift
+    UseCases/
+      LoadTasksUseCase.swift
+      QuickAddTaskUseCase.swift
+      SaveTaskDraftUseCase.swift
+      ToggleTaskCompletionUseCase.swift
+      ArchiveTaskUseCase.swift
+      SaveSyncSettingsUseCase.swift
+      SyncTasksUseCase.swift
 
   Domain/
     App/
@@ -195,13 +206,15 @@ apps/mobile/ios_ng/Norn/Norn/
 
 当前快照说明：
 
-- `Application/` 已建目录，但尚未落具体类型
+- `Application/State` 已落 `NornAppStore`，作为当前唯一 UI 状态入口
+- `Application/UseCases` 已落读取、快速新增、保存草稿、状态切换、归档、同步设置和同步用例壳
 - `Infrastructure/Persistence`、`Infrastructure/Mapping` 已落本地任务仓库、设置仓库和记录映射
 - `Infrastructure/Sync` 已落 HTTP client、sync request 和 sync response DTO
 - `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
 - `Utilities/Coding` 已提供日期和 JSON 编解码基础能力
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
+- `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已改为只绑定 store
 - `UI/` 已经按页面和共享组件分层
 - `Resources/Assets.xcassets` 已从工程根平移到资源目录
 
@@ -335,7 +348,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Application/UseCases/ToggleTaskCompletionUseCase.swift` | `ToggleTaskCompletionUseCase` | 切换完成/恢复待办 | `execute(taskID:)` |
 | `Application/UseCases/ArchiveTaskUseCase.swift` | `ArchiveTaskUseCase` | 归档任务 | `execute(taskID:)` |
 | `Application/UseCases/SaveSyncSettingsUseCase.swift` | `SaveSyncSettingsUseCase` | 保存同步设置 | `execute(settings:)` |
-| `Application/UseCases/SyncTasksUseCase.swift` | `SyncTasksUseCase` | 手动同步与变更后保守同步 | `execute()` |
+| `Application/UseCases/SyncTasksUseCase.swift` | `SyncTasksUseCase` | 手动同步与变更后保守同步 | `execute(settings:)` |
 
 ### 5.3 Infrastructure
 
@@ -387,7 +400,7 @@ QuickAddDock
   -> TaskRepositoryProtocol.save/upsert
   -> LoadTasksUseCase.execute()
   -> NornAppStore refresh visible tasks
-  -> SyncTasksUseCase.execute() [仅在已配置时]
+  -> SyncTasksUseCase.execute(settings:) [仅在已配置时]
 ```
 
 ### 6.2 任务详情与编辑
@@ -401,7 +414,7 @@ TaskCard / FocusCard / TaskPool list item
   -> SaveTaskDraftUseCase.execute(draft:)
   -> TaskRepositoryProtocol.save()
   -> LoadTasksUseCase.execute()
-  -> SyncTasksUseCase.execute() [保守触发]
+  -> SyncTasksUseCase.execute(settings:) [保守触发]
 ```
 
 ### 6.3 完成与归档
@@ -412,7 +425,7 @@ TaskDetailSheet action
   -> ArchiveTaskUseCase.execute(taskID:)
   -> TaskRepositoryProtocol.toggleCompletion/archive
   -> LoadTasksUseCase.execute()
-  -> SyncTasksUseCase.execute() [保守触发]
+  -> SyncTasksUseCase.execute(settings:) [保守触发]
 ```
 
 ### 6.4 同步设置与手动同步
@@ -423,7 +436,7 @@ SyncSettingsSheet
   -> SyncSettingsRepositoryProtocol.save()
 
 TaskPoolTab / SyncSettingsSheet
-  -> SyncTasksUseCase.execute()
+  -> SyncTasksUseCase.execute(settings:)
   -> LoadTasksUseCase.execute() for local snapshot
   -> TaskSyncClientProtocol.sync(tasks:settings:)
   -> TaskRepositoryProtocol.upsert()
