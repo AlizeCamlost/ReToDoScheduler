@@ -9,7 +9,9 @@ struct ContentView: View {
 
   var body: some View {
     TabView(selection: $store.currentTab) {
-      SequenceTab(tasks: store.visibleTasks)
+      SequenceTab(tasks: store.visibleTasks) { task in
+        store.openTaskDetail(taskID: task.id)
+      }
         .safeAreaPadding(.bottom, reservedDockHeight)
         .contentShape(Rectangle())
         .onTapGesture(perform: dismissDockFocus)
@@ -51,6 +53,22 @@ struct ContentView: View {
     .task {
       store.bootstrap()
     }
+    .sheet(isPresented: detailSheetPresented) {
+      if let task = store.selectedTask {
+        TaskDetailSheet(
+          task: task,
+          onToggleCompletion: {
+            store.toggleTaskCompletion(taskID: task.id)
+          },
+          onArchive: {
+            store.archiveTask(taskID: task.id)
+          },
+          onEdit: {
+            store.openTaskEditor(taskID: task.id)
+          }
+        )
+      }
+    }
     .onChange(of: store.currentTab) { _, _ in
       dismissDockFocus()
     }
@@ -69,6 +87,17 @@ struct ContentView: View {
   private func submitQuickAdd() {
     store.submitQuickAdd()
     dismissDockFocus()
+  }
+
+  private var detailSheetPresented: Binding<Bool> {
+    Binding(
+      get: { store.selectedTask != nil },
+      set: { presented in
+        if !presented {
+          store.closeTaskDetail()
+        }
+      }
+    )
   }
 }
 

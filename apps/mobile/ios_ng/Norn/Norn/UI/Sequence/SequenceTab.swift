@@ -2,6 +2,15 @@ import SwiftUI
 
 struct SequenceTab: View {
   let tasks: [Task]
+  let onTaskTap: (Task) -> Void
+
+  init(
+    tasks: [Task],
+    onTaskTap: @escaping (Task) -> Void = { _ in }
+  ) {
+    self.tasks = tasks
+    self.onTaskTap = onTaskTap
+  }
 
   private var focusedTask: Task? {
     tasks.first { $0.status == .doing }
@@ -46,7 +55,9 @@ struct SequenceTab: View {
   @ViewBuilder
   private var focusSection: some View {
     if let task = focusedTask {
-      FocusCard(task: task)
+      FocusCard(task: task) {
+        onTaskTap(task)
+      }
     } else {
       EmptyFocusCard()
     }
@@ -64,7 +75,9 @@ struct SequenceTab: View {
           EmptyQueueCard(title: emptyQueueTitle(for: title), message: emptyQueueMessage(for: title), dimmed: dimmed)
         } else {
           ForEach(tasks) { task in
-            TaskCard(task: task, dimmed: dimmed)
+            TaskCard(task: task, dimmed: dimmed) {
+              onTaskTap(task)
+            }
           }
         }
       }

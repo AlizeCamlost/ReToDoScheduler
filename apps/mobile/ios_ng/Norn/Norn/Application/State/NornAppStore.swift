@@ -122,6 +122,25 @@ final class NornAppStore {
     taskDraft = TaskDraft(task: task)
   }
 
+  func toggleTaskCompletion(taskID: String) {
+    do {
+      tasks = try toggleTaskCompletionUseCase.execute(taskID: taskID)
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
+  }
+
+  func archiveTask(taskID: String) {
+    do {
+      tasks = try archiveTaskUseCase.execute(taskID: taskID)
+      closeTaskDetail()
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
+  }
+
   func closeTaskEditor() {
     taskDraft = nil
   }
@@ -143,6 +162,18 @@ final class NornAppStore {
 
     syncSettings = syncSettingsRepository.load()
     syncStatus = syncSettings.isConfigured ? .idle(lastSyncedAt: nil) : .notConfigured
+  }
+
+  private func scheduleConservativeSyncIfNeeded() {
+    guard syncSettings.isConfigured else {
+      return
+    }
+
+    syncStatus = .syncing
+    let settings = syncSettings
+    Swift.Task {
+      await self.performConservativeSync(settings: settings)
+    }
   }
 
   private func performConservativeSync(settings: SyncSettings) async {

@@ -59,7 +59,8 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - iOS 本地持久化边界、编码工具和 sync boundary 已落地
 - iOS 应用状态壳、用例壳和根视图组装已落地
 - Quick Add 本地新增与已配置时的保守同步已接通
-- 详情、编辑、同步设置和任务池真实列表尚未接通
+- 任务详情页与完成/归档动作已接通
+- 编辑、同步设置和任务池真实列表尚未接通
 
 ## 3. 分层约束
 
@@ -192,6 +193,7 @@ apps/mobile/ios_ng/Norn/Norn/
         FocusCard.swift
         TaskCard.swift
     TaskPool/
+      TaskDetailSheet.swift
       TaskPoolTab.swift
     Schedule/
       ScheduleTab.swift
@@ -217,6 +219,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已改为只绑定 store
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
+- `Sequence` 卡片点击已能打开 `TaskDetailSheet`，详情动作通过 store 回写本地仓库
 - `UI/` 已经按页面和共享组件分层
 - `Resources/Assets.xcassets` 已从工程根平移到资源目录
 
