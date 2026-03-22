@@ -2,9 +2,9 @@
 
 ## Source Of Truth
 
-- 先看 `/Users/camlostshi/Documents/ReToDoScheduler/docs/dual-client-alignment.md`
-- 再看 `/Users/camlostshi/Documents/ReToDoScheduler/docs/product-model.md`
-- 调度规则看 `/Users/camlostshi/Documents/ReToDoScheduler/docs/scheduling-model.md`
+- 先看 `/Users/camlostshi/Documents/ReToDoScheduler/docs/specs/architecture.md`
+- 再看 `/Users/camlostshi/Documents/ReToDoScheduler/docs/specs/product-model.md`
+- 调度规则看 `/Users/camlostshi/Documents/ReToDoScheduler/docs/specs/scheduling-model.md`
 
 ## Current Structure
 

@@ -4,12 +4,11 @@
 
 - [client-sync.md](client-sync.md)
 
-## 1. 一键打开工程
+## 1. 打开工程
 
 在项目根目录执行：
 
 ```bash
-cd /Users/camlostshi/Documents/ReToDoScheduler
 npm run ios:prepare
 ```
 
@@ -19,31 +18,32 @@ npm run ios:prepare
 npm run ios:dev
 ```
 
-这两个命令现在都会直接打开原生工程：
+这两个命令都会打开原生工程：
 
 - `apps/mobile/ios/ReToDoScheduler.xcodeproj`
+
+当前 iPhone 客户端已经是原生 SwiftUI 应用，不再依赖 React Native、Metro、Pods 或 Expo。
 
 ## 2. 首次安装到真机
 
 1. 执行 `npm run ios:prepare`
-2. 在 Xcode 中打开 `ReToDoScheduler` target，并设置：
+2. 在 Xcode 中打开 `ReToDoScheduler` target
+3. 设置签名：
    - `Team`: 你的开发者账号
-   - `Bundle Identifier`: 保持唯一，默认是 `com.camlostshi.retodoscheduler`
+   - `Bundle Identifier`: 保持唯一，默认 `com.camlostshi.retodoscheduler`
    - `Automatically manage signing`: 开启
-3. 连接 iPhone，选择真机目标，执行 `Cmd + R`
-4. 如系统拦截启动，检查：
+4. 连接 iPhone，选择真机目标，执行 `Cmd + R`
+5. 如系统拦截启动，检查：
    - `Settings -> Privacy & Security -> Developer Mode`
-   - `Settings -> General -> VPN & Device Management` 中的开发者证书信任
+   - `Settings -> General -> VPN & Device Management` 中的证书信任
 
-## 3. 日常启动
+## 3. 日常运行
 
 1. 执行 `npm run ios:dev`
 2. 在 Xcode 中选择模拟器或真机
 3. 按 `Cmd + R`
 
-当前 iPhone 客户端已经是原生 SwiftUI 应用，不再依赖 React Native、Metro、Pods 或 Expo。
-
-## 4. 与同步相关的最小步骤
+## 4. 最小同步配置
 
 1. 启动 app
 2. 打开右上角 `设置`
@@ -58,12 +58,9 @@ npm run ios:dev
 
 ### 无法运行
 
-确认打开的是：
-
-- `apps/mobile/ios/ReToDoScheduler.xcodeproj`
-
-再检查签名团队和 Bundle Identifier。
+- 确认打开的是 `apps/mobile/ios/ReToDoScheduler.xcodeproj`
+- 检查签名团队和 `Bundle Identifier`
 
 ### 真机开发镜像报错
 
-这是 Xcode / iOS 版本匹配问题，先升级 Xcode。
+- 这通常是 Xcode 与 iOS 版本不匹配，优先升级 Xcode

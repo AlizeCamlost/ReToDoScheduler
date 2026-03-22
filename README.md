@@ -57,10 +57,10 @@ cp apps/web/.env.example apps/web/.env
 ## Deployment
 
 - Docs index: `docs/README.md`
-- Architecture: `docs/architecture.md`
-- Product model: `docs/product-model.md`
-- Scheduling model: `docs/scheduling-model.md`
-- Server deploy runbook: `docs/server-deploy.md`
-- iOS setup runbook: `docs/ios.md`
-- Client sync runbook: `docs/client-sync.md`
-- Recovery runbook: `docs/recovery.md`
+- Architecture: `docs/specs/architecture.md`
+- Product model: `docs/specs/product-model.md`
+- Scheduling model: `docs/specs/scheduling-model.md`
+- Server deploy runbook: `docs/runbooks/server-deploy.md`
+- iOS setup runbook: `docs/runbooks/ios.md`
+- Client sync runbook: `docs/runbooks/client-sync.md`
+- Recovery runbook: `docs/runbooks/recovery.md`

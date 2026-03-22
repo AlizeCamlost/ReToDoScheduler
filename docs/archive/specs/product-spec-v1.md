@@ -1,5 +1,8 @@
 # ReToDoScheduler 系统设计文档
 
+> Historical archive. This document captures the March 2026 v1 design snapshot.
+> Current truth sources are [../../specs/product-model.md](../../specs/product-model.md), [../../specs/scheduling-model.md](../../specs/scheduling-model.md), and [../../specs/architecture.md](../../specs/architecture.md).
+
 > **版本**：v1.0  
 > **状态**：草稿  
 > **最后更新**：2026-03-09

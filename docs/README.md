@@ -1,38 +1,47 @@
-# 文档导航
+# 文档目录
 
-`docs/` 只保留当前仍作为规范或操作真相来源的文档。历史设计稿、教程和过程记录统一降级到 `docs/archive/`。
+最后更新：2026-03-22
 
-## 当前规范
+`docs/` 根目录只保留这个索引。当前真相源、runbook、协作指南和历史材料全部放在子目录下。
 
-- [architecture.md](architecture.md): 当前系统架构、仓库分层、同步数据流和部署边界
-- [product-model.md](product-model.md): 产品概念模型，包括任务原型、价值体系与用户场景
-- [scheduling-model.md](scheduling-model.md): 当前任务池与动态调度模型，是调度实现的真相来源
+时间标记规则：
 
-## 运维文档
+- 本索引对每个收录文档都标记 `最后更新：YYYY-MM-DD`。
+- 以后每次修改 `docs/` 下的活动文档或归档索引，都必须同步更新这里对应条目的日期。
+- 新文档仍按 `specs/`、`runbooks/`、`guides/`、`adr/`、`archive/` 组织，不再把活动文档放回 `docs/` 根目录。
 
-- [client-sync.md](client-sync.md): Web / iOS / API 的同步配置、前置条件与排障
-- [ios.md](ios.md): iOS 真机安装、日常启动与联调最小步骤
-- [server-deploy.md](server-deploy.md): 服务端部署、自动部署概览与运维注意事项
-- [recovery.md](recovery.md): 本地与远端恢复流程
+## specs
 
-## ADR
+- [specs/architecture.md](specs/architecture.md): 当前系统架构真相源。定义运行时分层、仓库职责、数据流和双端改动对齐约束。最后更新：2026-03-22
+- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑。最后更新：2026-03-22
+- [specs/product-model.md](specs/product-model.md): 当前产品语义真相源。定义 Norn / Kairos 边界、任务池核心抽象、价值语义和输入契约。最后更新：2026-03-22
+- [specs/scheduling-model.md](specs/scheduling-model.md): 当前调度模型真相源。把 Kairos 明确为“硬约束 + 价值最大化”的滚动装箱问题，并说明比较器接口与实现边界。最后更新：2026-03-22
 
-- [adr/0001-monorepo-and-stack.md](adr/0001-monorepo-and-stack.md)
-- [adr/0002-local-first-sync.md](adr/0002-local-first-sync.md)
+## runbooks
 
-## 历史归档
+- [runbooks/client-sync.md](runbooks/client-sync.md): Web、iPhone、API 的同步配置、联调验证和排障步骤。最后更新：2026-03-22
+- [runbooks/ios.md](runbooks/ios.md): iOS 原生工程打开、真机安装、日常运行和最小同步配置。最后更新：2026-03-22
+- [runbooks/server-deploy.md](runbooks/server-deploy.md): API + PostgreSQL 的首轮部署、校验、日常运维、备份和 GitHub Actions 部署说明。最后更新：2026-03-22
+- [runbooks/recovery.md](runbooks/recovery.md): 本地和远端恢复的停写、恢复、校验、复盘流程。最后更新：2026-03-22
 
-- [archive/product-spec-v1.md](archive/product-spec-v1.md)
-- [archive/todo-handbook.md](archive/todo-handbook.md)
-- [archive/tutorial-architecture-and-build-zh.md](archive/tutorial-architecture-and-build-zh.md)
-- [archive/tutorial-github-auto-deploy-zh.md](archive/tutorial-github-auto-deploy-zh.md)
-- [archive/domain-model-v1.1.md](archive/domain-model-v1.1.md)
-- [archive/module-map.md](archive/module-map.md)
-- [archive/ios-startup-zh.md](archive/ios-startup-zh.md)
-- [archive/ios-device-install.md](archive/ios-device-install.md)
+## guides
 
-## 维护约定
+- [guides/ui-design-process.md](guides/ui-design-process.md): AI 协作做 UI 时的决策方法论，用于减少“代码先生成、决策却没发生”的问题。最后更新：2026-03-22
 
-- 如果某份文档仍是当前规范，应放在 `docs/` 根目录。
-- 如果某份文档被新的活动文档吸收，应移入 `docs/archive/`，并在顶部明确标注被什么文档取代。
-- `docs/resource/` 不属于正式文档树；它已被 `.gitignore` 排除，不纳入当前文档导航。
+## adr
+
+- [adr/0001-monorepo-and-stack.md](adr/0001-monorepo-and-stack.md): 为什么采用 monorepo 和当前技术栈。最后更新：2026-03-15
+- [adr/0002-local-first-sync.md](adr/0002-local-first-sync.md): 为什么采用 local-first + LWW 同步策略。最后更新：2026-02-20
+
+## archive
+
+- [archive/README.md](archive/README.md): 历史材料索引和保留标准。最后更新：2026-03-22
+- [archive/specs/product-spec-v1.md](archive/specs/product-spec-v1.md): 2026-03 中旬的旧版系统设计规格，保留作历史里程碑，不再作为当前真相源。最后更新：2026-03-22
+- [archive/source-notes/README.md](archive/source-notes/README.md): 原始设计素材目录的索引和保留约束。最后更新：2026-03-22
+
+## 维护规则
+
+- 新的活动规范只能进入 `specs/`、`runbooks/`、`guides/` 或 `adr/`，不要再把活动文档放回根目录。
+- 一个主题只保留一个活动真相源。被吸收的旧文档直接删除，确有追溯价值时再放入 `archive/`。
+- `archive/` 只保留历史节点和原始素材，不保留重复教程、过时 runbook 或已经被新文档逐段覆盖的草稿。
+- 修改任何已收录文档后，必须同步更新本索引中的“最后更新”日期。
