@@ -188,7 +188,7 @@ final class NornAppStore {
 
     syncStatus = .syncing
     let settings = syncSettings
-    Swift.Task {
+    _Concurrency.Task {
       await self.performConservativeSync(settings: settings)
     }
   }
