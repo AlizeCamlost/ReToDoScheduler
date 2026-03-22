@@ -12,14 +12,14 @@
 
 ## specs
 
-- [specs/architecture.md](specs/architecture.md): 当前系统架构真相源。定义运行时分层、仓库职责、数据流和双端改动对齐约束。最后更新：2026-03-22
-- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑。当前实施状态：F2 已完成，F3 待开始。最后更新：2026-03-22
+- [specs/architecture.md](specs/architecture.md): 当前系统架构真相源。定义运行时分层、仓库职责、数据流、最小 Task sync contract 和双端改动对齐约束。最后更新：2026-03-22
+- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑。当前实施状态：F3 已完成，F4 待开始。最后更新：2026-03-22
 - [specs/product-model.md](specs/product-model.md): 当前产品语义真相源。定义 Norn / Kairos 边界、任务池核心抽象、价值语义和输入契约。最后更新：2026-03-22
 - [specs/scheduling-model.md](specs/scheduling-model.md): 当前调度模型真相源。把 Kairos 明确为“硬约束 + 价值最大化”的滚动装箱问题，并说明比较器接口与实现边界。最后更新：2026-03-22
 
 ## runbooks
 
-- [runbooks/client-sync.md](runbooks/client-sync.md): Web、iPhone、API 的同步配置、联调验证和排障步骤。最后更新：2026-03-22
+- [runbooks/client-sync.md](runbooks/client-sync.md): Web、iPhone、API 的最小 Task 模型同步配置、联调验证和排障步骤。最后更新：2026-03-22
 - [runbooks/ios.md](runbooks/ios.md): iOS 原生工程打开、真机安装、日常运行和最小同步配置。最后更新：2026-03-22
 - [runbooks/server-deploy.md](runbooks/server-deploy.md): API + PostgreSQL 的首轮部署、校验、日常运维、备份和 GitHub Actions 部署说明。最后更新：2026-03-22
 - [runbooks/recovery.md](runbooks/recovery.md): 本地和远端恢复的停写、恢复、校验、复盘流程。最后更新：2026-03-22

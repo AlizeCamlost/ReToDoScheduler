@@ -63,6 +63,7 @@ apps/web + apps/mobile
 - 对外提供 `/health`、`/v1/tasks`、`/v1/tasks/sync`
 - 以 Bearer token 作为当前 MVP 认证边界
 - 负责同步收敛和持久化出入口
+- 对外只暴露最小 `Task` sync contract，旧数据库列只作为内部兼容细节
 
 ### 3.5 `services/db`
 
@@ -70,6 +71,15 @@ apps/web + apps/mobile
 - 保持数据库演进与 API 实现解耦
 
 ## 4. 数据流
+
+### 4.0 当前共享 Task contract
+
+当前双端和 API 共享的最小 `Task` 字段为：
+
+- `id` `title` `rawInput` `description?` `status`
+- `estimatedMinutes` `minChunkMinutes` `dueAt?` `tags`
+- `scheduleValue` `dependsOnTaskIds` `steps` `concurrencyMode`
+- `createdAt` `updatedAt` `extJson`
 
 ### 4.1 任务录入与同步
 
@@ -94,7 +104,7 @@ apps/web + apps/mobile
 - 改任务字段时，必须同时检查 Web `TaskEditModal` 和 iOS `TaskEditorSheet`。
 - 改时间模板结构时，必须同时检查 Web 的模板存取逻辑和 iOS `TaskRepository` 的读写逻辑。
 - 改调度展示语义时，必须同时检查 Web `SchedulePanel` 和 iOS `ScheduleSection`。
-- 改同步协议时，必须同时检查 Web `features/sync/data/taskSync.ts`、iOS `Shared/Services/SyncService.swift` 和 API 路由。
+- 改同步协议时，必须同时检查 Web `features/sync/data/taskSync.ts`、iOS `Infrastructure/Sync/HTTPTaskSyncClient.swift` 和 API 路由。
 - 只做单端的视觉样式微调可以分开改；只要涉及字段、流程、信息架构或调度语义，就必须按双端改动处理。
 
 ## 6. 当前边界
