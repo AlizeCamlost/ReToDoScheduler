@@ -77,7 +77,14 @@ final class NornAppStore {
   }
 
   func refresh() {
-    reloadLocalState()
+    syncSettings = syncSettingsRepository.load()
+    guard syncSettings.isConfigured else {
+      syncStatus = .notConfigured
+      tasks = (try? loadTasksUseCase.execute()) ?? tasks
+      return
+    }
+
+    scheduleConservativeSyncIfNeeded()
   }
 
   func submitQuickAdd() {
@@ -94,16 +101,7 @@ final class NornAppStore {
 
       tasks = try loadTasksUseCase.execute()
       quickAddInput = ""
-
-      guard syncSettings.isConfigured else {
-        return
-      }
-
-      syncStatus = .syncing
-      let settings = syncSettings
-      Swift.Task {
-        await self.performConservativeSync(settings: settings)
-      }
+      scheduleConservativeSyncIfNeeded()
     } catch {
       syncStatus = .failed(message: error.localizedDescription)
     }
@@ -157,6 +155,13 @@ final class NornAppStore {
     taskDraft = nil
   }
 
+  func saveSyncSettings(_ settings: SyncSettings) {
+    let lastSyncedAt = currentLastSyncedAt
+    syncSettings = saveSyncSettingsUseCase.execute(settings: settings)
+    syncStatus = syncSettings.isConfigured ? .idle(lastSyncedAt: lastSyncedAt) : .notConfigured
+    closeSyncSettings()
+  }
+
   func openSyncSettings() {
     isSyncSettingsPresented = true
   }
@@ -173,7 +178,7 @@ final class NornAppStore {
     }
 
     syncSettings = syncSettingsRepository.load()
-    syncStatus = syncSettings.isConfigured ? .idle(lastSyncedAt: nil) : .notConfigured
+    syncStatus = syncSettings.isConfigured ? .idle(lastSyncedAt: currentLastSyncedAt) : .notConfigured
   }
 
   private func scheduleConservativeSyncIfNeeded() {
@@ -195,6 +200,13 @@ final class NornAppStore {
     } catch {
       syncStatus = .failed(message: error.localizedDescription)
     }
+  }
+
+  private var currentLastSyncedAt: Date? {
+    if case let .idle(lastSyncedAt) = syncStatus {
+      return lastSyncedAt
+    }
+    return nil
   }
 }
 

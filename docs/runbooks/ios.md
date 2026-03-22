@@ -20,17 +20,17 @@ npm run ios:dev
 
 这两个命令都会打开原生工程：
 
-- `apps/mobile/ios/ReToDoScheduler.xcodeproj`
+- `apps/mobile/ios_ng/Norn/Norn.xcodeproj`
 
 当前 iPhone 客户端已经是原生 SwiftUI 应用，不再依赖 React Native、Metro、Pods 或 Expo。
 
 ## 2. 首次安装到真机
 
 1. 执行 `npm run ios:prepare`
-2. 在 Xcode 中打开 `ReToDoScheduler` target
+2. 在 Xcode 中打开 `Norn` target
 3. 设置签名：
    - `Team`: 你的开发者账号
-   - `Bundle Identifier`: 保持唯一，默认 `com.camlostshi.retodoscheduler`
+   - `Bundle Identifier`: 保持唯一，默认 `camloshi.Norn`
    - `Automatically manage signing`: 开启
 4. 连接 iPhone，选择真机目标，执行 `Cmd + R`
 5. 如系统拦截启动，检查：
@@ -46,11 +46,14 @@ npm run ios:dev
 ## 4. 最小同步配置
 
 1. 启动 app
-2. 打开右上角 `设置`
-3. 填写：
+2. 切到 `任务池`
+3. 点右上角 `设置` 图标
+4. 填写：
    - `API Base URL`
    - `API Auth Token`
-4. 返回主界面，点击 `立即同步`
+   - `Device ID` 可留空，保存时会自动生成
+5. 保存设置
+6. 回到 `任务池`，点击右上角刷新图标触发手动同步
 
 留空也可以先离线使用，本地任务会保存在设备上。
 
@@ -58,7 +61,7 @@ npm run ios:dev
 
 ### 无法运行
 
-- 确认打开的是 `apps/mobile/ios/ReToDoScheduler.xcodeproj`
+- 确认打开的是 `apps/mobile/ios_ng/Norn/Norn.xcodeproj`
 - 检查签名团队和 `Bundle Identifier`
 
 ### 真机开发镜像报错

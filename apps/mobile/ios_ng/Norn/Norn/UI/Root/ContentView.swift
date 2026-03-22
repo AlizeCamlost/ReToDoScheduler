@@ -22,7 +22,15 @@ struct ContentView: View {
         .onTapGesture(perform: dismissDockFocus)
         .tag(AppTab.schedule)
 
-      TaskPoolTab()
+      TaskPoolTab(
+        syncStatus: store.syncStatus,
+        onOpenSyncSettings: {
+          store.openSyncSettings()
+        },
+        onRefresh: {
+          store.refresh()
+        }
+      )
         .contentShape(Rectangle())
         .onTapGesture(perform: dismissDockFocus)
         .tag(AppTab.taskPool)
@@ -83,6 +91,18 @@ struct ContentView: View {
         )
       }
     }
+    .sheet(isPresented: syncSettingsSheetPresented) {
+      SyncSettingsSheet(
+        settings: store.syncSettings,
+        syncStatus: store.syncStatus,
+        onSave: { settings in
+          store.saveSyncSettings(settings)
+        },
+        onCancel: {
+          store.closeSyncSettings()
+        }
+      )
+    }
     .onChange(of: store.currentTab) { _, _ in
       dismissDockFocus()
     }
@@ -120,6 +140,17 @@ struct ContentView: View {
       set: { presented in
         if !presented {
           store.closeTaskEditor()
+        }
+      }
+    )
+  }
+
+  private var syncSettingsSheetPresented: Binding<Bool> {
+    Binding(
+      get: { store.isSyncSettingsPresented },
+      set: { presented in
+        if !presented {
+          store.closeSyncSettings()
         }
       }
     )
