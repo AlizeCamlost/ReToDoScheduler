@@ -55,7 +55,8 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - 原有混合模型文件已收缩为 `Domain/Legacy/Models.swift` 过渡占位
 - `packages/core` 已收敛到本轮最小 `Task` 模型
 - `services/api` 已切到最小 sync contract，对旧数据库列只保留内部兼容
-- Web 和 iOS sync 适配尚未开始
+- `apps/web` 已跟随最小模型收敛编辑与 sync 解析
+- iOS 本地持久化和 sync 适配尚未开始
 - 基础设施实现和用例编排尚未开始
 
 ## 3. 分层约束
