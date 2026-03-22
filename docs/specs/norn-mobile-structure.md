@@ -56,8 +56,8 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - `packages/core` 已收敛到本轮最小 `Task` 模型
 - `services/api` 已切到最小 sync contract，对旧数据库列只保留内部兼容
 - `apps/web` 已跟随最小模型收敛编辑与 sync 解析
-- iOS 本地持久化边界与编码工具已落地
-- iOS sync 适配和用例编排尚未开始
+- iOS 本地持久化边界、编码工具和 sync boundary 已落地
+- iOS 应用层编排尚未开始
 
 ## 3. 分层约束
 
@@ -156,6 +156,11 @@ apps/mobile/ios_ng/Norn/Norn/
       TaskFileRepository.swift
       SyncSettingsRepositoryProtocol.swift
       UserDefaultsSyncSettingsRepository.swift
+    Sync/
+      TaskSyncClientProtocol.swift
+      HTTPTaskSyncClient.swift
+      TaskSyncRequest.swift
+      TaskSyncResponse.swift
 
   Resources/
     Assets.xcassets/
@@ -192,6 +197,7 @@ apps/mobile/ios_ng/Norn/Norn/
 
 - `Application/` 已建目录，但尚未落具体类型
 - `Infrastructure/Persistence`、`Infrastructure/Mapping` 已落本地任务仓库、设置仓库和记录映射
+- `Infrastructure/Sync` 已落 HTTP client、sync request 和 sync response DTO
 - `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
 - `Utilities/Coding` 已提供日期和 JSON 编解码基础能力
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
