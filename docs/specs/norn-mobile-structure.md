@@ -224,7 +224,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Utilities/Coding` 已提供日期和 JSON 编解码基础能力
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
-- `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已改为只绑定 store
+- `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、安全区壳和 sheet 挂载点
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
 - `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列支持拖拽重排并通过现有 sync 同步顺序
 - `Sequence` 卡片点击已能打开 `TaskDetailSheet`，详情动作通过 store 回写本地仓库
@@ -396,7 +396,7 @@ apps/mobile/ios_ng/Norn/Norn/
 
 | 文件 | 主类型 | 作用 | 备注 |
 | --- | --- | --- | --- |
-| `UI/Root/ContentView.swift` | `ContentView` | 根容器与 sheet 挂载点 | 不直连持久化和 HTTP |
+| `UI/Root/ContentView.swift` | `ContentView` | 根容器、共享背景与 sheet 挂载点 | 不直连持久化和 HTTP |
 | `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 只接受绑定和 action |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
 | `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列支持重排 |

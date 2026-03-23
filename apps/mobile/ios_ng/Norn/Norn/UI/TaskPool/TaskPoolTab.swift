@@ -35,16 +35,13 @@ struct TaskPoolTab: View {
   }
 
   var body: some View {
-    ZStack {
-      NornScreenBackground()
-
-      VStack(spacing: 0) {
-        header
-        EdgeFadeDivider()
-        placeholder
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    VStack(spacing: 0) {
+      header
+      EdgeFadeDivider()
+      placeholder
     }
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    .background(Color.clear)
   }
 
   private var header: some View {

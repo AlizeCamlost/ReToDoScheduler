@@ -8,50 +8,49 @@ struct ContentView: View {
   @State private var reservedDockHeight: CGFloat = 60
 
   var body: some View {
-    TabView(selection: $store.currentTab) {
-      SequenceTab(
-        tasks: store.visibleTasks,
-        onTaskTap: { task in
-          store.openTaskDetail(taskID: task.id)
-        },
-        onPrimarySequenceReorder: { reorderedTaskIDs in
-          store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
-        }
-      )
-        .safeAreaPadding(.bottom, reservedDockHeight)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: dismissDockFocus)
-        .tag(AppTab.sequence)
+    ZStack {
+      NornScreenBackground()
 
-      ScheduleTab()
-        .contentShape(Rectangle())
-        .onTapGesture(perform: dismissDockFocus)
-        .tag(AppTab.schedule)
+      TabView(selection: $store.currentTab) {
+        SequenceTab(
+          tasks: store.visibleTasks,
+          onTaskTap: { task in
+            store.openTaskDetail(taskID: task.id)
+          },
+          onPrimarySequenceReorder: { reorderedTaskIDs in
+            store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
+          }
+        )
+          .safeAreaPadding(.bottom, reservedDockHeight)
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.sequence)
 
-      TaskPoolTab(
-        tasks: store.visibleTasks,
-        syncStatus: store.syncStatus,
-        onOpenSyncSettings: {
-          store.openSyncSettings()
-        },
-        onRefresh: {
-          store.refresh()
-        },
-        onTaskTap: { task in
-          store.openTaskDetail(taskID: task.id)
-        }
-      )
-        .contentShape(Rectangle())
-        .onTapGesture(perform: dismissDockFocus)
-        .tag(AppTab.taskPool)
-    }
-    .tabViewStyle(.page(indexDisplayMode: .never))
-    .ignoresSafeArea()
-    .simultaneousGesture(
-      DragGesture(minimumDistance: 12).onChanged { _ in
-        dismissDockFocus()
+        ScheduleTab()
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.schedule)
+
+        TaskPoolTab(
+          tasks: store.visibleTasks,
+          syncStatus: store.syncStatus,
+          onOpenSyncSettings: {
+            store.openSyncSettings()
+          },
+          onRefresh: {
+            store.refresh()
+          },
+          onTaskTap: { task in
+            store.openTaskDetail(taskID: task.id)
+          }
+        )
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.taskPool)
       }
-    )
+      .tabViewStyle(.page(indexDisplayMode: .never))
+      .background(Color.clear)
+    }
     .safeAreaInset(edge: .bottom, spacing: 0) {
       if store.currentTab == .sequence {
         QuickAddDock(
