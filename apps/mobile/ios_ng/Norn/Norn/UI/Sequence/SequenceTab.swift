@@ -218,6 +218,7 @@ private struct SequenceTimelineRow: View {
       SequenceTimelineMarker(color: statusColor, position: position)
 
       SequencePrimaryCard(task: task, isLifted: isDragging)
+        .padding(.vertical, 8)
         .opacity(isDragging ? 0.14 : 1)
         .onTapGesture(perform: onTap)
         .onDrag(onDragStart) {
@@ -225,7 +226,6 @@ private struct SequenceTimelineRow: View {
         }
         .onDrop(of: [UTType.plainText.identifier], delegate: dropDelegate)
     }
-    .padding(.vertical, 8)
   }
 }
 
@@ -233,41 +233,36 @@ private struct SequenceTimelineMarker: View {
   let color: Color
   let position: TimelinePosition
 
-  private let railWidth: CGFloat = 4
-  private let nodeDiameter: CGFloat = 12
-  private let nodeCoreDiameter: CGFloat = 7
+  private let railWidth: CGFloat = 2.5
+  private let nodeDiameter: CGFloat = 14
+  private let nodeCenterY: CGFloat = 24
 
   var body: some View {
-    GeometryReader { proxy in
-      let centerX = proxy.size.width / 2
-      let nodeCenterY: CGFloat = 24
-      let railColor = NornTheme.divider.opacity(0.95)
-
-      ZStack {
-        if position.showsTopLine {
-          Capsule(style: .continuous)
-            .fill(railColor)
-            .frame(width: railWidth, height: max(nodeCenterY, 0))
-            .position(x: centerX, y: nodeCenterY / 2)
-        }
-
-        if position.showsBottomLine {
-          Capsule(style: .continuous)
-            .fill(railColor)
-            .frame(width: railWidth, height: max(proxy.size.height - nodeCenterY, 0))
-            .position(x: centerX, y: nodeCenterY + max(proxy.size.height - nodeCenterY, 0) / 2)
-        }
-
-        Circle()
-          .fill(railColor)
-          .frame(width: nodeDiameter, height: nodeDiameter)
-          .overlay {
-            Circle()
-              .fill(color)
-              .frame(width: nodeCoreDiameter, height: nodeCoreDiameter)
-          }
-          .position(x: centerX, y: nodeCenterY)
+    ZStack(alignment: .top) {
+      if position.showsTopLine {
+        Capsule(style: .continuous)
+          .fill(color)
+          .frame(width: railWidth, height: nodeCenterY)
       }
+
+      if position.showsBottomLine {
+        VStack(spacing: 0) {
+          Color.clear
+            .frame(height: nodeCenterY)
+
+          Spacer(minLength: 0)
+            .frame(width: railWidth)
+            .background {
+              Capsule(style: .continuous)
+                .fill(color)
+            }
+        }
+      }
+
+      Circle()
+        .fill(color)
+        .frame(width: nodeDiameter, height: nodeDiameter)
+        .padding(.top, nodeCenterY - nodeDiameter / 2)
     }
     .frame(width: 18)
     .frame(maxHeight: .infinity)
