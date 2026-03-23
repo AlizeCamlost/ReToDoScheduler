@@ -1,113 +1,170 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SequenceTab: View {
   let tasks: [Task]
   let onTaskTap: (Task) -> Void
+  let onPrimarySequenceReorder: ([String]) -> Void
+
+  @State private var primarySequenceOrder: [String] = []
+  @State private var draggedPrimaryTaskID: String?
+  @State private var hasPendingPrimaryReorder = false
 
   init(
     tasks: [Task],
-    onTaskTap: @escaping (Task) -> Void = { _ in }
+    onTaskTap: @escaping (Task) -> Void = { _ in },
+    onPrimarySequenceReorder: @escaping ([String]) -> Void = { _ in }
   ) {
     self.tasks = tasks
     self.onTaskTap = onTaskTap
+    self.onPrimarySequenceReorder = onPrimarySequenceReorder
   }
+
+  private let nearHorizon = 7 // days
 
   private var focusedTask: Task? {
     tasks.first { $0.status == .doing }
   }
 
-  private var queueTasks: [Task] {
-    tasks.filter { $0.status == .todo }
-  }
-
-  private let nearHorizon = 7 // days
-
-  private var nearTasks: [Task] {
-    queueTasks.filter { task in
-      guard let due = task.dueAt else { return true }
-      let diff = Calendar.current.dateComponents([.day], from: Date(), to: due).day ?? 0
-      return diff <= nearHorizon
+  private var canonicalPrimarySequenceTasks: [Task] {
+    tasks.filter { task in
+      task.status == .doing || (task.status == .todo && isWithinPrimaryHorizon(task))
     }
   }
 
-  private var farTasks: [Task] {
-    queueTasks.filter { task in
-      guard let due = task.dueAt else { return false }
-      let diff = Calendar.current.dateComponents([.day], from: Date(), to: due).day ?? 0
-      return diff > nearHorizon
+  private var displayedPrimarySequenceTasks: [Task] {
+    let byID = Dictionary(uniqueKeysWithValues: canonicalPrimarySequenceTasks.map { ($0.id, $0) })
+    let orderedIDs = primarySequenceOrder.filter { byID[$0] != nil }
+    let orderedIDSet = Set(orderedIDs)
+    let remainingIDs = canonicalPrimarySequenceTasks.map(\.id).filter { !orderedIDSet.contains($0) }
+    return (orderedIDs + remainingIDs).compactMap { byID[$0] }
+  }
+
+  private var nextTasks: [Task] {
+    tasks.filter { task in
+      task.status == .todo && !isWithinPrimaryHorizon(task)
     }
+  }
+
+  private var primarySequenceSignature: [String] {
+    canonicalPrimarySequenceTasks.map(\.id)
   }
 
   var body: some View {
-    ZStack {
-      NornScreenBackground()
+    ScrollView(showsIndicators: false) {
+      LazyVStack(alignment: .leading, spacing: 0) {
+        focusRow
+          .padding(.top, 12)
+          .padding(.bottom, 18)
 
-      ScrollView(showsIndicators: false) {
-        VStack(alignment: .leading, spacing: 28) {
-          focusSection
-          queueSection(title: "接下来", tasks: nearTasks)
-          queueSection(title: "较远", tasks: farTasks, dimmed: true)
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 32)
+        primarySequenceSection
+          .padding(.bottom, 24)
+
+        nextTasksSection
+          .padding(.bottom, 24)
       }
-      .scrollDismissesKeyboard(.interactively)
+      .padding(.horizontal, 20)
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    .scrollDismissesKeyboard(.interactively)
+    .background(Color.clear)
+    .onAppear(perform: syncPrimarySequenceOrder)
+    .onChange(of: primarySequenceSignature) { _, _ in
+      syncPrimarySequenceOrder()
     }
   }
 
   @ViewBuilder
-  private var focusSection: some View {
-    if let task = focusedTask {
-      FocusCard(task: task) {
-        onTaskTap(task)
+  private var focusRow: some View {
+    Group {
+      if let task = focusedTask {
+        FocusCard(task: task) {
+          onTaskTap(task)
+        }
+      } else {
+        EmptyFocusCard()
       }
-    } else {
-      EmptyFocusCard()
     }
   }
 
-  private func queueSection(title: String, tasks: [Task], dimmed: Bool = false) -> some View {
-    VStack(alignment: .leading, spacing: dimmed ? 10 : 12) {
-      Text(title)
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 4)
+  private func syncPrimarySequenceOrder() {
+    primarySequenceOrder = primarySequenceSignature
+    draggedPrimaryTaskID = nil
+    hasPendingPrimaryReorder = false
+  }
 
-      VStack(spacing: dimmed ? 6 : 8) {
-        if tasks.isEmpty {
-          EmptyQueueCard(title: emptyQueueTitle(for: title), message: emptyQueueMessage(for: title), dimmed: dimmed)
-        } else {
-          ForEach(tasks) { task in
-            TaskCard(task: task, dimmed: dimmed) {
-              onTaskTap(task)
-            }
+  private func isWithinPrimaryHorizon(_ task: Task) -> Bool {
+    guard let due = task.dueAt else { return true }
+    let diff = Calendar.current.dateComponents([.day], from: Date(), to: due).day ?? 0
+    return diff <= nearHorizon
+  }
+
+  private func timelinePosition(for index: Int, count: Int) -> TimelinePosition {
+    if count <= 1 {
+      return .single
+    }
+    if index == 0 {
+      return .first
+    }
+    if index == count - 1 {
+      return .last
+    }
+    return .middle
+  }
+
+  private var primarySequenceSection: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      SequenceSectionHeader(
+        title: "主序列",
+        detail: displayedPrimarySequenceTasks.count > 1 ? "长按卡片并拖动调整顺序" : nil
+      )
+
+      if displayedPrimarySequenceTasks.isEmpty {
+        EmptyPrimarySequenceCard()
+      } else {
+        VStack(spacing: 0) {
+          ForEach(Array(displayedPrimarySequenceTasks.enumerated()), id: \.element.id) { index, task in
+            SequenceTimelineRow(
+              task: task,
+              position: timelinePosition(for: index, count: displayedPrimarySequenceTasks.count),
+              onDragStart: {
+                draggedPrimaryTaskID = task.id
+                hasPendingPrimaryReorder = false
+                return NSItemProvider(object: task.id as NSString)
+              },
+              dropDelegate: PrimarySequenceDropDelegate(
+                destinationTaskID: task.id,
+                orderedTaskIDs: $primarySequenceOrder,
+                draggedTaskID: $draggedPrimaryTaskID,
+                hasPendingReorder: $hasPendingPrimaryReorder,
+                onCommit: commitPrimarySequenceOrder
+              ),
+              onTap: {
+                onTaskTap(task)
+              }
+            )
           }
         }
+        .animation(.snappy(duration: 0.18, extraBounce: 0), value: primarySequenceOrder)
       }
     }
   }
 
-  private func emptyQueueTitle(for sectionTitle: String) -> String {
-    switch sectionTitle {
-    case "接下来":
-      return "暂无近期任务"
-    case "较远":
-      return "暂无远期任务"
-    default:
-      return "暂无任务"
+  private var nextTasksSection: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      SequenceSectionHeader(title: "接下来")
+      NextTasksSummaryCard(tasks: nextTasks, onTaskTap: onTaskTap)
     }
   }
 
-  private func emptyQueueMessage(for sectionTitle: String) -> String {
-    switch sectionTitle {
-    case "接下来":
-      return "新建任务后，近期需要处理的事项会按优先顺序排在这里。"
-    case "较远":
-      return "截止时间更远或暂不着急的事项，会沉到这个序列里。"
-    default:
-      return "新建任务后会出现在这里。"
+  private func commitPrimarySequenceOrder() {
+    defer {
+      draggedPrimaryTaskID = nil
+      hasPendingPrimaryReorder = false
     }
+
+    guard hasPendingPrimaryReorder else { return }
+    onPrimarySequenceReorder(primarySequenceOrder)
   }
 }
 
@@ -117,6 +174,312 @@ struct SequenceTab: View {
 
 #Preview("Empty") {
   SequenceTab(tasks: [])
+}
+
+private enum TimelinePosition {
+  case single
+  case first
+  case middle
+  case last
+
+  var showsTopLine: Bool {
+    switch self {
+    case .middle, .last:
+      return true
+    case .single, .first:
+      return false
+    }
+  }
+
+  var showsBottomLine: Bool {
+    switch self {
+    case .first, .middle:
+      return true
+    case .single, .last:
+      return false
+    }
+  }
+
+  var showsTrailingRay: Bool {
+    switch self {
+    case .single, .last:
+      return true
+    case .first, .middle:
+      return false
+    }
+  }
+}
+
+private struct SequenceTimelineRow: View {
+  let task: Task
+  let position: TimelinePosition
+  let onDragStart: () -> NSItemProvider
+  let dropDelegate: PrimarySequenceDropDelegate
+  let onTap: () -> Void
+
+  private var statusColor: Color {
+    TaskDisplayFormatter.statusColor(for: task.status)
+  }
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 14) {
+      SequenceTimelineMarker(color: statusColor, position: position)
+
+      SequencePrimaryCard(task: task)
+        .padding(.vertical, 8)
+        .onTapGesture(perform: onTap)
+        .onDrag(onDragStart) {
+          SequencePrimaryCard(task: task, isLifted: true)
+        }
+        .onDrop(of: [UTType.plainText.identifier], delegate: dropDelegate)
+    }
+  }
+}
+
+private struct SequenceTimelineMarker: View {
+  let color: Color
+  let position: TimelinePosition
+
+  private let railWidth: CGFloat = 2.5
+  private let nodeDiameter: CGFloat = 14
+  private let nodeCenterY: CGFloat = 24
+  private let nodeLineGap: CGFloat = 5
+
+  private var nodeTopOffset: CGFloat {
+    nodeCenterY - nodeDiameter / 2
+  }
+
+  private var nodeBottomOffset: CGFloat {
+    nodeTopOffset + nodeDiameter
+  }
+
+  var body: some View {
+    ZStack(alignment: .top) {
+      if position.showsTopLine {
+        Capsule(style: .continuous)
+          .fill(color)
+          .frame(
+            width: railWidth,
+            height: max(0, nodeTopOffset - nodeLineGap)
+          )
+      }
+
+      if position.showsBottomLine {
+        VStack(spacing: 0) {
+          Color.clear
+            .frame(height: nodeBottomOffset + nodeLineGap)
+
+          Capsule(style: .continuous)
+            .fill(color)
+            .frame(width: railWidth)
+            .frame(maxHeight: .infinity)
+        }
+      }
+
+      if position.showsTrailingRay {
+        VStack(spacing: 0) {
+          Color.clear
+            .frame(height: nodeBottomOffset + nodeLineGap)
+
+          SequenceTimelineTail(color: color, topWidth: railWidth)
+            .frame(width: 8)
+            .frame(maxHeight: .infinity)
+        }
+      }
+
+      Circle()
+        .fill(color)
+        .frame(width: nodeDiameter, height: nodeDiameter)
+        .padding(.top, nodeCenterY - nodeDiameter / 2)
+    }
+    .frame(width: 18)
+    .frame(maxHeight: .infinity)
+    .allowsHitTesting(false)
+  }
+}
+
+private struct SequenceTimelineTail: View {
+  let color: Color
+  let topWidth: CGFloat
+
+  var body: some View {
+    LinearGradient(
+      stops: [
+        .init(color: color.opacity(0.95), location: 0),
+        .init(color: color.opacity(0.38), location: 0.62),
+        .init(color: color.opacity(0), location: 1)
+      ],
+      startPoint: .top,
+      endPoint: .bottom
+    )
+    .mask(
+      SequenceTimelineTailShape(
+        topWidth: topWidth,
+        bottomWidth: max(0.5, topWidth * 0.2)
+      )
+    )
+  }
+}
+
+private struct SequenceTimelineTailShape: Shape {
+  let topWidth: CGFloat
+  let bottomWidth: CGFloat
+
+  func path(in rect: CGRect) -> Path {
+    let top = min(rect.width, max(0, topWidth))
+    let bottom = min(rect.width, max(0, bottomWidth))
+    let topLeadingX = rect.midX - top / 2
+    let topTrailingX = rect.midX + top / 2
+    let bottomLeadingX = rect.midX - bottom / 2
+    let bottomTrailingX = rect.midX + bottom / 2
+
+    var path = Path()
+    path.move(to: CGPoint(x: topLeadingX, y: rect.minY))
+    path.addLine(to: CGPoint(x: topTrailingX, y: rect.minY))
+    path.addLine(to: CGPoint(x: bottomTrailingX, y: rect.maxY))
+    path.addLine(to: CGPoint(x: bottomLeadingX, y: rect.maxY))
+    path.closeSubpath()
+    return path
+  }
+}
+
+private struct SequencePrimaryCard: View {
+  let task: Task
+  var isLifted: Bool = false
+
+  private let cardShape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+
+  private var metaSummary: String {
+    var items = [TaskDisplayFormatter.statusLabel(for: task.status), "估时 \(task.estimatedMinutes) 分钟"]
+    if let dueLabel = RelativeDueDateFormatter.label(for: task.dueAt) {
+      items.append(dueLabel)
+    }
+    return items.joined(separator: " · ")
+  }
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text(task.title)
+        .font(.headline.weight(.semibold))
+        .foregroundStyle(.primary)
+        .lineLimit(2)
+
+      Text(metaSummary)
+        .font(.caption.weight(.medium))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      cardShape
+        .fill(NornTheme.cardSurface)
+    )
+    .overlay(
+      cardShape
+        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
+    )
+    .shadow(
+      color: NornTheme.shadow,
+      radius: isLifted ? 18 : 10,
+      y: isLifted ? 8 : 4
+    )
+    .clipShape(cardShape)
+    .contentShape(cardShape)
+    .contentShape(.dragPreview, cardShape)
+    .compositingGroup()
+  }
+}
+
+private struct SequenceSectionHeader: View {
+  let title: String
+  var detail: String? = nil
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text(title)
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.secondary)
+
+      if let detail {
+        Text(detail)
+          .font(.caption)
+          .foregroundStyle(.tertiary)
+      }
+    }
+    .padding(.leading, 30)
+  }
+}
+
+private struct NextTasksSummaryCard: View {
+  let tasks: [Task]
+  let onTaskTap: (Task) -> Void
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      if tasks.isEmpty {
+        Text("暂无中远期任务")
+          .font(.subheadline.weight(.semibold))
+          .foregroundStyle(.secondary)
+
+        Text("更远的待办会在这里简略出现，不打断当前主序列。")
+          .font(.caption)
+          .foregroundStyle(.tertiary)
+          .fixedSize(horizontal: false, vertical: true)
+      } else {
+        ForEach(Array(tasks.prefix(4).enumerated()), id: \.element.id) { index, task in
+          Button {
+            onTaskTap(task)
+          } label: {
+            HStack(spacing: 10) {
+              Circle()
+                .fill(TaskDisplayFormatter.statusColor(for: task.status).opacity(0.8))
+                .frame(width: 8, height: 8)
+
+              Text(task.title)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+              Spacer(minLength: 8)
+
+              if let dueLabel = RelativeDueDateFormatter.label(for: task.dueAt) {
+                Text(dueLabel)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+            }
+            .padding(.vertical, 2)
+          }
+          .buttonStyle(.plain)
+
+          if index < min(tasks.count, 4) - 1 {
+            Divider()
+              .overlay(NornTheme.divider)
+          }
+        }
+
+        if tasks.count > 4 {
+          Text("还有 \(tasks.count - 4) 项等待进入主序列")
+            .font(.caption)
+            .foregroundStyle(.tertiary)
+            .padding(.top, 4)
+        }
+      }
+    }
+    .padding(18)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      RoundedRectangle(cornerRadius: 24, style: .continuous)
+        .fill(NornTheme.cardSurfaceMuted)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 24, style: .continuous)
+        .strokeBorder(style: StrokeStyle(lineWidth: 1.2, dash: [4, 8]))
+        .foregroundStyle(NornTheme.borderStrong)
+    )
+  }
 }
 
 private struct EmptyFocusCard: View {
@@ -166,6 +529,31 @@ private struct EmptyFocusCard: View {
   }
 }
 
+private struct EmptyPrimarySequenceCard: View {
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("主序列暂时为空")
+        .font(.headline.weight(.semibold))
+        .foregroundStyle(.primary)
+
+      Text("执行中的任务和近期待启动的任务会集中排列在这里，长按卡片即可调整顺序。")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    .padding(20)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      RoundedRectangle(cornerRadius: 24, style: .continuous)
+        .fill(NornTheme.cardSurfaceMuted)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 24, style: .continuous)
+        .strokeBorder(NornTheme.border, lineWidth: 1)
+    )
+  }
+}
+
 private struct EmptyFocusPill: View {
   let text: String
 
@@ -194,40 +582,43 @@ private struct EmptyFocusHint: View {
   }
 }
 
-private struct EmptyQueueCard: View {
-  let title: String
-  let message: String
-  let dimmed: Bool
+private struct PrimarySequenceDropDelegate: DropDelegate {
+  let destinationTaskID: String
+  @Binding var orderedTaskIDs: [String]
+  @Binding var draggedTaskID: String?
+  @Binding var hasPendingReorder: Bool
+  let onCommit: () -> Void
 
-  var body: some View {
-    HStack(alignment: .top, spacing: 14) {
-      Circle()
-        .fill(dimmed ? NornTheme.border : NornTheme.borderStrong)
-        .frame(width: 8, height: 8)
-        .padding(.top, 6)
+  func dropEntered(info: DropInfo) {}
 
-      VStack(alignment: .leading, spacing: 6) {
-        Text(title)
-          .font(.subheadline.weight(.semibold))
-          .foregroundStyle(.secondary)
-
-        Text(message)
-          .font(.caption)
-          .foregroundStyle(.tertiary)
-          .fixedSize(horizontal: false, vertical: true)
-      }
-
-      Spacer()
+  private func reorderedTaskIDs() -> [String]? {
+    guard
+      let draggedTaskID,
+      draggedTaskID != destinationTaskID,
+      let fromIndex = orderedTaskIDs.firstIndex(of: draggedTaskID),
+      let toIndex = orderedTaskIDs.firstIndex(of: destinationTaskID)
+    else {
+      return nil
     }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 12)
-    .background(
-      RoundedRectangle(cornerRadius: 18, style: .continuous)
-        .fill(dimmed ? NornTheme.cardSurfaceMuted : NornTheme.cardSurface)
+
+    var reorderedIDs = orderedTaskIDs
+    reorderedIDs.move(
+      fromOffsets: IndexSet(integer: fromIndex),
+      toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
     )
-    .overlay(
-      RoundedRectangle(cornerRadius: 18, style: .continuous)
-        .strokeBorder(dimmed ? NornTheme.border : NornTheme.borderStrong, lineWidth: 1)
-    )
+    return reorderedIDs == orderedTaskIDs ? nil : reorderedIDs
+  }
+
+  func dropUpdated(info: DropInfo) -> DropProposal? {
+    DropProposal(operation: .move)
+  }
+
+  func performDrop(info: DropInfo) -> Bool {
+    if let reorderedTaskIDs = reorderedTaskIDs() {
+      orderedTaskIDs = reorderedTaskIDs
+      hasPendingReorder = true
+    }
+    onCommit()
+    return true
   }
 }

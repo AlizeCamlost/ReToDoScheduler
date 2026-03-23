@@ -20,6 +20,7 @@ struct NornApp: App {
             loadTasksUseCase: LoadTasksUseCase(repository: taskRepository),
             quickAddTaskUseCase: QuickAddTaskUseCase(repository: taskRepository),
             saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: taskRepository),
+            reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase(repository: taskRepository),
             toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase(repository: taskRepository),
             archiveTaskUseCase: ArchiveTaskUseCase(repository: taskRepository),
             saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: syncSettingsRepository),

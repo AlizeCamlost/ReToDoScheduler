@@ -2,50 +2,60 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.verticalSizeClass) private var verticalSizeClass
   @Bindable var store: NornAppStore
 
   @FocusState private var dockFocused: Bool
   @State private var reservedDockHeight: CGFloat = 60
 
   var body: some View {
-    TabView(selection: $store.currentTab) {
-      SequenceTab(tasks: store.visibleTasks) { task in
-        store.openTaskDetail(taskID: task.id)
+    ZStack {
+      NornScreenBackground()
+
+      TabView(selection: $store.currentTab) {
+        SequenceTab(
+          tasks: store.visibleTasks,
+          onTaskTap: { task in
+            store.openTaskDetail(taskID: task.id)
+          },
+          onPrimarySequenceReorder: { reorderedTaskIDs in
+            store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
+          }
+        )
+          .safeAreaPadding(sequenceContentAvoidanceEdges)
+          .safeAreaPadding(.bottom, reservedDockHeight)
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.sequence)
+
+        ScheduleTab()
+          .safeAreaPadding(pageContentAvoidanceEdges)
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.schedule)
+
+        TaskPoolTab(
+          tasks: store.visibleTasks,
+          syncStatus: store.syncStatus,
+          onOpenSyncSettings: {
+            store.openSyncSettings()
+          },
+          onRefresh: {
+            store.refresh()
+          },
+          onTaskTap: { task in
+            store.openTaskDetail(taskID: task.id)
+          }
+        )
+          .safeAreaPadding(pageContentAvoidanceEdges)
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.taskPool)
       }
-        .safeAreaPadding(.bottom, reservedDockHeight)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: dismissDockFocus)
-        .tag(AppTab.sequence)
-
-      ScheduleTab()
-        .contentShape(Rectangle())
-        .onTapGesture(perform: dismissDockFocus)
-        .tag(AppTab.schedule)
-
-      TaskPoolTab(
-        tasks: store.visibleTasks,
-        syncStatus: store.syncStatus,
-        onOpenSyncSettings: {
-          store.openSyncSettings()
-        },
-        onRefresh: {
-          store.refresh()
-        },
-        onTaskTap: { task in
-          store.openTaskDetail(taskID: task.id)
-        }
-      )
-        .contentShape(Rectangle())
-        .onTapGesture(perform: dismissDockFocus)
-        .tag(AppTab.taskPool)
+      .tabViewStyle(.page(indexDisplayMode: .never))
+      .background(Color.clear)
+      .ignoresSafeArea()
     }
-    .tabViewStyle(.page(indexDisplayMode: .never))
-    .ignoresSafeArea()
-    .simultaneousGesture(
-      DragGesture(minimumDistance: 12).onChanged { _ in
-        dismissDockFocus()
-      }
-    )
     .safeAreaInset(edge: .bottom, spacing: 0) {
       if store.currentTab == .sequence {
         QuickAddDock(
@@ -125,6 +135,18 @@ struct ContentView: View {
   private func submitQuickAdd() {
     store.submitQuickAdd()
     dismissDockFocus()
+  }
+
+  private var isLandscapeLike: Bool {
+    verticalSizeClass == .compact
+  }
+
+  private var pageContentAvoidanceEdges: Edge.Set {
+    isLandscapeLike ? .horizontal : .vertical
+  }
+
+  private var sequenceContentAvoidanceEdges: Edge.Set {
+    isLandscapeLike ? .horizontal : .top
   }
 
   private var detailSheetPresented: Binding<Bool> {

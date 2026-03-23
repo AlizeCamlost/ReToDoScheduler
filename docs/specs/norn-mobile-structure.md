@@ -217,16 +217,24 @@ apps/mobile/ios_ng/Norn/Norn/
 当前快照说明：
 
 - `Application/State` 已落 `NornAppStore`，作为当前唯一 UI 状态入口
-- `Application/UseCases` 已落读取、快速新增、保存草稿、状态切换、归档、同步设置和同步用例
+- `Application/UseCases` 已落读取、快速新增、保存草稿、主序列重排、状态切换、归档、同步设置和同步用例
 - `Infrastructure/Persistence`、`Infrastructure/Mapping` 已落本地任务仓库、设置仓库和记录映射
 - `Infrastructure/Sync` 已落 HTTP client、sync request 和 sync response DTO
 - `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
 - `Utilities/Coding` 已提供日期和 JSON 编解码基础能力
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
-- `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已改为只绑定 store
+- `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset 和 sheet 挂载点
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
-- `Sequence` 卡片点击已能打开 `TaskDetailSheet`，详情动作通过 store 回写本地仓库
+- `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过方向感知的 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让：竖屏主避让 top/bottom；横屏细化仍属后续低优先级收敛项，当前只保留不破坏竖屏和 dock 编排的保守实现
+- `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片直接拖拽重排并通过现有 sync 同步顺序
+- `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
+- `Sequence` 时间线标记已改为更接近 VS Code git graph 的纯色圆点 + 分段细轨：节点与上下线段留出间隔，线条连续穿过卡片间呼吸区，末端改为渐隐渐细的射线尾迹
+- `Sequence` 底部输入 dock 重新由 root scoped `safeAreaInset` 编排，并继续通过 `reservedDockHeight` 驱动内容 safe-area 让位，避免横向切 tab 时出现滚动偏移跳变
+- `Sequence` 的滚动裁剪范围重新由 root page shell 的全屏 edge-to-edge 延伸承担，不与 dock 的 safe-area 语义混用
+- `Sequence` 在竖屏主要只补 top safe-area，bottom 继续由 dock reserve 承担；横屏安全区、岛区、圆角和左右对称的进一步细化暂记为低优先级遗留 feature
+- `Sequence` 主序列拖拽已收回到卡片本体，时间线装饰留在原位；卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义，活体卡片本身不再进入额外灰化态
+- `TaskDetailSheet` 已改为 toolbar 编辑，完成/恢复与归档收拢为同级动作行，归档继续保留确认
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环
 - `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
 - `TaskPool` 的 `list` 模式已直接绑定 store 中的可见任务序列
@@ -350,6 +358,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Domain/Task/TaskScheduleValue.swift` | `TaskScheduleValue` | 任务价值输入 | 与调度价值语义对齐 |
 | `Domain/Task/TaskDraft.swift` | `TaskDraft` | 详细编辑使用的草稿模型 | 服务于 editor，不直接落盘 |
 | `Domain/Task/QuickAddDraft.swift` | `QuickAddDraft` | Quick Add 解析后的最小草稿 | 服务于快速新增入口 |
+| `Domain/Task/TaskOrdering.swift` | `TaskOrdering` | 任务排序与主序列顺序元数据 | 负责 `extJSON.norn.sequenceRank` 读写与排序比较 |
 | `Domain/Sync/SyncSettings.swift` | `SyncSettings` | 同步配置语义模型 | 只表达 URL、token 等配置概念 |
 | `Domain/Sync/SyncStatus.swift` | `SyncStatus` | 同步状态模型 | 表达未配置、空闲、同步中、失败等状态 |
 
@@ -361,6 +370,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Application/UseCases/LoadTasksUseCase.swift` | `LoadTasksUseCase` | 读取当前任务集合 | `execute()` |
 | `Application/UseCases/QuickAddTaskUseCase.swift` | `QuickAddTaskUseCase` | 处理底部快速新增 | `execute(rawInput:)` |
 | `Application/UseCases/SaveTaskDraftUseCase.swift` | `SaveTaskDraftUseCase` | 创建或保存详细任务 | `execute(draft:)` |
+| `Application/UseCases/ReorderSequenceTasksUseCase.swift` | `ReorderSequenceTasksUseCase` | 主序列拖拽后的顺序持久化 | `execute(primaryTaskIDs:)` |
 | `Application/UseCases/ToggleTaskCompletionUseCase.swift` | `ToggleTaskCompletionUseCase` | 切换完成/恢复待办 | `execute(taskID:)` |
 | `Application/UseCases/ArchiveTaskUseCase.swift` | `ArchiveTaskUseCase` | 归档任务 | `execute(taskID:)` |
 | `Application/UseCases/SaveSyncSettingsUseCase.swift` | `SaveSyncSettingsUseCase` | 保存同步设置 | `execute(settings:)` |
@@ -393,14 +403,14 @@ apps/mobile/ios_ng/Norn/Norn/
 
 | 文件 | 主类型 | 作用 | 备注 |
 | --- | --- | --- | --- |
-| `UI/Root/ContentView.swift` | `ContentView` | 根容器与 sheet 挂载点 | 不直连持久化和 HTTP |
+| `UI/Root/ContentView.swift` | `ContentView` | 根容器、共享背景与 sheet 挂载点 | 不直连持久化和 HTTP |
 | `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 只接受绑定和 action |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
-| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 读取派生任务序列 |
+| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列通过长按卡片重排，落位时单次更新顺序 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
-| `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 纯卡片组件 |
+| `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前主要复用于 `TaskPool` 的 list 模式 |
 | `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 本轮只做 `list` 模式 |
-| `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情展示层 | 提供编辑/归档/完成入口 |
+| `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情展示层 | 编辑进入 toolbar，完成为主动作，归档需确认 |
 | `UI/TaskPool/TaskEditorSheet.swift` | `TaskEditorSheet` | 新建与编辑任务表单 | 基于 `TaskDraft` |
 | `UI/Settings/SyncSettingsSheet.swift` | `SyncSettingsSheet` | 同步配置页 | 基于 `SyncSettings` |
 | `UI/Schedule/ScheduleTab.swift` | `ScheduleTab` | 调度页外壳 | 本轮不扩展调度实现 |
@@ -422,7 +432,7 @@ QuickAddDock
 ### 6.2 任务详情与编辑
 
 ```text
-TaskCard / FocusCard / TaskPool list item
+SequenceTab / FocusCard / TaskPool list item
   -> NornAppStore.openTaskDetail(taskID:)
   -> TaskDetailSheet
   -> NornAppStore.openTaskEditor(taskID:)
@@ -433,10 +443,22 @@ TaskCard / FocusCard / TaskPool list item
   -> SyncTasksUseCase.execute(settings:) [保守触发]
 ```
 
-### 6.3 完成与归档
+### 6.3 主序列重排
 
 ```text
-TaskDetailSheet action
+SequenceTab main sequence card drag
+  -> NornAppStore.reorderPrimarySequence(taskIDs:)
+  -> ReorderSequenceTasksUseCase.execute(primaryTaskIDs:)
+  -> TaskOrdering.applyingSequenceRank(...)
+  -> TaskRepositoryProtocol.save()
+  -> LoadTasksUseCase.execute()
+  -> SyncTasksUseCase.execute(settings:) [保守触发]
+```
+
+### 6.4 完成与归档
+
+```text
+TaskDetailSheet completion/archive action
   -> ToggleTaskCompletionUseCase.execute(taskID:)
   -> ArchiveTaskUseCase.execute(taskID:)
   -> TaskRepositoryProtocol.toggleCompletion/archive
@@ -444,7 +466,7 @@ TaskDetailSheet action
   -> SyncTasksUseCase.execute(settings:) [保守触发]
 ```
 
-### 6.4 同步设置与手动同步
+### 6.5 同步设置与手动同步
 
 ```text
 SyncSettingsSheet
@@ -562,3 +584,4 @@ flowchart LR
 - 本轮允许 `packages/core`、`apps/web`、`services/api` 对共享任务模型和 sync contract 做破坏性收敛，只要最终主契约保持单一。
 - 若后续发现 `TaskDraft` 或 `SyncStatus` 需要进一步拆分，应优先新增语义化文件，而不是回退到巨型共享模型。
 - 如果未来 Kairos 的 Swift 侧实现单独恢复，应另开文档定义其目录与类型，而不是继续堆进这份 Norn 文档。
+- 横屏场景下的安全区细化仍未收敛：当前先保证不破坏竖屏质量、dock 下沉编排和滚动裁剪延伸；后续应把“岛区/圆角避让、header 不被裁切、左右占位对称”作为一个低优先级独立 feature 再处理。
