@@ -9,9 +9,15 @@ struct ContentView: View {
 
   var body: some View {
     TabView(selection: $store.currentTab) {
-      SequenceTab(tasks: store.visibleTasks) { task in
-        store.openTaskDetail(taskID: task.id)
-      }
+      SequenceTab(
+        tasks: store.visibleTasks,
+        onTaskTap: { task in
+          store.openTaskDetail(taskID: task.id)
+        },
+        onPrimarySequenceReorder: { reorderedTaskIDs in
+          store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
+        }
+      )
         .safeAreaPadding(.bottom, reservedDockHeight)
         .contentShape(Rectangle())
         .onTapGesture(perform: dismissDockFocus)
