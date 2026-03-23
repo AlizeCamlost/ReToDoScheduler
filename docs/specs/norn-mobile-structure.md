@@ -217,7 +217,7 @@ apps/mobile/ios_ng/Norn/Norn/
 当前快照说明：
 
 - `Application/State` 已落 `NornAppStore`，作为当前唯一 UI 状态入口
-- `Application/UseCases` 已落读取、快速新增、保存草稿、状态切换、归档、同步设置和同步用例
+- `Application/UseCases` 已落读取、快速新增、保存草稿、主序列重排、状态切换、归档、同步设置和同步用例
 - `Infrastructure/Persistence`、`Infrastructure/Mapping` 已落本地任务仓库、设置仓库和记录映射
 - `Infrastructure/Sync` 已落 HTTP client、sync request 和 sync response DTO
 - `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
@@ -226,6 +226,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已改为只绑定 store
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
+- `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列支持拖拽重排并通过现有 sync 同步顺序
 - `Sequence` 卡片点击已能打开 `TaskDetailSheet`，详情动作通过 store 回写本地仓库
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环
 - `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
@@ -350,6 +351,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Domain/Task/TaskScheduleValue.swift` | `TaskScheduleValue` | 任务价值输入 | 与调度价值语义对齐 |
 | `Domain/Task/TaskDraft.swift` | `TaskDraft` | 详细编辑使用的草稿模型 | 服务于 editor，不直接落盘 |
 | `Domain/Task/QuickAddDraft.swift` | `QuickAddDraft` | Quick Add 解析后的最小草稿 | 服务于快速新增入口 |
+| `Domain/Task/TaskOrdering.swift` | `TaskOrdering` | 任务排序与主序列顺序元数据 | 负责 `extJSON.norn.sequenceRank` 读写与排序比较 |
 | `Domain/Sync/SyncSettings.swift` | `SyncSettings` | 同步配置语义模型 | 只表达 URL、token 等配置概念 |
 | `Domain/Sync/SyncStatus.swift` | `SyncStatus` | 同步状态模型 | 表达未配置、空闲、同步中、失败等状态 |
 
@@ -361,6 +363,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Application/UseCases/LoadTasksUseCase.swift` | `LoadTasksUseCase` | 读取当前任务集合 | `execute()` |
 | `Application/UseCases/QuickAddTaskUseCase.swift` | `QuickAddTaskUseCase` | 处理底部快速新增 | `execute(rawInput:)` |
 | `Application/UseCases/SaveTaskDraftUseCase.swift` | `SaveTaskDraftUseCase` | 创建或保存详细任务 | `execute(draft:)` |
+| `Application/UseCases/ReorderSequenceTasksUseCase.swift` | `ReorderSequenceTasksUseCase` | 主序列拖拽后的顺序持久化 | `execute(primaryTaskIDs:)` |
 | `Application/UseCases/ToggleTaskCompletionUseCase.swift` | `ToggleTaskCompletionUseCase` | 切换完成/恢复待办 | `execute(taskID:)` |
 | `Application/UseCases/ArchiveTaskUseCase.swift` | `ArchiveTaskUseCase` | 归档任务 | `execute(taskID:)` |
 | `Application/UseCases/SaveSyncSettingsUseCase.swift` | `SaveSyncSettingsUseCase` | 保存同步设置 | `execute(settings:)` |
@@ -396,11 +399,11 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Root/ContentView.swift` | `ContentView` | 根容器与 sheet 挂载点 | 不直连持久化和 HTTP |
 | `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 只接受绑定和 action |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
-| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 读取派生任务序列 |
+| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列支持重排 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
-| `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 纯卡片组件 |
+| `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前主要复用于 `TaskPool` 的 list 模式 |
 | `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 本轮只做 `list` 模式 |
-| `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情展示层 | 提供编辑/归档/完成入口 |
+| `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情展示层 | 编辑独占一行，完成/归档为同层动作 |
 | `UI/TaskPool/TaskEditorSheet.swift` | `TaskEditorSheet` | 新建与编辑任务表单 | 基于 `TaskDraft` |
 | `UI/Settings/SyncSettingsSheet.swift` | `SyncSettingsSheet` | 同步配置页 | 基于 `SyncSettings` |
 | `UI/Schedule/ScheduleTab.swift` | `ScheduleTab` | 调度页外壳 | 本轮不扩展调度实现 |
@@ -422,7 +425,7 @@ QuickAddDock
 ### 6.2 任务详情与编辑
 
 ```text
-TaskCard / FocusCard / TaskPool list item
+SequenceTab / FocusCard / TaskPool list item
   -> NornAppStore.openTaskDetail(taskID:)
   -> TaskDetailSheet
   -> NornAppStore.openTaskEditor(taskID:)
@@ -433,7 +436,19 @@ TaskCard / FocusCard / TaskPool list item
   -> SyncTasksUseCase.execute(settings:) [保守触发]
 ```
 
-### 6.3 完成与归档
+### 6.3 主序列重排
+
+```text
+SequenceTab main sequence
+  -> NornAppStore.reorderPrimarySequence(taskIDs:)
+  -> ReorderSequenceTasksUseCase.execute(primaryTaskIDs:)
+  -> TaskOrdering.applyingSequenceRank(...)
+  -> TaskRepositoryProtocol.save()
+  -> LoadTasksUseCase.execute()
+  -> SyncTasksUseCase.execute(settings:) [保守触发]
+```
+
+### 6.4 完成与归档
 
 ```text
 TaskDetailSheet action
@@ -444,7 +459,7 @@ TaskDetailSheet action
   -> SyncTasksUseCase.execute(settings:) [保守触发]
 ```
 
-### 6.4 同步设置与手动同步
+### 6.5 同步设置与手动同步
 
 ```text
 SyncSettingsSheet
