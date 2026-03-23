@@ -6,6 +6,23 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		211EEAFA2F6A6ECB001FDEF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 211EEAD62F6A6EC8001FDEF2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 211EEADD2F6A6EC8001FDEF2;
+			remoteInfo = Norn;
+		};
+		211EEAFB2F6A6ECB001FDEF2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 211EEAD62F6A6EC8001FDEF2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 211EEADD2F6A6EC8001FDEF2;
+			remoteInfo = Norn;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		211EEADE2F6A6EC8001FDEF2 /* Norn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Norn.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		211EEAF02F6A6ECB001FDEF2 /* NornTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NornTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -29,23 +46,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXContainerItemProxy section */
-		211EEAFA2F6A6ECB001FDEF2 = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 211EEAD62F6A6EC8001FDEF2 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 211EEADD2F6A6EC8001FDEF2;
-			remoteInfo = Norn;
-		};
-		211EEAFB2F6A6ECB001FDEF2 = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 211EEAD62F6A6EC8001FDEF2 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 211EEADD2F6A6EC8001FDEF2;
-			remoteInfo = Norn;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		211EEADB2F6A6EC8001FDEF2 /* Frameworks */ = {
@@ -398,7 +398,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Norn-Info.plist;
+				INFOPLIST_FILE = "Norn-Info.plist";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -443,7 +443,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Norn-Info.plist;
+				INFOPLIST_FILE = "Norn-Info.plist";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
