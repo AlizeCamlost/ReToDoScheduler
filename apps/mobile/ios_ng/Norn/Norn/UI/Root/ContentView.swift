@@ -6,66 +6,57 @@ struct ContentView: View {
 
   @FocusState private var dockFocused: Bool
 
-  private let quickAddDockMaxHeight: CGFloat = 64
-  private let quickAddDockBottomSpacing: CGFloat = 8
-
   var body: some View {
-    GeometryReader { proxy in
-      let sequenceDockBottomReserve = sequenceDockReserve(bottomInset: proxy.safeAreaInsets.bottom)
+    ZStack {
+      NornScreenBackground()
 
-      ZStack(alignment: .bottom) {
-        NornScreenBackground()
+      TabView(selection: $store.currentTab) {
+        SequenceTab(
+          tasks: store.visibleTasks,
+          onTaskTap: { task in
+            store.openTaskDetail(taskID: task.id)
+          },
+          onPrimarySequenceReorder: { reorderedTaskIDs in
+            store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
+          }
+        )
+          .safeAreaInset(edge: .bottom, spacing: 0) {
+            QuickAddDock(
+              input: $store.quickAddInput,
+              isFocused: $dockFocused,
+              onAdd: submitQuickAdd
+            )
+            .padding(.bottom, 8)
+          }
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.sequence)
 
-        TabView(selection: $store.currentTab) {
-          SequenceTab(
-            tasks: store.visibleTasks,
-            bottomAccessoryHeight: store.currentTab == .sequence ? sequenceDockBottomReserve : 0,
-            onTaskTap: { task in
-              store.openTaskDetail(taskID: task.id)
-            },
-            onPrimarySequenceReorder: { reorderedTaskIDs in
-              store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
-            }
-          )
-            .contentShape(Rectangle())
-            .onTapGesture(perform: dismissDockFocus)
-            .tag(AppTab.sequence)
+        ScheduleTab()
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.schedule)
 
-          ScheduleTab()
-            .contentShape(Rectangle())
-            .onTapGesture(perform: dismissDockFocus)
-            .tag(AppTab.schedule)
-
-          TaskPoolTab(
-            tasks: store.visibleTasks,
-            syncStatus: store.syncStatus,
-            onOpenSyncSettings: {
-              store.openSyncSettings()
-            },
-            onRefresh: {
-              store.refresh()
-            },
-            onTaskTap: { task in
-              store.openTaskDetail(taskID: task.id)
-            }
-          )
-            .contentShape(Rectangle())
-            .onTapGesture(perform: dismissDockFocus)
-            .tag(AppTab.taskPool)
-        }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .background(Color.clear)
-        .ignoresSafeArea(.container, edges: [.bottom, .horizontal])
-
-        if store.currentTab == .sequence {
-          QuickAddDock(
-            input: $store.quickAddInput,
-            isFocused: $dockFocused,
-            onAdd: submitQuickAdd
-          )
-          .padding(.bottom, proxy.safeAreaInsets.bottom + quickAddDockBottomSpacing)
-        }
+        TaskPoolTab(
+          tasks: store.visibleTasks,
+          syncStatus: store.syncStatus,
+          onOpenSyncSettings: {
+            store.openSyncSettings()
+          },
+          onRefresh: {
+            store.refresh()
+          },
+          onTaskTap: { task in
+            store.openTaskDetail(taskID: task.id)
+          }
+        )
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.taskPool)
       }
+      .tabViewStyle(.page(indexDisplayMode: .never))
+      .background(Color.clear)
+      .ignoresSafeArea(.container, edges: [.horizontal])
     }
     .task {
       store.bootstrap()
@@ -130,10 +121,6 @@ struct ContentView: View {
   private func submitQuickAdd() {
     store.submitQuickAdd()
     dismissDockFocus()
-  }
-
-  private func sequenceDockReserve(bottomInset: CGFloat) -> CGFloat {
-    quickAddDockMaxHeight + bottomInset + quickAddDockBottomSpacing
   }
 
   private var detailSheetPresented: Binding<Bool> {

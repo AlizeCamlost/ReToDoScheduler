@@ -3,7 +3,6 @@ import UniformTypeIdentifiers
 
 struct SequenceTab: View {
   let tasks: [Task]
-  let bottomAccessoryHeight: CGFloat
   let onTaskTap: (Task) -> Void
   let onPrimarySequenceReorder: ([String]) -> Void
 
@@ -13,12 +12,10 @@ struct SequenceTab: View {
 
   init(
     tasks: [Task],
-    bottomAccessoryHeight: CGFloat = 0,
     onTaskTap: @escaping (Task) -> Void = { _ in },
     onPrimarySequenceReorder: @escaping ([String]) -> Void = { _ in }
   ) {
     self.tasks = tasks
-    self.bottomAccessoryHeight = bottomAccessoryHeight
     self.onTaskTap = onTaskTap
     self.onPrimarySequenceReorder = onPrimarySequenceReorder
   }
@@ -67,7 +64,6 @@ struct SequenceTab: View {
           .padding(.bottom, 24)
       }
       .padding(.horizontal, 20)
-      .padding(.bottom, bottomAccessoryHeight)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .scrollDismissesKeyboard(.interactively)

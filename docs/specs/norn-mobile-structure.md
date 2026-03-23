@@ -224,12 +224,12 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Utilities/Coding` 已提供日期和 JSON 编解码基础能力
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
-- `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、edge-to-edge 分页壳、Sequence dock overlay reserve 和 sheet 挂载点
+- `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、edge-to-edge 分页壳、Sequence page scoped safeAreaInset 和 sheet 挂载点
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
 - `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片直接拖拽重排并通过现有 sync 同步顺序
 - `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已改为连续轨道笔触，减少点线割裂感
-- `Sequence` 底部内容避让已改为固定 reserve，保留底部沉浸式延伸而不再让 dock 参与横向分页 relayout
+- `Sequence` 底部输入 dock 已回到 page scoped `safeAreaInset` 语义，不再通过手算 reserve 和内容 padding 模拟安全区
 - `Sequence` 主序列拖拽已收回到卡片本体，时间线装饰留在原位；卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义
 - `Sequence` 时间线轨道已收成统一中性笔触，颜色只保留在节点核心，避免同色叠深和异色衔接生硬
 - `TaskDetailSheet` 已改为 toolbar 编辑，完成/恢复与归档收拢为同级动作行，归档继续保留确认
