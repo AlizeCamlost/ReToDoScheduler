@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.scenePhase) private var scenePhase
-  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @Environment(\.verticalSizeClass) private var verticalSizeClass
   @Bindable var store: NornAppStore
 
@@ -139,15 +138,15 @@ struct ContentView: View {
   }
 
   private var isLandscapeLike: Bool {
-    verticalSizeClass == .compact && horizontalSizeClass != .compact
+    verticalSizeClass == .compact
   }
 
   private var pageContentAvoidanceEdges: Edge.Set {
-    isLandscapeLike ? [.top, .horizontal] : .vertical
+    isLandscapeLike ? .horizontal : .vertical
   }
 
   private var sequenceContentAvoidanceEdges: Edge.Set {
-    isLandscapeLike ? [.top, .horizontal] : .top
+    isLandscapeLike ? .horizontal : .top
   }
 
   private var detailSheetPresented: Binding<Bool> {
