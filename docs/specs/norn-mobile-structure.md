@@ -229,6 +229,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片直接拖拽重排并通过现有 sync 同步顺序
 - `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已改为连续轨道笔触，减少点线割裂感
+- `TaskDetailSheet` 已改为 toolbar 编辑、单一主完成动作和带确认的归档动作
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环
 - `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
 - `TaskPool` 的 `list` 模式已直接绑定 store 中的可见任务序列
@@ -404,7 +405,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前主要复用于 `TaskPool` 的 list 模式 |
 | `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 本轮只做 `list` 模式 |
-| `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情展示层 | 编辑独占一行，完成/归档为同层动作 |
+| `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情展示层 | 编辑进入 toolbar，完成为主动作，归档需确认 |
 | `UI/TaskPool/TaskEditorSheet.swift` | `TaskEditorSheet` | 新建与编辑任务表单 | 基于 `TaskDraft` |
 | `UI/Settings/SyncSettingsSheet.swift` | `SyncSettingsSheet` | 同步配置页 | 基于 `SyncSettings` |
 | `UI/Schedule/ScheduleTab.swift` | `ScheduleTab` | 调度页外壳 | 本轮不扩展调度实现 |
@@ -452,7 +453,7 @@ SequenceTab main sequence card drag
 ### 6.4 完成与归档
 
 ```text
-TaskDetailSheet action
+TaskDetailSheet completion/archive action
   -> ToggleTaskCompletionUseCase.execute(taskID:)
   -> ArchiveTaskUseCase.execute(taskID:)
   -> TaskRepositoryProtocol.toggleCompletion/archive

@@ -7,6 +7,7 @@ struct TaskDetailSheet: View {
   let onEdit: () -> Void
 
   @Environment(\.dismiss) private var dismiss
+  @State private var archiveConfirmationPresented = false
 
   private var actionTitle: String {
     task.status == .done ? "恢复待办" : "标记完成"
@@ -16,6 +17,10 @@ struct TaskDetailSheet: View {
     task.status == .done
       ? TaskDisplayFormatter.statusColor(for: .todo)
       : TaskDisplayFormatter.statusColor(for: .done)
+  }
+
+  private var completionActionSymbol: String {
+    task.status == .done ? "arrow.uturn.backward.circle.fill" : "checkmark.circle.fill"
   }
 
   var body: some View {
@@ -52,7 +57,20 @@ struct TaskDetailSheet: View {
             dismiss()
           }
         }
+        ToolbarItem(placement: .topBarTrailing) {
+          Button("编辑", action: onEdit)
+        }
       }
+    }
+    .confirmationDialog(
+      "归档这个任务？",
+      isPresented: $archiveConfirmationPresented,
+      titleVisibility: .visible
+    ) {
+      Button("归档任务", role: .destructive, action: onArchive)
+      Button("取消", role: .cancel) {}
+    } message: {
+      Text("归档后任务会从当前视图隐藏，但仍保留历史记录。")
     }
   }
 
@@ -154,28 +172,40 @@ struct TaskDetailSheet: View {
   }
 
   private var actionSection: some View {
-    VStack(spacing: 12) {
-      Button("编辑任务", action: onEdit)
-        .buttonStyle(.bordered)
-        .tint(.primary)
-        .controlSize(.large)
-        .frame(maxWidth: .infinity)
+    VStack(alignment: .leading, spacing: 12) {
+      sectionTitle("操作")
 
-      HStack(spacing: 12) {
-        Button(action: onToggleCompletion) {
-          Text(actionTitle)
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(completionActionColor)
-        .controlSize(.large)
-
-        Button("归档任务", role: .destructive, action: onArchive)
-          .buttonStyle(.bordered)
-          .tint(.red)
-          .controlSize(.large)
+      Button(action: onToggleCompletion) {
+        Label(actionTitle, systemImage: completionActionSymbol)
+          .font(.headline.weight(.semibold))
           .frame(maxWidth: .infinity)
+          .padding(.vertical, 16)
       }
+      .buttonStyle(.borderedProminent)
+      .buttonBorderShape(.roundedRectangle(radius: 18))
+      .controlSize(.large)
+      .tint(completionActionColor)
+
+      VStack(spacing: 0) {
+        Button(role: .destructive) {
+          archiveConfirmationPresented = true
+        } label: {
+          DetailActionRow(
+            title: "归档任务",
+            systemImage: "archivebox.fill",
+            tint: .red
+          )
+        }
+        .buttonStyle(.plain)
+      }
+      .background(
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+          .fill(NornTheme.cardSurface)
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+          .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
+      )
     }
   }
 
@@ -216,6 +246,29 @@ private struct DetailPill: View {
       .padding(.horizontal, 10)
       .padding(.vertical, 6)
       .background(background, in: Capsule())
+  }
+}
+
+private struct DetailActionRow: View {
+  let title: String
+  let systemImage: String
+  let tint: Color
+
+  var body: some View {
+    HStack(spacing: 12) {
+      Image(systemName: systemImage)
+        .font(.body.weight(.semibold))
+      Text(title)
+        .font(.body)
+      Spacer()
+      Image(systemName: "chevron.right")
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.tertiary)
+    }
+    .foregroundStyle(tint)
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+    .contentShape(Rectangle())
   }
 }
 
