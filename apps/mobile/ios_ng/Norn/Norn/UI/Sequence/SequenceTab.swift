@@ -199,6 +199,15 @@ private enum TimelinePosition {
       return false
     }
   }
+
+  var showsTrailingRay: Bool {
+    switch self {
+    case .single, .last:
+      return true
+    case .first, .middle:
+      return false
+    }
+  }
 }
 
 private struct SequenceTimelineRow: View {
@@ -236,26 +245,47 @@ private struct SequenceTimelineMarker: View {
   private let railWidth: CGFloat = 2.5
   private let nodeDiameter: CGFloat = 14
   private let nodeCenterY: CGFloat = 24
+  private let nodeLineGap: CGFloat = 5
+
+  private var nodeTopOffset: CGFloat {
+    nodeCenterY - nodeDiameter / 2
+  }
+
+  private var nodeBottomOffset: CGFloat {
+    nodeTopOffset + nodeDiameter
+  }
 
   var body: some View {
     ZStack(alignment: .top) {
       if position.showsTopLine {
         Capsule(style: .continuous)
           .fill(color)
-          .frame(width: railWidth, height: nodeCenterY)
+          .frame(
+            width: railWidth,
+            height: max(0, nodeTopOffset - nodeLineGap)
+          )
       }
 
       if position.showsBottomLine {
         VStack(spacing: 0) {
           Color.clear
-            .frame(height: nodeCenterY)
+            .frame(height: nodeBottomOffset + nodeLineGap)
 
-          Spacer(minLength: 0)
+          Capsule(style: .continuous)
+            .fill(color)
             .frame(width: railWidth)
-            .background {
-              Capsule(style: .continuous)
-                .fill(color)
-            }
+            .frame(maxHeight: .infinity)
+        }
+      }
+
+      if position.showsTrailingRay {
+        VStack(spacing: 0) {
+          Color.clear
+            .frame(height: nodeBottomOffset + nodeLineGap)
+
+          SequenceTimelineTail(color: color, topWidth: railWidth)
+            .frame(width: 8)
+            .frame(maxHeight: .infinity)
         }
       }
 
@@ -267,6 +297,51 @@ private struct SequenceTimelineMarker: View {
     .frame(width: 18)
     .frame(maxHeight: .infinity)
     .allowsHitTesting(false)
+  }
+}
+
+private struct SequenceTimelineTail: View {
+  let color: Color
+  let topWidth: CGFloat
+
+  var body: some View {
+    LinearGradient(
+      stops: [
+        .init(color: color.opacity(0.95), location: 0),
+        .init(color: color.opacity(0.38), location: 0.62),
+        .init(color: color.opacity(0), location: 1)
+      ],
+      startPoint: .top,
+      endPoint: .bottom
+    )
+    .mask(
+      SequenceTimelineTailShape(
+        topWidth: topWidth,
+        bottomWidth: max(0.5, topWidth * 0.2)
+      )
+    )
+  }
+}
+
+private struct SequenceTimelineTailShape: Shape {
+  let topWidth: CGFloat
+  let bottomWidth: CGFloat
+
+  func path(in rect: CGRect) -> Path {
+    let top = min(rect.width, max(0, topWidth))
+    let bottom = min(rect.width, max(0, bottomWidth))
+    let topLeadingX = rect.midX - top / 2
+    let topTrailingX = rect.midX + top / 2
+    let bottomLeadingX = rect.midX - bottom / 2
+    let bottomTrailingX = rect.midX + bottom / 2
+
+    var path = Path()
+    path.move(to: CGPoint(x: topLeadingX, y: rect.minY))
+    path.addLine(to: CGPoint(x: topTrailingX, y: rect.minY))
+    path.addLine(to: CGPoint(x: bottomTrailingX, y: rect.maxY))
+    path.addLine(to: CGPoint(x: bottomLeadingX, y: rect.maxY))
+    path.closeSubpath()
+    return path
   }
 }
 
