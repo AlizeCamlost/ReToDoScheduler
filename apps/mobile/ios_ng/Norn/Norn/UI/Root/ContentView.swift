@@ -5,6 +5,7 @@ struct ContentView: View {
   @Bindable var store: NornAppStore
 
   @FocusState private var dockFocused: Bool
+  @State private var reservedDockHeight: CGFloat = 60
 
   var body: some View {
     ZStack {
@@ -20,14 +21,7 @@ struct ContentView: View {
             store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
           }
         )
-          .safeAreaInset(edge: .bottom, spacing: 0) {
-            QuickAddDock(
-              input: $store.quickAddInput,
-              isFocused: $dockFocused,
-              onAdd: submitQuickAdd
-            )
-            .padding(.bottom, 8)
-          }
+          .safeAreaPadding(.bottom, reservedDockHeight)
           .contentShape(Rectangle())
           .onTapGesture(perform: dismissDockFocus)
           .tag(AppTab.sequence)
@@ -56,8 +50,24 @@ struct ContentView: View {
       }
       .tabViewStyle(.page(indexDisplayMode: .never))
       .background(Color.clear)
-      .ignoresSafeArea(.container, edges: [.bottom, .horizontal])
+      .ignoresSafeArea()
     }
+    .safeAreaInset(edge: .bottom, spacing: 0) {
+      if store.currentTab == .sequence {
+        QuickAddDock(
+          input: $store.quickAddInput,
+          isFocused: $dockFocused,
+          onAdd: submitQuickAdd
+        )
+        .padding(.bottom, 8)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+          guard height > 0 else { return }
+          reservedDockHeight = height
+        }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+      }
+    }
+    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: store.currentTab)
     .task {
       store.bootstrap()
     }
