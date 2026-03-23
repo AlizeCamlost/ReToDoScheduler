@@ -13,14 +13,8 @@ struct TaskDetailSheet: View {
     task.status == .done ? "恢复待办" : "标记完成"
   }
 
-  private var completionActionColor: Color {
-    task.status == .done
-      ? TaskDisplayFormatter.statusColor(for: .todo)
-      : TaskDisplayFormatter.statusColor(for: .done)
-  }
-
   private var completionActionSymbol: String {
-    task.status == .done ? "arrow.uturn.backward.circle.fill" : "checkmark.circle.fill"
+    task.status == .done ? "arrow.uturn.backward.circle" : "checkmark.circle"
   }
 
   var body: some View {
@@ -175,18 +169,20 @@ struct TaskDetailSheet: View {
     VStack(alignment: .leading, spacing: 12) {
       sectionTitle("操作")
 
-      Button(action: onToggleCompletion) {
-        Label(actionTitle, systemImage: completionActionSymbol)
-          .font(.headline.weight(.semibold))
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, 16)
-      }
-      .buttonStyle(.borderedProminent)
-      .buttonBorderShape(.roundedRectangle(radius: 18))
-      .controlSize(.large)
-      .tint(completionActionColor)
-
       VStack(spacing: 0) {
+        Button(action: onToggleCompletion) {
+          DetailActionRow(
+            title: actionTitle,
+            systemImage: completionActionSymbol,
+            tint: .primary
+          )
+        }
+        .buttonStyle(.plain)
+
+        Divider()
+          .overlay(NornTheme.divider)
+          .padding(.leading, 48)
+
         Button(role: .destructive) {
           archiveConfirmationPresented = true
         } label: {
