@@ -131,26 +131,22 @@ struct SequenceTab: View {
             SequenceTimelineRow(
               task: task,
               position: timelinePosition(for: index, count: displayedPrimarySequenceTasks.count),
-              onTap: {
-                onTaskTap(task)
-              }
-            )
-            .onDrag {
-              draggedPrimaryTaskID = task.id
-              hasPendingPrimaryReorder = false
-              return NSItemProvider(object: task.id as NSString)
-            } preview: {
-              SequencePrimaryCard(task: task, isLifted: true)
-            }
-            .onDrop(
-              of: [UTType.plainText.identifier],
-              delegate: PrimarySequenceDropDelegate(
+              isDragging: draggedPrimaryTaskID == task.id,
+              onDragStart: {
+                draggedPrimaryTaskID = task.id
+                hasPendingPrimaryReorder = false
+                return NSItemProvider(object: task.id as NSString)
+              },
+              dropDelegate: PrimarySequenceDropDelegate(
                 destinationTaskID: task.id,
                 orderedTaskIDs: $primarySequenceOrder,
                 draggedTaskID: $draggedPrimaryTaskID,
                 hasPendingReorder: $hasPendingPrimaryReorder,
                 onCommit: commitPrimarySequenceOrder
-              )
+              ),
+              onTap: {
+                onTaskTap(task)
+              }
             )
           }
         }
@@ -212,6 +208,9 @@ private enum TimelinePosition {
 private struct SequenceTimelineRow: View {
   let task: Task
   let position: TimelinePosition
+  let isDragging: Bool
+  let onDragStart: () -> NSItemProvider
+  let dropDelegate: PrimarySequenceDropDelegate
   let onTap: () -> Void
 
   private var statusColor: Color {
@@ -222,9 +221,15 @@ private struct SequenceTimelineRow: View {
     HStack(alignment: .top, spacing: 14) {
       SequenceTimelineMarker(color: statusColor, position: position)
 
-      SequencePrimaryCard(task: task)
+      SequencePrimaryCard(task: task, isLifted: isDragging)
+        .opacity(isDragging ? 0.14 : 1)
         .onTapGesture(perform: onTap)
+        .onDrag(onDragStart) {
+          SequencePrimaryCard(task: task, isLifted: true)
+        }
+        .onDrop(of: [UTType.plainText.identifier], delegate: dropDelegate)
     }
+    .padding(.vertical, 8)
   }
 }
 
@@ -271,6 +276,8 @@ private struct SequencePrimaryCard: View {
   let task: Task
   var isLifted: Bool = false
 
+  private let cardShape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+
   private var metaSummary: String {
     var items = [TaskDisplayFormatter.statusLabel(for: task.status), "估时 \(task.estimatedMinutes) 分钟"]
     if let dueLabel = RelativeDueDateFormatter.label(for: task.dueAt) {
@@ -295,11 +302,11 @@ private struct SequencePrimaryCard: View {
     .padding(.vertical, 14)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
-      RoundedRectangle(cornerRadius: 18, style: .continuous)
+      cardShape
         .fill(NornTheme.cardSurface)
     )
     .overlay(
-      RoundedRectangle(cornerRadius: 18, style: .continuous)
+      cardShape
         .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
     .shadow(
@@ -307,7 +314,10 @@ private struct SequencePrimaryCard: View {
       radius: isLifted ? 18 : 10,
       y: isLifted ? 8 : 4
     )
-    .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    .clipShape(cardShape)
+    .contentShape(cardShape)
+    .contentShape(.dragPreview, cardShape)
+    .compositingGroup()
   }
 }
 

@@ -230,6 +230,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已改为连续轨道笔触，减少点线割裂感
 - `Sequence` 底部内容避让已改为固定 reserve，保留底部沉浸式延伸而不再让 dock 参与横向分页 relayout
+- `Sequence` 主序列拖拽已收回到卡片本体，时间线装饰留在原位；卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义
 - `TaskDetailSheet` 已改为 toolbar 编辑、单一主完成动作和带确认的归档动作
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环
 - `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
