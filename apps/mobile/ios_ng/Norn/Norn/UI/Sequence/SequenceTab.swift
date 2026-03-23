@@ -237,32 +237,39 @@ private struct SequenceTimelineMarker: View {
   let color: Color
   let position: TimelinePosition
 
+  private let railWidth: CGFloat = 4
+  private let nodeDiameter: CGFloat = 12
+  private let nodeCoreDiameter: CGFloat = 7
+
   var body: some View {
     GeometryReader { proxy in
       let centerX = proxy.size.width / 2
       let nodeCenterY: CGFloat = 24
-      let railColor = color.opacity(0.24)
+      let railColor = NornTheme.divider.opacity(0.95)
 
       ZStack {
         if position.showsTopLine {
-          Path { path in
-            path.move(to: CGPoint(x: centerX, y: 0))
-            path.addLine(to: CGPoint(x: centerX, y: nodeCenterY))
-          }
-          .stroke(railColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+          Capsule(style: .continuous)
+            .fill(railColor)
+            .frame(width: railWidth, height: max(nodeCenterY, 0))
+            .position(x: centerX, y: nodeCenterY / 2)
         }
 
         if position.showsBottomLine {
-          Path { path in
-            path.move(to: CGPoint(x: centerX, y: nodeCenterY))
-            path.addLine(to: CGPoint(x: centerX, y: proxy.size.height))
-          }
-          .stroke(railColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+          Capsule(style: .continuous)
+            .fill(railColor)
+            .frame(width: railWidth, height: max(proxy.size.height - nodeCenterY, 0))
+            .position(x: centerX, y: nodeCenterY + max(proxy.size.height - nodeCenterY, 0) / 2)
         }
 
         Circle()
-          .fill(color)
-          .frame(width: 10, height: 10)
+          .fill(railColor)
+          .frame(width: nodeDiameter, height: nodeDiameter)
+          .overlay {
+            Circle()
+              .fill(color)
+              .frame(width: nodeCoreDiameter, height: nodeCoreDiameter)
+          }
           .position(x: centerX, y: nodeCenterY)
       }
     }
