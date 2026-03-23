@@ -16,6 +16,7 @@ final class NornAppStore {
   @ObservationIgnored private let loadTasksUseCase: LoadTasksUseCase
   @ObservationIgnored private let quickAddTaskUseCase: QuickAddTaskUseCase
   @ObservationIgnored private let saveTaskDraftUseCase: SaveTaskDraftUseCase
+  @ObservationIgnored private let reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase
   @ObservationIgnored private let toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase
   @ObservationIgnored private let archiveTaskUseCase: ArchiveTaskUseCase
   @ObservationIgnored private let saveSyncSettingsUseCase: SaveSyncSettingsUseCase
@@ -35,6 +36,7 @@ final class NornAppStore {
     loadTasksUseCase: LoadTasksUseCase,
     quickAddTaskUseCase: QuickAddTaskUseCase,
     saveTaskDraftUseCase: SaveTaskDraftUseCase,
+    reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase,
     toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase,
     archiveTaskUseCase: ArchiveTaskUseCase,
     saveSyncSettingsUseCase: SaveSyncSettingsUseCase,
@@ -52,6 +54,7 @@ final class NornAppStore {
     self.loadTasksUseCase = loadTasksUseCase
     self.quickAddTaskUseCase = quickAddTaskUseCase
     self.saveTaskDraftUseCase = saveTaskDraftUseCase
+    self.reorderSequenceTasksUseCase = reorderSequenceTasksUseCase
     self.toggleTaskCompletionUseCase = toggleTaskCompletionUseCase
     self.archiveTaskUseCase = archiveTaskUseCase
     self.saveSyncSettingsUseCase = saveSyncSettingsUseCase
@@ -126,6 +129,15 @@ final class NornAppStore {
       _ = try saveTaskDraftUseCase.execute(draft: draft)
       tasks = try loadTasksUseCase.execute()
       closeTaskEditor()
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
+  }
+
+  func reorderPrimarySequence(taskIDs: [String]) {
+    do {
+      tasks = try reorderSequenceTasksUseCase.execute(primaryTaskIDs: taskIDs)
       scheduleConservativeSyncIfNeeded()
     } catch {
       syncStatus = .failed(message: error.localizedDescription)
@@ -221,6 +233,7 @@ extension NornAppStore {
       loadTasksUseCase: LoadTasksUseCase(repository: taskRepository),
       quickAddTaskUseCase: QuickAddTaskUseCase(repository: taskRepository),
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: taskRepository),
+      reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase(repository: taskRepository),
       toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase(repository: taskRepository),
       archiveTaskUseCase: ArchiveTaskUseCase(repository: taskRepository),
       saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: syncSettingsRepository),
@@ -240,11 +253,11 @@ private final class PreviewTaskRepository: TaskRepositoryProtocol {
   }
 
   func loadAll() throws -> [Task] {
-    storedTasks
+    TaskOrdering.sorted(storedTasks)
   }
 
   func save(_ tasks: [Task]) throws {
-    storedTasks = tasks
+    storedTasks = TaskOrdering.sorted(tasks)
   }
 
   func upsert(_ tasks: [Task]) throws {
@@ -254,7 +267,7 @@ private final class PreviewTaskRepository: TaskRepositoryProtocol {
     for task in tasks {
       byID[task.id] = task
     }
-    storedTasks = Array(byID.values)
+    storedTasks = TaskOrdering.sorted(Array(byID.values))
   }
 
   func archive(taskID: String) throws {

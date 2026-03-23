@@ -56,6 +56,36 @@ final class TaskFileRepositoryTests: XCTestCase {
     XCTAssertEqual(tasks.map(\.id), ["rank-1", "rank-2", "rank-3"])
   }
 
+  func testLoadAllOrdersBySequenceRankBeforeKairosRank() throws {
+    let baseDirectory = makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: baseDirectory) }
+
+    let repository = TaskFileRepository(baseDirectory: baseDirectory)
+    let manuallyOrdered = makeTask(
+      id: "sequence-1",
+      title: "Sequence 1",
+      updatedAt: Date(timeIntervalSince1970: 100),
+      extJSON: ["norn": .object(["sequenceRank": .number(0)])]
+    )
+    let kairosFirst = makeTask(
+      id: "sequence-2",
+      title: "Kairos 1",
+      updatedAt: Date(timeIntervalSince1970: 400),
+      extJSON: ["kairos": .object(["rank": .number(1)])]
+    )
+    let manuallySecond = makeTask(
+      id: "sequence-3",
+      title: "Sequence 2",
+      updatedAt: Date(timeIntervalSince1970: 200),
+      extJSON: ["norn": .object(["sequenceRank": .number(1)])]
+    )
+
+    try repository.save([kairosFirst, manuallySecond, manuallyOrdered])
+
+    let tasks = try repository.loadAll()
+    XCTAssertEqual(tasks.map(\.id), ["sequence-1", "sequence-3", "sequence-2"])
+  }
+
   private func makeTemporaryDirectory() -> URL {
     let baseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     try? FileManager.default.createDirectory(at: baseDirectory, withIntermediateDirectories: true)

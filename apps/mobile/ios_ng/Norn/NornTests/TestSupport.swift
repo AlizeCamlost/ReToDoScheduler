@@ -9,11 +9,11 @@ final class InMemoryTaskRepository: TaskRepositoryProtocol {
   }
 
   func loadAll() throws -> [Task] {
-    tasks.sorted { $0.updatedAt > $1.updatedAt }
+    TaskOrdering.sorted(tasks)
   }
 
   func save(_ tasks: [Task]) throws {
-    self.tasks = tasks
+    self.tasks = TaskOrdering.sorted(tasks)
   }
 
   func upsert(_ tasks: [Task]) throws {
@@ -27,7 +27,7 @@ final class InMemoryTaskRepository: TaskRepositoryProtocol {
       }
       byID[task.id] = task
     }
-    self.tasks = Array(byID.values)
+    self.tasks = TaskOrdering.sorted(Array(byID.values))
   }
 
   func archive(taskID: String) throws {

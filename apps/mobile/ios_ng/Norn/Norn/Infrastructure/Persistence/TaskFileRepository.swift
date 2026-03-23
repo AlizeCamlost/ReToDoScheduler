@@ -26,12 +26,12 @@ struct TaskFileRepository: TaskRepositoryProtocol {
 
     let data = try Data(contentsOf: tasksFileURL)
     let records = try decoder.decode([TaskRecord].self, from: data)
-    return sortTasks(records.map { $0.toDomain() })
+    return TaskOrdering.sorted(records.map { $0.toDomain() })
   }
 
   func save(_ tasks: [Task]) throws {
     try fileManager.createDirectory(at: storageDirectory, withIntermediateDirectories: true, attributes: nil)
-    let records = sortTasks(tasks).map(TaskRecord.init(task:))
+    let records = TaskOrdering.sorted(tasks).map(TaskRecord.init(task:))
     let data = try encoder.encode(records)
     try data.write(to: tasksFileURL, options: .atomic)
   }
@@ -73,34 +73,5 @@ struct TaskFileRepository: TaskRepositoryProtocol {
 
   private var tasksFileURL: URL {
     storageDirectory.appendingPathComponent("tasks.json")
-  }
-
-  private func sortTasks(_ tasks: [Task]) -> [Task] {
-    tasks.sorted { left, right in
-      let leftRank = kairosRank(in: left.extJSON)
-      let rightRank = kairosRank(in: right.extJSON)
-
-      if leftRank != nil || rightRank != nil {
-        switch (leftRank, rightRank) {
-        case let (lhs?, rhs?) where lhs != rhs:
-          return lhs < rhs
-        case (_?, nil):
-          return true
-        case (nil, _?):
-          return false
-        default:
-          break
-        }
-      }
-
-      return left.updatedAt > right.updatedAt
-    }
-  }
-
-  private func kairosRank(in extJSON: [String: JSONValue]) -> Int? {
-    if let kairos = extJSON["kairos"]?.objectValue, let rank = kairos["rank"]?.intValue {
-      return rank
-    }
-    return extJSON["rank"]?.intValue
   }
 }

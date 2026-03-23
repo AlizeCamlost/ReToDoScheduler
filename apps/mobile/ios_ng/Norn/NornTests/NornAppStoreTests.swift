@@ -78,6 +78,41 @@ final class NornAppStoreTests: XCTestCase {
     XCTAssertFalse(store.syncSettings.deviceID.isEmpty)
   }
 
+  func testReorderPrimarySequenceAssignsSyncedSequenceRanks() throws {
+    let calendar = Calendar.current
+    let nearDoing = makeTask(
+      id: "task-1",
+      title: "Doing",
+      status: .doing,
+      dueAt: calendar.date(byAdding: .day, value: 1, to: Date())
+    )
+    let nearTodo = makeTask(
+      id: "task-2",
+      title: "Near",
+      dueAt: calendar.date(byAdding: .day, value: 2, to: Date())
+    )
+    let farTodo = makeTask(
+      id: "task-3",
+      title: "Far",
+      dueAt: calendar.date(byAdding: .day, value: 14, to: Date())
+    )
+
+    let repository = InMemoryTaskRepository(tasks: [nearDoing, nearTodo, farTodo])
+    let settingsRepository = InMemorySyncSettingsRepository()
+    let store = makeStore(
+      repository: repository,
+      settingsRepository: settingsRepository,
+      tasks: [nearDoing, nearTodo, farTodo]
+    )
+
+    store.reorderPrimarySequence(taskIDs: ["task-2", "task-1"])
+
+    XCTAssertEqual(store.tasks.map(\.id), ["task-2", "task-1", "task-3"])
+    XCTAssertEqual(TaskOrdering.sequenceRank(for: store.tasks[0]), 0)
+    XCTAssertEqual(TaskOrdering.sequenceRank(for: store.tasks[1]), 1)
+    XCTAssertEqual(TaskOrdering.sequenceRank(for: store.tasks[2]), 2)
+  }
+
   private func makeStore(
     repository: InMemoryTaskRepository,
     settingsRepository: InMemorySyncSettingsRepository,
@@ -90,6 +125,7 @@ final class NornAppStoreTests: XCTestCase {
       loadTasksUseCase: LoadTasksUseCase(repository: repository),
       quickAddTaskUseCase: QuickAddTaskUseCase(repository: repository),
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: repository),
+      reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase(repository: repository),
       toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase(repository: repository),
       archiveTaskUseCase: ArchiveTaskUseCase(repository: repository),
       saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: settingsRepository),
