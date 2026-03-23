@@ -5,68 +5,68 @@ struct ContentView: View {
   @Bindable var store: NornAppStore
 
   @FocusState private var dockFocused: Bool
-  @State private var reservedDockHeight: CGFloat = 60
+
+  private let quickAddDockMaxHeight: CGFloat = 64
+  private let quickAddDockBottomSpacing: CGFloat = 8
 
   var body: some View {
-    ZStack {
-      NornScreenBackground()
+    GeometryReader { proxy in
+      let sequenceDockBottomReserve = sequenceDockReserve(bottomInset: proxy.safeAreaInsets.bottom)
 
-      TabView(selection: $store.currentTab) {
-        SequenceTab(
-          tasks: store.visibleTasks,
-          onTaskTap: { task in
-            store.openTaskDetail(taskID: task.id)
-          },
-          onPrimarySequenceReorder: { reorderedTaskIDs in
-            store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
-          }
-        )
-          .safeAreaPadding(.bottom, reservedDockHeight)
-          .contentShape(Rectangle())
-          .onTapGesture(perform: dismissDockFocus)
-          .tag(AppTab.sequence)
+      ZStack(alignment: .bottom) {
+        NornScreenBackground()
 
-        ScheduleTab()
-          .contentShape(Rectangle())
-          .onTapGesture(perform: dismissDockFocus)
-          .tag(AppTab.schedule)
+        TabView(selection: $store.currentTab) {
+          SequenceTab(
+            tasks: store.visibleTasks,
+            bottomAccessoryHeight: store.currentTab == .sequence ? sequenceDockBottomReserve : 0,
+            onTaskTap: { task in
+              store.openTaskDetail(taskID: task.id)
+            },
+            onPrimarySequenceReorder: { reorderedTaskIDs in
+              store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
+            }
+          )
+            .contentShape(Rectangle())
+            .onTapGesture(perform: dismissDockFocus)
+            .tag(AppTab.sequence)
 
-        TaskPoolTab(
-          tasks: store.visibleTasks,
-          syncStatus: store.syncStatus,
-          onOpenSyncSettings: {
-            store.openSyncSettings()
-          },
-          onRefresh: {
-            store.refresh()
-          },
-          onTaskTap: { task in
-            store.openTaskDetail(taskID: task.id)
-          }
-        )
-          .contentShape(Rectangle())
-          .onTapGesture(perform: dismissDockFocus)
-          .tag(AppTab.taskPool)
-      }
-      .tabViewStyle(.page(indexDisplayMode: .never))
-      .background(Color.clear)
-    }
-    .safeAreaInset(edge: .bottom, spacing: 0) {
-      if store.currentTab == .sequence {
-        QuickAddDock(
-          input: $store.quickAddInput,
-          isFocused: $dockFocused,
-          onAdd: submitQuickAdd
-        )
-        .padding(.bottom, 8)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-          guard height > 0 else { return }
-          reservedDockHeight = height
+          ScheduleTab()
+            .contentShape(Rectangle())
+            .onTapGesture(perform: dismissDockFocus)
+            .tag(AppTab.schedule)
+
+          TaskPoolTab(
+            tasks: store.visibleTasks,
+            syncStatus: store.syncStatus,
+            onOpenSyncSettings: {
+              store.openSyncSettings()
+            },
+            onRefresh: {
+              store.refresh()
+            },
+            onTaskTap: { task in
+              store.openTaskDetail(taskID: task.id)
+            }
+          )
+            .contentShape(Rectangle())
+            .onTapGesture(perform: dismissDockFocus)
+            .tag(AppTab.taskPool)
         }
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .background(Color.clear)
+        .ignoresSafeArea(.container, edges: [.bottom, .horizontal])
+
+        if store.currentTab == .sequence {
+          QuickAddDock(
+            input: $store.quickAddInput,
+            isFocused: $dockFocused,
+            onAdd: submitQuickAdd
+          )
+          .padding(.bottom, proxy.safeAreaInsets.bottom + quickAddDockBottomSpacing)
+        }
       }
     }
-    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: store.currentTab)
     .task {
       store.bootstrap()
     }
@@ -130,6 +130,10 @@ struct ContentView: View {
   private func submitQuickAdd() {
     store.submitQuickAdd()
     dismissDockFocus()
+  }
+
+  private func sequenceDockReserve(bottomInset: CGFloat) -> CGFloat {
+    quickAddDockMaxHeight + bottomInset + quickAddDockBottomSpacing
   }
 
   private var detailSheetPresented: Binding<Bool> {
