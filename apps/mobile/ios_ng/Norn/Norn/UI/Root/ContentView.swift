@@ -143,11 +143,11 @@ struct ContentView: View {
   }
 
   private var pageContentAvoidanceEdges: Edge.Set {
-    isLandscapeLike ? .horizontal : .vertical
+    isLandscapeLike ? [.top, .horizontal] : .vertical
   }
 
   private var sequenceContentAvoidanceEdges: Edge.Set {
-    isLandscapeLike ? .horizontal : .top
+    isLandscapeLike ? [.top, .horizontal] : .top
   }
 
   private var detailSheetPresented: Binding<Bool> {

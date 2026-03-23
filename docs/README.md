@@ -13,7 +13,7 @@
 ## specs
 
 - [specs/architecture.md](specs/architecture.md): 当前系统架构真相源。定义运行时分层、仓库职责、数据流、最小 Task sync contract 和双端改动对齐约束。最后更新：2026-03-22
-- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑，并同步记录根容器背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset、方向感知的 tab safe-area 避让、卡片本体拖拽、中性时间线笔触与详情动作层级收束。当前实施状态：F13 已完成。最后更新：2026-03-24
+- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑，并同步记录根容器背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset、方向感知且保留横屏 top 保护的 tab safe-area 避让、卡片本体拖拽、中性时间线笔触与详情动作层级收束。当前实施状态：F13 已完成。最后更新：2026-03-24
 - [specs/product-model.md](specs/product-model.md): 当前产品语义真相源。定义 Norn / Kairos 边界、任务池核心抽象、价值语义和输入契约。最后更新：2026-03-22
 - [specs/scheduling-model.md](specs/scheduling-model.md): 当前调度模型真相源。把 Kairos 明确为“硬约束 + 价值最大化”的滚动装箱问题，并说明比较器接口与实现边界。最后更新：2026-03-22
 
