@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SequenceTab: View {
   let tasks: [Task]
@@ -6,6 +7,8 @@ struct SequenceTab: View {
   let onPrimarySequenceReorder: ([String]) -> Void
 
   @State private var primarySequenceOrder: [String] = []
+  @State private var draggedPrimaryTaskID: String?
+  @State private var hasPendingPrimaryReorder = false
 
   init(
     tasks: [Task],
@@ -32,7 +35,8 @@ struct SequenceTab: View {
   private var displayedPrimarySequenceTasks: [Task] {
     let byID = Dictionary(uniqueKeysWithValues: canonicalPrimarySequenceTasks.map { ($0.id, $0) })
     let orderedIDs = primarySequenceOrder.filter { byID[$0] != nil }
-    let remainingIDs = canonicalPrimarySequenceTasks.map(\.id).filter { !orderedIDs.contains($0) }
+    let orderedIDSet = Set(orderedIDs)
+    let remainingIDs = canonicalPrimarySequenceTasks.map(\.id).filter { !orderedIDSet.contains($0) }
     return (orderedIDs + remainingIDs).compactMap { byID[$0] }
   }
 
@@ -47,49 +51,23 @@ struct SequenceTab: View {
   }
 
   var body: some View {
-    ZStack {
-      NornScreenBackground()
-
-      List {
+    ScrollView(showsIndicators: false) {
+      LazyVStack(alignment: .leading, spacing: 0) {
         focusRow
+          .padding(.top, 12)
+          .padding(.bottom, 18)
 
-        Section {
-          if displayedPrimarySequenceTasks.isEmpty {
-            EmptyPrimarySequenceCard()
-              .listRowStyle(top: 4, bottom: 12)
-          } else {
-            ForEach(Array(displayedPrimarySequenceTasks.enumerated()), id: \.element.id) { index, task in
-              SequenceTimelineRow(
-                task: task,
-                position: timelinePosition(for: index, count: displayedPrimarySequenceTasks.count),
-                onTap: {
-                  onTaskTap(task)
-                }
-              )
-              .listRowStyle(top: index == 0 ? 4 : 8, bottom: index == displayedPrimarySequenceTasks.count - 1 ? 16 : 8)
-            }
-            .onMove(perform: movePrimarySequence)
-          }
-        }
+        primarySequenceSection
+          .padding(.bottom, 24)
 
-        Section {
-          NextTasksSummaryCard(tasks: nextTasks, onTaskTap: onTaskTap)
-            .listRowStyle(top: 8, bottom: 24)
-        } header: {
-          Text("接下来")
-            .textCase(nil)
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 24)
-            .padding(.top, 4)
-        }
+        nextTasksSection
+          .padding(.bottom, 24)
       }
-      .listStyle(.plain)
-      .scrollContentBackground(.hidden)
-      .scrollDismissesKeyboard(.interactively)
-      .background(Color.clear)
-      .environment(\.editMode, .constant(.active))
+      .padding(.horizontal, 20)
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
+    .scrollDismissesKeyboard(.interactively)
+    .background(Color.clear)
     .onAppear(perform: syncPrimarySequenceOrder)
     .onChange(of: primarySequenceSignature) { _, _ in
       syncPrimarySequenceOrder()
@@ -107,11 +85,12 @@ struct SequenceTab: View {
         EmptyFocusCard()
       }
     }
-    .listRowStyle(top: 12, bottom: 16)
   }
 
   private func syncPrimarySequenceOrder() {
     primarySequenceOrder = primarySequenceSignature
+    draggedPrimaryTaskID = nil
+    hasPendingPrimaryReorder = false
   }
 
   private func isWithinPrimaryHorizon(_ task: Task) -> Bool {
@@ -133,11 +112,63 @@ struct SequenceTab: View {
     return .middle
   }
 
-  private func movePrimarySequence(fromOffsets: IndexSet, toOffset: Int) {
-    var reorderedIDs = displayedPrimarySequenceTasks.map(\.id)
-    reorderedIDs.move(fromOffsets: fromOffsets, toOffset: toOffset)
-    primarySequenceOrder = reorderedIDs
-    onPrimarySequenceReorder(reorderedIDs)
+  private var primarySequenceSection: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      SequenceSectionHeader(
+        title: "主序列",
+        detail: displayedPrimarySequenceTasks.count > 1 ? "长按卡片并拖动调整顺序" : nil
+      )
+
+      if displayedPrimarySequenceTasks.isEmpty {
+        EmptyPrimarySequenceCard()
+      } else {
+        VStack(spacing: 0) {
+          ForEach(Array(displayedPrimarySequenceTasks.enumerated()), id: \.element.id) { index, task in
+            SequenceTimelineRow(
+              task: task,
+              position: timelinePosition(for: index, count: displayedPrimarySequenceTasks.count),
+              onTap: {
+                onTaskTap(task)
+              }
+            )
+            .onDrag {
+              draggedPrimaryTaskID = task.id
+              hasPendingPrimaryReorder = false
+              return NSItemProvider(object: task.id as NSString)
+            } preview: {
+              SequencePrimaryCard(task: task, isLifted: true)
+            }
+            .onDrop(
+              of: [UTType.plainText.identifier],
+              delegate: PrimarySequenceDropDelegate(
+                destinationTaskID: task.id,
+                orderedTaskIDs: $primarySequenceOrder,
+                draggedTaskID: $draggedPrimaryTaskID,
+                hasPendingReorder: $hasPendingPrimaryReorder,
+                onCommit: commitPrimarySequenceOrder
+              )
+            )
+          }
+        }
+      }
+    }
+  }
+
+  private var nextTasksSection: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      SequenceSectionHeader(title: "接下来")
+      NextTasksSummaryCard(tasks: nextTasks, onTaskTap: onTaskTap)
+    }
+  }
+
+  private func commitPrimarySequenceOrder() {
+    defer {
+      draggedPrimaryTaskID = nil
+      hasPendingPrimaryReorder = false
+    }
+
+    guard hasPendingPrimaryReorder else { return }
+    onPrimarySequenceReorder(primarySequenceOrder)
   }
 }
 
@@ -183,80 +214,12 @@ private struct SequenceTimelineRow: View {
     TaskDisplayFormatter.statusColor(for: task.status)
   }
 
-  private var metaItems: [String] {
-    var items = [TaskDisplayFormatter.statusLabel(for: task.status), "估时 \(task.estimatedMinutes) 分钟"]
-    if let dueLabel = RelativeDueDateFormatter.label(for: task.dueAt) {
-      items.append(dueLabel)
-    }
-    if !task.tags.isEmpty {
-      items.append(task.tags.prefix(2).map { "#\($0)" }.joined(separator: " "))
-    }
-    return items
-  }
-
   var body: some View {
     HStack(alignment: .top, spacing: 14) {
       SequenceTimelineMarker(color: statusColor, position: position)
 
-      Button(action: onTap) {
-        VStack(alignment: .leading, spacing: 12) {
-          HStack(alignment: .top, spacing: 10) {
-            Text(task.title)
-              .font(.headline.weight(.semibold))
-              .foregroundStyle(.primary)
-              .lineLimit(2)
-
-            Spacer(minLength: 0)
-
-            Image(systemName: "line.3.horizontal")
-              .font(.caption.weight(.semibold))
-              .foregroundStyle(.tertiary)
-              .padding(.top, 2)
-
-            Image(systemName: "chevron.right")
-              .font(.caption.weight(.bold))
-              .foregroundStyle(.secondary)
-              .padding(.top, 2)
-          }
-
-          if let description = task.description, !description.isEmpty {
-            Text(description)
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-              .lineLimit(2)
-          }
-
-          FlowLayout(spacing: 8, lineSpacing: 8) {
-            ForEach(metaItems, id: \.self) { item in
-              SequenceMetaPill(
-                text: item,
-                foreground: item == TaskDisplayFormatter.statusLabel(for: task.status) ? statusColor : .secondary,
-                background: item == TaskDisplayFormatter.statusLabel(for: task.status)
-                  ? statusColor.opacity(0.14)
-                  : NornTheme.pillSurface
-              )
-            }
-          }
-
-          if !task.steps.isEmpty {
-            Text("包含 \(task.steps.count) 个子步骤")
-              .font(.caption)
-              .foregroundStyle(.tertiary)
-          }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-          RoundedRectangle(cornerRadius: 26, style: .continuous)
-            .fill(NornTheme.cardSurface)
-        )
-        .overlay(
-          RoundedRectangle(cornerRadius: 26, style: .continuous)
-            .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
-        )
-        .shadow(color: NornTheme.shadow, radius: 14, y: 6)
-      }
-      .buttonStyle(.plain)
+      SequencePrimaryCard(task: task)
+        .onTapGesture(perform: onTap)
     }
   }
 }
@@ -294,18 +257,67 @@ private struct SequenceTimelineMarker: View {
   }
 }
 
-private struct SequenceMetaPill: View {
-  let text: String
-  let foreground: Color
-  let background: Color
+private struct SequencePrimaryCard: View {
+  let task: Task
+  var isLifted: Bool = false
+
+  private var metaSummary: String {
+    var items = [TaskDisplayFormatter.statusLabel(for: task.status), "估时 \(task.estimatedMinutes) 分钟"]
+    if let dueLabel = RelativeDueDateFormatter.label(for: task.dueAt) {
+      items.append(dueLabel)
+    }
+    return items.joined(separator: " · ")
+  }
 
   var body: some View {
-    Text(text)
-      .font(.caption.weight(.medium))
-      .foregroundStyle(foreground)
-      .padding(.horizontal, 10)
-      .padding(.vertical, 6)
-      .background(background, in: Capsule())
+    VStack(alignment: .leading, spacing: 8) {
+      Text(task.title)
+        .font(.headline.weight(.semibold))
+        .foregroundStyle(.primary)
+        .lineLimit(2)
+
+      Text(metaSummary)
+        .font(.caption.weight(.medium))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .fill(NornTheme.cardSurface)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
+    )
+    .shadow(
+      color: NornTheme.shadow,
+      radius: isLifted ? 18 : 10,
+      y: isLifted ? 8 : 4
+    )
+    .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+  }
+}
+
+private struct SequenceSectionHeader: View {
+  let title: String
+  var detail: String? = nil
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text(title)
+        .font(.footnote.weight(.semibold))
+        .foregroundStyle(.secondary)
+
+      if let detail {
+        Text(detail)
+          .font(.caption)
+          .foregroundStyle(.tertiary)
+      }
+    }
+    .padding(.leading, 30)
   }
 }
 
@@ -433,7 +445,7 @@ private struct EmptyPrimarySequenceCard: View {
         .font(.headline.weight(.semibold))
         .foregroundStyle(.primary)
 
-      Text("执行中的任务和近期待启动的任务会集中排列在这里，并支持拖拽重排。")
+      Text("执行中的任务和近期待启动的任务会集中排列在这里，长按卡片即可调整顺序。")
         .font(.subheadline)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
@@ -479,80 +491,39 @@ private struct EmptyFocusHint: View {
   }
 }
 
-private extension View {
-  func listRowStyle(top: CGFloat, bottom: CGFloat) -> some View {
-    listRowInsets(EdgeInsets(top: top, leading: 20, bottom: bottom, trailing: 20))
-      .listRowSeparator(.hidden)
-      .listRowBackground(Color.clear)
-  }
-}
+private struct PrimarySequenceDropDelegate: DropDelegate {
+  let destinationTaskID: String
+  @Binding var orderedTaskIDs: [String]
+  @Binding var draggedTaskID: String?
+  @Binding var hasPendingReorder: Bool
+  let onCommit: () -> Void
 
-private struct FlowLayout: Layout {
-  let spacing: CGFloat
-  let lineSpacing: CGFloat
-
-  init(spacing: CGFloat = 8, lineSpacing: CGFloat = 8) {
-    self.spacing = spacing
-    self.lineSpacing = lineSpacing
-  }
-
-  func sizeThatFits(
-    proposal: ProposedViewSize,
-    subviews: Subviews,
-    cache: inout ()
-  ) -> CGSize {
-    let maxWidth = proposal.width ?? .infinity
-    var currentLineWidth: CGFloat = 0
-    var currentLineHeight: CGFloat = 0
-    var totalHeight: CGFloat = 0
-    var maxLineWidth: CGFloat = 0
-
-    for subview in subviews {
-      let size = subview.sizeThatFits(.unspecified)
-      let nextWidth = currentLineWidth == 0 ? size.width : currentLineWidth + spacing + size.width
-
-      if nextWidth > maxWidth, currentLineWidth > 0 {
-        totalHeight += currentLineHeight + lineSpacing
-        maxLineWidth = max(maxLineWidth, currentLineWidth)
-        currentLineWidth = size.width
-        currentLineHeight = size.height
-      } else {
-        currentLineWidth = nextWidth
-        currentLineHeight = max(currentLineHeight, size.height)
-      }
+  func dropEntered(info: DropInfo) {
+    guard
+      let draggedTaskID,
+      draggedTaskID != destinationTaskID,
+      let fromIndex = orderedTaskIDs.firstIndex(of: draggedTaskID),
+      let toIndex = orderedTaskIDs.firstIndex(of: destinationTaskID)
+    else {
+      return
     }
 
-    maxLineWidth = max(maxLineWidth, currentLineWidth)
-    totalHeight += currentLineHeight
-    return CGSize(width: maxLineWidth, height: totalHeight)
-  }
+    hasPendingReorder = true
 
-  func placeSubviews(
-    in bounds: CGRect,
-    proposal: ProposedViewSize,
-    subviews: Subviews,
-    cache: inout ()
-  ) {
-    var currentOrigin = CGPoint(x: bounds.minX, y: bounds.minY)
-    var currentLineHeight: CGFloat = 0
-
-    for subview in subviews {
-      let size = subview.sizeThatFits(.unspecified)
-      let nextX = currentOrigin.x == bounds.minX ? currentOrigin.x + size.width : currentOrigin.x + spacing + size.width
-
-      if nextX > bounds.maxX, currentOrigin.x > bounds.minX {
-        currentOrigin.x = bounds.minX
-        currentOrigin.y += currentLineHeight + lineSpacing
-        currentLineHeight = 0
-      }
-
-      subview.place(
-        at: currentOrigin,
-        proposal: ProposedViewSize(width: size.width, height: size.height)
+    withAnimation(.snappy(duration: 0.22, extraBounce: 0)) {
+      orderedTaskIDs.move(
+        fromOffsets: IndexSet(integer: fromIndex),
+        toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
       )
-
-      currentOrigin.x += size.width + spacing
-      currentLineHeight = max(currentLineHeight, size.height)
     }
+  }
+
+  func dropUpdated(info: DropInfo) -> DropProposal? {
+    DropProposal(operation: .move)
+  }
+
+  func performDrop(info: DropInfo) -> Bool {
+    onCommit()
+    return true
   }
 }

@@ -226,8 +226,8 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、安全区壳和 sheet 挂载点
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
-- `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列支持拖拽重排并通过现有 sync 同步顺序
-- `Sequence` 卡片点击已能打开 `TaskDetailSheet`，详情动作通过 store 回写本地仓库
+- `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片直接拖拽重排并通过现有 sync 同步顺序
+- `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环
 - `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
 - `TaskPool` 的 `list` 模式已直接绑定 store 中的可见任务序列
@@ -399,7 +399,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Root/ContentView.swift` | `ContentView` | 根容器、共享背景与 sheet 挂载点 | 不直连持久化和 HTTP |
 | `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 只接受绑定和 action |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
-| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列支持重排 |
+| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列通过长按卡片重排 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前主要复用于 `TaskPool` 的 list 模式 |
 | `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 本轮只做 `list` 模式 |
@@ -439,7 +439,7 @@ SequenceTab / FocusCard / TaskPool list item
 ### 6.3 主序列重排
 
 ```text
-SequenceTab main sequence
+SequenceTab main sequence card drag
   -> NornAppStore.reorderPrimarySequence(taskIDs:)
   -> ReorderSequenceTasksUseCase.execute(primaryTaskIDs:)
   -> TaskOrdering.applyingSequenceRank(...)
