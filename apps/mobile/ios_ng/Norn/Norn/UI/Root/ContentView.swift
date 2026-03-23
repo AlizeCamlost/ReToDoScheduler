@@ -56,7 +56,7 @@ struct ContentView: View {
       }
       .tabViewStyle(.page(indexDisplayMode: .never))
       .background(Color.clear)
-      .ignoresSafeArea(.container, edges: [.horizontal])
+      .ignoresSafeArea(.container, edges: [.bottom, .horizontal])
     }
     .task {
       store.bootstrap()
