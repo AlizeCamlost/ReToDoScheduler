@@ -12,6 +12,12 @@ struct TaskDetailSheet: View {
     task.status == .done ? "恢复待办" : "标记完成"
   }
 
+  private var completionActionColor: Color {
+    task.status == .done
+      ? TaskDisplayFormatter.statusColor(for: .todo)
+      : TaskDisplayFormatter.statusColor(for: .done)
+  }
+
   var body: some View {
     NavigationStack {
       ZStack {
@@ -149,23 +155,27 @@ struct TaskDetailSheet: View {
 
   private var actionSection: some View {
     VStack(spacing: 12) {
-      Button(action: onToggleCompletion) {
-        Text(actionTitle)
-          .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.borderedProminent)
-      .tint(TaskDisplayFormatter.statusColor(for: task.status))
-      .controlSize(.large)
-
       Button("编辑任务", action: onEdit)
         .buttonStyle(.bordered)
+        .tint(.primary)
         .controlSize(.large)
         .frame(maxWidth: .infinity)
 
-      Button("归档任务", role: .destructive, action: onArchive)
-        .buttonStyle(.bordered)
+      HStack(spacing: 12) {
+        Button(action: onToggleCompletion) {
+          Text(actionTitle)
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(completionActionColor)
         .controlSize(.large)
-        .frame(maxWidth: .infinity)
+
+        Button("归档任务", role: .destructive, action: onArchive)
+          .buttonStyle(.bordered)
+          .tint(.red)
+          .controlSize(.large)
+          .frame(maxWidth: .infinity)
+      }
     }
   }
 
