@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ContentView: View {
   @Environment(\.scenePhase) private var scenePhase
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  @Environment(\.verticalSizeClass) private var verticalSizeClass
   @Bindable var store: NornAppStore
 
   @FocusState private var dockFocused: Bool
@@ -21,14 +23,14 @@ struct ContentView: View {
             store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
           }
         )
-          .safeAreaPadding([.top, .horizontal])
+          .safeAreaPadding(sequenceContentAvoidanceEdges)
           .safeAreaPadding(.bottom, reservedDockHeight)
           .contentShape(Rectangle())
           .onTapGesture(perform: dismissDockFocus)
           .tag(AppTab.sequence)
 
         ScheduleTab()
-          .safeAreaPadding([.top, .horizontal, .bottom])
+          .safeAreaPadding(pageContentAvoidanceEdges)
           .contentShape(Rectangle())
           .onTapGesture(perform: dismissDockFocus)
           .tag(AppTab.schedule)
@@ -46,7 +48,7 @@ struct ContentView: View {
             store.openTaskDetail(taskID: task.id)
           }
         )
-          .safeAreaPadding([.top, .horizontal, .bottom])
+          .safeAreaPadding(pageContentAvoidanceEdges)
           .contentShape(Rectangle())
           .onTapGesture(perform: dismissDockFocus)
           .tag(AppTab.taskPool)
@@ -134,6 +136,18 @@ struct ContentView: View {
   private func submitQuickAdd() {
     store.submitQuickAdd()
     dismissDockFocus()
+  }
+
+  private var isLandscapeLike: Bool {
+    verticalSizeClass == .compact && horizontalSizeClass != .compact
+  }
+
+  private var pageContentAvoidanceEdges: Edge.Set {
+    isLandscapeLike ? .horizontal : .vertical
+  }
+
+  private var sequenceContentAvoidanceEdges: Edge.Set {
+    isLandscapeLike ? .horizontal : .top
   }
 
   private var detailSheetPresented: Binding<Bool> {

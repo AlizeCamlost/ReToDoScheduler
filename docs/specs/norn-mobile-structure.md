@@ -226,12 +226,13 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset 和 sheet 挂载点
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
-- `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让
+- `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过方向感知的 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让：竖屏主避让 top/bottom，横屏主避让 left/right
 - `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片直接拖拽重排并通过现有 sync 同步顺序
 - `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已改为连续轨道笔触，减少点线割裂感
 - `Sequence` 底部输入 dock 重新由 root scoped `safeAreaInset` 编排，并继续通过 `reservedDockHeight` 驱动内容 safe-area 让位，避免横向切 tab 时出现滚动偏移跳变
 - `Sequence` 的滚动裁剪范围重新由 root page shell 的全屏 edge-to-edge 延伸承担，不与 dock 的 safe-area 语义混用
+- `Sequence` 在竖屏主要只补 top safe-area，bottom 继续由 dock reserve 承担；横屏则主要补 horizontal safe-area，避免无谓压缩可用宽度
 - `Sequence` 主序列拖拽已收回到卡片本体，时间线装饰留在原位；卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义
 - `Sequence` 时间线轨道已收成统一中性笔触，颜色只保留在节点核心，避免同色叠深和异色衔接生硬
 - `TaskDetailSheet` 已改为 toolbar 编辑，完成/恢复与归档收拢为同级动作行，归档继续保留确认
