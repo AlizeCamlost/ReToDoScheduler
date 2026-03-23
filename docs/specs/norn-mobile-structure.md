@@ -226,6 +226,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset 和 sheet 挂载点
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
+- `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让
 - `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片直接拖拽重排并通过现有 sync 同步顺序
 - `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已改为连续轨道笔触，减少点线割裂感

@@ -21,12 +21,14 @@ struct ContentView: View {
             store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)
           }
         )
+          .safeAreaPadding([.top, .horizontal])
           .safeAreaPadding(.bottom, reservedDockHeight)
           .contentShape(Rectangle())
           .onTapGesture(perform: dismissDockFocus)
           .tag(AppTab.sequence)
 
         ScheduleTab()
+          .safeAreaPadding([.top, .horizontal, .bottom])
           .contentShape(Rectangle())
           .onTapGesture(perform: dismissDockFocus)
           .tag(AppTab.schedule)
@@ -44,6 +46,7 @@ struct ContentView: View {
             store.openTaskDetail(taskID: task.id)
           }
         )
+          .safeAreaPadding([.top, .horizontal, .bottom])
           .contentShape(Rectangle())
           .onTapGesture(perform: dismissDockFocus)
           .tag(AppTab.taskPool)
