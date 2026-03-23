@@ -43,6 +43,11 @@
 - 默认不要引入 `GeometryReader`、手算 reserve / inset、普通 `padding` 或 `offset` 去模拟安全区避让、滚动裁剪范围、dock 编排或页面壳行为。
 - 对这类问题，优先使用 `safeAreaInset`、`safeAreaPadding`、`overlay`、`background`、容器层级拆分和原生状态驱动。
 - 若确实不存在可行的声明式方案，使用 `GeometryReader` 或其他命令式补丁前，必须先停下说明 declarative 方案为何不成立，再取得确认。
+- 对当前 iOS 容器壳，优先检查并维持这三个声明式职责层：
+- root `safeAreaInset` 负责 Sequence 输入 dock 的下沉/出现编排，以及避免横向切 tab 时引入滚动偏移跳变。
+- root page shell 的 `ignoresSafeArea` 负责滚动裁剪范围的 edge-to-edge 延伸。
+- 各 tab wrapper 的 `safeAreaPadding` 负责内容本身对圆角、灵动岛、触控条的避让。
+- 不要把这三层职责重新揉在一起，也不要把其中一层改写成命令式补丁。
 
 ## Regression Memory Policy
 
@@ -53,6 +58,8 @@
 - 不要丢失滚动裁剪范围的 top / bottom / horizontal edge-to-edge。
 - 不要丢失横屏下对圆角、灵动岛、触控条的 safe-area 避让。
 - 不要混淆 page shell 的裁剪职责、dock 的编排职责和内容本身的 safe-area 职责。
+- 调整内容 safe-area 避让时，不要机械地四边同时加大；竖屏主避让方向是 top / bottom，横屏主避让方向是 left / right。
+- 对当前 Norn 壳层，Sequence 在竖屏主要补 top safe-area，bottom 继续交给 dock reserve；横屏主要补 horizontal safe-area，避免无谓压缩宽度。
 
 ## Practical Rule
 
