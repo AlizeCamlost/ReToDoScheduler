@@ -228,32 +228,38 @@ private struct SequenceTimelineMarker: View {
   let color: Color
   let position: TimelinePosition
 
-  private let railColor = Color.primary.opacity(0.16)
-
   var body: some View {
-    VStack(spacing: 0) {
-      lineSegment(visible: position.showsTopLine)
-      Circle()
-        .fill(color)
-        .frame(width: 14, height: 14)
-        .overlay(
-          Circle()
-            .strokeBorder(Color.white.opacity(0.78), lineWidth: 2)
-        )
-      lineSegment(visible: position.showsBottomLine)
-    }
-    .frame(width: 16)
-    .frame(maxHeight: .infinity)
-    .padding(.top, 10)
-    .padding(.bottom, 10)
-  }
+    GeometryReader { proxy in
+      let centerX = proxy.size.width / 2
+      let nodeCenterY: CGFloat = 24
+      let railColor = color.opacity(0.24)
 
-  @ViewBuilder
-  private func lineSegment(visible: Bool) -> some View {
-    Rectangle()
-      .fill(visible ? railColor : .clear)
-      .frame(width: 2)
-      .frame(maxHeight: .infinity)
+      ZStack {
+        if position.showsTopLine {
+          Path { path in
+            path.move(to: CGPoint(x: centerX, y: 0))
+            path.addLine(to: CGPoint(x: centerX, y: nodeCenterY))
+          }
+          .stroke(railColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+        }
+
+        if position.showsBottomLine {
+          Path { path in
+            path.move(to: CGPoint(x: centerX, y: nodeCenterY))
+            path.addLine(to: CGPoint(x: centerX, y: proxy.size.height))
+          }
+          .stroke(railColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+        }
+
+        Circle()
+          .fill(color)
+          .frame(width: 10, height: 10)
+          .position(x: centerX, y: nodeCenterY)
+      }
+    }
+    .frame(width: 18)
+    .frame(maxHeight: .infinity)
+    .allowsHitTesting(false)
   }
 }
 
