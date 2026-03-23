@@ -127,7 +127,6 @@ struct SequenceTab: View {
             SequenceTimelineRow(
               task: task,
               position: timelinePosition(for: index, count: displayedPrimarySequenceTasks.count),
-              isDragging: draggedPrimaryTaskID == task.id,
               onDragStart: {
                 draggedPrimaryTaskID = task.id
                 hasPendingPrimaryReorder = false
@@ -146,6 +145,7 @@ struct SequenceTab: View {
             )
           }
         }
+        .animation(.snappy(duration: 0.18, extraBounce: 0), value: primarySequenceOrder)
       }
     }
   }
@@ -213,7 +213,6 @@ private enum TimelinePosition {
 private struct SequenceTimelineRow: View {
   let task: Task
   let position: TimelinePosition
-  let isDragging: Bool
   let onDragStart: () -> NSItemProvider
   let dropDelegate: PrimarySequenceDropDelegate
   let onTap: () -> Void
@@ -226,9 +225,8 @@ private struct SequenceTimelineRow: View {
     HStack(alignment: .top, spacing: 14) {
       SequenceTimelineMarker(color: statusColor, position: position)
 
-      SequencePrimaryCard(task: task, isLifted: isDragging)
+      SequencePrimaryCard(task: task)
         .padding(.vertical, 8)
-        .opacity(isDragging ? 0.14 : 1)
         .onTapGesture(perform: onTap)
         .onDrag(onDragStart) {
           SequencePrimaryCard(task: task, isLifted: true)
@@ -591,24 +589,24 @@ private struct PrimarySequenceDropDelegate: DropDelegate {
   @Binding var hasPendingReorder: Bool
   let onCommit: () -> Void
 
-  func dropEntered(info: DropInfo) {
+  func dropEntered(info: DropInfo) {}
+
+  private func reorderedTaskIDs() -> [String]? {
     guard
       let draggedTaskID,
       draggedTaskID != destinationTaskID,
       let fromIndex = orderedTaskIDs.firstIndex(of: draggedTaskID),
       let toIndex = orderedTaskIDs.firstIndex(of: destinationTaskID)
     else {
-      return
+      return nil
     }
 
-    hasPendingReorder = true
-
-    withAnimation(.snappy(duration: 0.22, extraBounce: 0)) {
-      orderedTaskIDs.move(
-        fromOffsets: IndexSet(integer: fromIndex),
-        toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
-      )
-    }
+    var reorderedIDs = orderedTaskIDs
+    reorderedIDs.move(
+      fromOffsets: IndexSet(integer: fromIndex),
+      toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
+    )
+    return reorderedIDs == orderedTaskIDs ? nil : reorderedIDs
   }
 
   func dropUpdated(info: DropInfo) -> DropProposal? {
@@ -616,6 +614,10 @@ private struct PrimarySequenceDropDelegate: DropDelegate {
   }
 
   func performDrop(info: DropInfo) -> Bool {
+    if let reorderedTaskIDs = reorderedTaskIDs() {
+      orderedTaskIDs = reorderedTaskIDs
+      hasPendingReorder = true
+    }
     onCommit()
     return true
   }

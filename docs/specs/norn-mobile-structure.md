@@ -233,7 +233,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Sequence` 底部输入 dock 重新由 root scoped `safeAreaInset` 编排，并继续通过 `reservedDockHeight` 驱动内容 safe-area 让位，避免横向切 tab 时出现滚动偏移跳变
 - `Sequence` 的滚动裁剪范围重新由 root page shell 的全屏 edge-to-edge 延伸承担，不与 dock 的 safe-area 语义混用
 - `Sequence` 在竖屏主要只补 top safe-area，bottom 继续由 dock reserve 承担；横屏安全区、岛区、圆角和左右对称的进一步细化暂记为低优先级遗留 feature
-- `Sequence` 主序列拖拽已收回到卡片本体，时间线装饰留在原位；卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义
+- `Sequence` 主序列拖拽已收回到卡片本体，时间线装饰留在原位；卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义，活体卡片本身不再进入额外灰化态
 - `TaskDetailSheet` 已改为 toolbar 编辑，完成/恢复与归档收拢为同级动作行，归档继续保留确认
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环
 - `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
@@ -406,7 +406,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Root/ContentView.swift` | `ContentView` | 根容器、共享背景与 sheet 挂载点 | 不直连持久化和 HTTP |
 | `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 只接受绑定和 action |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
-| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列通过长按卡片重排，时间线使用连续轨道 |
+| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列通过长按卡片重排，落位时单次更新顺序 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前主要复用于 `TaskPool` 的 list 模式 |
 | `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 本轮只做 `list` 模式 |
