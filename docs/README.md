@@ -26,6 +26,7 @@
 
 ## guides
 
+- [guides/implementation-lessons.md](guides/implementation-lessons.md): 项目级实施教训真相源。记录用户纠错后的具体教训，以及生成方案前后的 lesson review 工作流。最后更新：2026-03-24
 - [guides/ui-design-process.md](guides/ui-design-process.md): AI 协作做 UI 时的决策方法论，用于减少“代码先生成、决策却没发生”的问题。最后更新：2026-03-22
 
 ## adr

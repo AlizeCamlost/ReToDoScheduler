@@ -43,23 +43,15 @@
 - 默认不要引入 `GeometryReader`、手算 reserve / inset、普通 `padding` 或 `offset` 去模拟安全区避让、滚动裁剪范围、dock 编排或页面壳行为。
 - 对这类问题，优先使用 `safeAreaInset`、`safeAreaPadding`、`overlay`、`background`、容器层级拆分和原生状态驱动。
 - 若确实不存在可行的声明式方案，使用 `GeometryReader` 或其他命令式补丁前，必须先停下说明 declarative 方案为何不成立，再取得确认。
-- 对当前 iOS 容器壳，优先检查并维持这三个声明式职责层：
-- root `safeAreaInset` 负责 Sequence 输入 dock 的下沉/出现编排，以及避免横向切 tab 时引入滚动偏移跳变。
-- root page shell 的 `ignoresSafeArea` 负责滚动裁剪范围的 edge-to-edge 延伸。
-- 各 tab wrapper 的 `safeAreaPadding` 负责内容本身对圆角、灵动岛、触控条的避让。
-- 不要把这三层职责重新揉在一起，也不要把其中一层改写成命令式补丁。
 
-## Regression Memory Policy
+## Lessons Workflow
 
-- 对用户已经明确生气、反复强调、纠正过，甚至出现过“改正后又再次犯错”的问题，必须固化到项目级记忆中；后续实现前先检查一遍，不可再次引入。
-- 当前已知不可再犯项：
-- 不要用 `GeometryReader`、手算 reserve / inset、普通 `padding` 去替代 `safeAreaInset` / `safeAreaPadding` 的语义。
-- 不要破坏 Sequence 输入 dock 的下沉编排，以及横向切 tab 时不引起滚动偏移跳变的结构。
-- 不要丢失滚动裁剪范围的 top / bottom / horizontal edge-to-edge。
-- 不要丢失横屏下对圆角、灵动岛、触控条的 safe-area 避让。
-- 不要混淆 page shell 的裁剪职责、dock 的编排职责和内容本身的 safe-area 职责。
-- 调整内容 safe-area 避让时，不要机械地四边同时加大；竖屏主避让方向是 top / bottom，横屏主避让方向是 left / right。
-- 对当前 Norn 壳层，Sequence 在竖屏主要补 top safe-area，bottom 继续交给 dock reserve；横屏主要补 horizontal safe-area，避免无谓压缩宽度。
+- 具体教训的真相源放在 `docs/guides/implementation-lessons.md`；`AGENTS.md` 只保留机制，不堆积具体实现细节。
+- 对用户已经明确生气、反复强调、纠正过，甚至出现过“改正后又再次犯错”的问题，必须在同一轮把它写入 lessons 文档，并同步更新 `docs/README.md`。
+- 在最终确定 roadmap 或原子任务方案前，先扫描 lessons 文档中与当前改动区域相关的条目，把它们视为方案约束，而不是事后补救。
+- 方案草案出来后、正式改代码前，必须做一次 lesson review：逐条检查方案是否违反相关教训；如果违反，先重做方案，再进入实现。
+- 实现完成后、提交前，再做一次 lesson review，专门检查是否把旧问题重新引回来了；必要时在提交前继续迭代。
+- 如果 lessons 文档里的具体条目已经被新条目吸收或抽象化，按 Docs Policy 维护单一真相源，避免 `AGENTS.md` 和 lessons 文档重复堆积。
 
 ## Practical Rule
 
