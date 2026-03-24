@@ -8,6 +8,7 @@ struct TaskEditorSheet: View {
   @State private var draft: TaskDraft
   @State private var tagsInput: String
   @State private var editableSteps: [EditableStep]
+  @State private var isDependencyPickerPresented = false
 
   init(
     draft: TaskDraft,
@@ -23,11 +24,24 @@ struct TaskEditorSheet: View {
     _editableSteps = State(initialValue: draft.steps.map(EditableStep.init(step:)))
   }
 
-  private var dependencyCandidates: [Task] {
-    allTasks.filter { candidate in
-      let isSameTask = draft.id == candidate.id
-      return !isSameTask && candidate.status != .archived
+  private var selectedDependencyTasks: [Task] {
+    let tasksByID = Dictionary(uniqueKeysWithValues: allTasks.map { ($0.id, $0) })
+    return draft.dependsOnTaskIDs.compactMap { tasksByID[$0] }
+  }
+
+  private var dependencySummaryText: String {
+    let count = draft.dependsOnTaskIDs.count
+    guard count > 0 else {
+      return "尚未选择前置依赖"
     }
+
+    let names = selectedDependencyTasks.prefix(2).map(\.title)
+    guard !names.isEmpty else {
+      return "已选 \(count) 项"
+    }
+
+    let suffix = count > names.count ? " 等 \(count) 项" : ""
+    return names.joined(separator: " · ") + suffix
   }
 
   var body: some View {
@@ -56,6 +70,13 @@ struct TaskEditorSheet: View {
           }
           .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
+      }
+      .sheet(isPresented: $isDependencyPickerPresented) {
+        TaskDependencyPickerSheet(
+          currentTaskID: draft.id,
+          allTasks: allTasks,
+          selectedTaskIDs: $draft.dependsOnTaskIDs
+        )
       }
     }
   }
@@ -98,21 +119,34 @@ struct TaskEditorSheet: View {
   }
 
   private var dependencySection: some View {
-    Section("任务依赖") {
-      if dependencyCandidates.isEmpty {
-        Text("当前没有可依赖的其他任务。")
-          .foregroundStyle(.secondary)
-      } else {
-        ForEach(dependencyCandidates) { candidate in
-          Toggle(isOn: dependencyBinding(for: candidate.id)) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text(candidate.title)
-              Text(candidate.id)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    Section("前置依赖") {
+      Button {
+        isDependencyPickerPresented = true
+      } label: {
+        DependencySummaryRow(
+          title: "前置依赖",
+          subtitle: dependencySummaryText,
+          count: draft.dependsOnTaskIDs.count
+        )
+      }
+      .buttonStyle(.plain)
+
+      if !selectedDependencyTasks.isEmpty {
+        ScrollView(.horizontal, showsIndicators: false) {
+          HStack(spacing: 8) {
+            ForEach(selectedDependencyTasks.prefix(4)) { task in
+              DependencyChip(title: task.title)
+            }
+            if selectedDependencyTasks.count > 4 {
+              DependencyChip(title: "另有 \(selectedDependencyTasks.count - 4) 项")
             }
           }
+          .padding(.vertical, 2)
         }
+      } else {
+        Text("从这里为当前任务挑选前置依赖，支持搜索和筛选。")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
       }
     }
   }
@@ -190,21 +224,6 @@ struct TaskEditorSheet: View {
     )
   }
 
-  private func dependencyBinding(for taskID: String) -> Binding<Bool> {
-    Binding(
-      get: { draft.dependsOnTaskIDs.contains(taskID) },
-      set: { selected in
-        if selected {
-          if !draft.dependsOnTaskIDs.contains(taskID) {
-            draft.dependsOnTaskIDs.append(taskID)
-          }
-        } else {
-          draft.dependsOnTaskIDs.removeAll { $0 == taskID }
-        }
-      }
-    )
-  }
-
   private func stepTitleBinding(for index: Int) -> Binding<String> {
     Binding(
       get: { editableSteps[index].title },
@@ -262,12 +281,70 @@ struct TaskEditorSheet: View {
   }
 }
 
+private struct DependencySummaryRow: View {
+  let title: String
+  let subtitle: String
+  let count: Int
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 12) {
+      VStack(alignment: .leading, spacing: 4) {
+        Text(title)
+          .font(.subheadline.weight(.semibold))
+          .foregroundStyle(.primary)
+        Text(subtitle)
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+          .multilineTextAlignment(.leading)
+      }
+
+      Spacer(minLength: 8)
+
+      HStack(spacing: 8) {
+        if count > 0 {
+          Text("\(count)")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(NornTheme.pillSurface, in: Capsule())
+        }
+
+        Image(systemName: "chevron.right")
+          .font(.footnote.weight(.semibold))
+          .foregroundStyle(.tertiary)
+      }
+    }
+    .padding(.vertical, 4)
+    .contentShape(Rectangle())
+  }
+}
+
+private struct DependencyChip: View {
+  let title: String
+
+  var body: some View {
+    Text(title)
+      .font(.caption.weight(.medium))
+      .foregroundStyle(.primary)
+      .lineLimit(1)
+      .padding(.horizontal, 10)
+      .padding(.vertical, 6)
+      .background(NornTheme.pillSurface, in: Capsule())
+      .overlay(
+        Capsule()
+          .strokeBorder(NornTheme.border, lineWidth: 1)
+      )
+  }
+}
+
 private struct EditableStep {
   var id: String
   var title: String
   var estimatedMinutes: Int
   var minChunkMinutes: Int
   var dependsOnStepIDsText: String
+  var rawPayload: [String: JSONValue]
 
   init(step: TaskStep) {
     id = step.id
@@ -275,6 +352,7 @@ private struct EditableStep {
     estimatedMinutes = step.estimatedMinutes
     minChunkMinutes = step.minChunkMinutes
     dependsOnStepIDsText = step.dependsOnStepIDs.joined(separator: ", ")
+    rawPayload = Self.encodedPayload(from: step)
   }
 
   init(
@@ -289,10 +367,16 @@ private struct EditableStep {
     self.estimatedMinutes = estimatedMinutes
     self.minChunkMinutes = minChunkMinutes
     self.dependsOnStepIDsText = dependsOnStepIDsText
+    self.rawPayload = [:]
   }
 
   var taskStep: TaskStep {
-    TaskStep(
+    let payload = mergedPayload()
+    if let decoded = Self.decodedTaskStep(from: payload) {
+      return decoded
+    }
+
+    return TaskStep(
       id: id,
       title: title,
       estimatedMinutes: estimatedMinutes,
@@ -302,6 +386,41 @@ private struct EditableStep {
         .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
         .filter { !$0.isEmpty }
     )
+  }
+
+  private func mergedPayload() -> [String: JSONValue] {
+    var payload = rawPayload
+    payload["id"] = .string(id)
+    payload["title"] = .string(title)
+    payload["estimatedMinutes"] = .number(Double(estimatedMinutes))
+    payload["minChunkMinutes"] = .number(Double(minChunkMinutes))
+    payload["dependsOnStepIDs"] = .array(
+      dependsOnStepIDsText
+        .split(separator: ",")
+        .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+        .map(JSONValue.string)
+    )
+    return payload
+  }
+
+  private static func encodedPayload(from step: TaskStep) -> [String: JSONValue] {
+    guard
+      let data = try? JSONEncoder().encode(step),
+      let payload = try? JSONDecoder().decode([String: JSONValue].self, from: data)
+    else {
+      return [:]
+    }
+
+    return payload
+  }
+
+  private static func decodedTaskStep(from payload: [String: JSONValue]) -> TaskStep? {
+    guard let data = try? JSONEncoder().encode(payload) else {
+      return nil
+    }
+
+    return try? JSONDecoder().decode(TaskStep.self, from: data)
   }
 }
 
