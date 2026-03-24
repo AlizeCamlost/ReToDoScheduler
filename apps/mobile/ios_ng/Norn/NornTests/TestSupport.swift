@@ -38,8 +38,8 @@ final class InMemoryTaskRepository: TaskRepositoryProtocol {
 
   func toggleCompletion(taskID: String) throws {
     guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
-    tasks[index].status = tasks[index].status == .done ? .todo : .done
-    tasks[index].updatedAt = Date()
+    let nextStatus: TaskStatus = tasks[index].status == .done ? .todo : .done
+    tasks[index] = tasks[index].settingStatus(nextStatus, updatedAt: Date())
   }
 }
 

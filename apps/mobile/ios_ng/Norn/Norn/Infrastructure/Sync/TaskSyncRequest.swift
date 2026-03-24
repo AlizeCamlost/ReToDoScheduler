@@ -3,11 +3,30 @@ import Foundation
 struct TaskSyncRequest: Encodable {
   struct TaskPayload: Codable {
     struct StepPayload: Codable {
+      struct ProgressPayload: Codable {
+        var startedAt: String?
+        var completedAt: String?
+
+        init(progress: TaskStepProgress) {
+          startedAt = ISO8601DateCodec.encode(progress.startedAt)
+          completedAt = ISO8601DateCodec.encode(progress.completedAt)
+        }
+
+        func toDomain() -> TaskStepProgress? {
+          let progress = TaskStepProgress(
+            startedAt: ISO8601DateCodec.decode(startedAt),
+            completedAt: ISO8601DateCodec.decode(completedAt)
+          )
+          return progress.startedAt == nil && progress.completedAt == nil ? nil : progress
+        }
+      }
+
       var id: String
       var title: String
       var estimatedMinutes: Int
       var minChunkMinutes: Int
       var dependsOnStepIds: [String]
+      var progress: ProgressPayload?
 
       init(step: TaskStep) {
         id = step.id
@@ -15,6 +34,7 @@ struct TaskSyncRequest: Encodable {
         estimatedMinutes = step.estimatedMinutes
         minChunkMinutes = step.minChunkMinutes
         dependsOnStepIds = step.dependsOnStepIDs
+        progress = step.progress.map(ProgressPayload.init(progress:))
       }
 
       func toDomain() -> TaskStep {
@@ -23,7 +43,8 @@ struct TaskSyncRequest: Encodable {
           title: title,
           estimatedMinutes: estimatedMinutes,
           minChunkMinutes: minChunkMinutes,
-          dependsOnStepIDs: dependsOnStepIds
+          dependsOnStepIDs: dependsOnStepIds,
+          progress: progress?.toDomain()
         )
       }
     }

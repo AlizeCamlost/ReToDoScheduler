@@ -53,6 +53,25 @@ const parseItems = (payload: unknown): Task[] => {
           typeof item.extJson === "object" && item.extJson ? (item.extJson as Record<string, unknown>) : {}
       };
 
+      if (item.scheduleValue && typeof item.scheduleValue === "object") {
+        next.scheduleValue = {
+          rewardOnTime: Number((item.scheduleValue as Record<string, unknown>).rewardOnTime ?? 10),
+          penaltyMissed: Number((item.scheduleValue as Record<string, unknown>).penaltyMissed ?? 25)
+        };
+      }
+
+      if (Array.isArray(item.dependsOnTaskIds)) {
+        next.dependsOnTaskIds = item.dependsOnTaskIds.map((taskId) => String(taskId));
+      }
+
+      if (Array.isArray(item.steps)) {
+        next.steps = item.steps as Task["steps"];
+      }
+
+      if (item.concurrencyMode === "serial") {
+        next.concurrencyMode = "serial";
+      }
+
       return makeTask(next);
     });
 };

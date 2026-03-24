@@ -144,6 +144,9 @@ apps/mobile/ios_ng/Norn/Norn/
       LoadTasksUseCase.swift
       QuickAddTaskUseCase.swift
       SaveTaskDraftUseCase.swift
+      UpdateTaskStatusUseCase.swift
+      AppendTaskStepUseCase.swift
+      CompleteTaskStepUseCase.swift
       ToggleTaskCompletionUseCase.swift
       ArchiveTaskUseCase.swift
       SaveSyncSettingsUseCase.swift
@@ -158,6 +161,7 @@ apps/mobile/ios_ng/Norn/Norn/
       Task.swift
       TaskStatus.swift
       TaskStep.swift
+      TaskStepProgress.swift
       TaskScheduleValue.swift
       TaskDraft.swift
       QuickAddDraft.swift
@@ -198,7 +202,9 @@ apps/mobile/ios_ng/Norn/Norn/
       Components/
         FocusCard.swift
         TaskCard.swift
+        TaskStepPreview.swift
     TaskPool/
+      TaskDependencyPickerSheet.swift
       TaskEditorSheet.swift
       TaskDetailSheet.swift
       TaskPoolTab.swift
@@ -217,7 +223,7 @@ apps/mobile/ios_ng/Norn/Norn/
 当前快照说明：
 
 - `Application/State` 已落 `NornAppStore`，作为当前唯一 UI 状态入口
-- `Application/UseCases` 已落读取、快速新增、保存草稿、主序列重排、状态切换、归档、同步设置和同步用例
+- `Application/UseCases` 已落读取、快速新增、保存草稿、主序列重排、显式任务状态切换、详情内追加子任务、串行子任务推进、完成/归档、同步设置和同步用例
 - `Infrastructure/Persistence`、`Infrastructure/Mapping` 已落本地任务仓库、设置仓库和记录映射
 - `Infrastructure/Sync` 已落 HTTP client、sync request 和 sync response DTO
 - `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
@@ -225,17 +231,19 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset 和 sheet 挂载点
-- `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环
+- `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环，并在激活态提供“详情”入口把 Quick Add 草稿直接提升到详细新建 sheet
 - `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过方向感知的 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让：竖屏主避让 top/bottom；横屏细化仍属后续低优先级收敛项，当前只保留不破坏竖屏和 dock 编排的保守实现
 - `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片直接拖拽重排并通过现有 sync 同步顺序
 - `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
-- `Sequence` 时间线标记已改为更接近 VS Code git graph 的纯色圆点 + 分段细轨：节点与上下线段留出间隔，线条连续穿过卡片间呼吸区，末端改为渐隐渐细的射线尾迹
+- `Sequence` 时间线标记已进一步收敛为更接近手绘参考的纯色圆点 + 分段点划轨：节点与上下虚线段留出间隔，末端继续保留渐隐渐细的射线尾迹
 - `Sequence` 底部输入 dock 重新由 root scoped `safeAreaInset` 编排，并继续通过 `reservedDockHeight` 驱动内容 safe-area 让位，避免横向切 tab 时出现滚动偏移跳变
 - `Sequence` 的滚动裁剪范围重新由 root page shell 的全屏 edge-to-edge 延伸承担，不与 dock 的 safe-area 语义混用
 - `Sequence` 在竖屏主要只补 top safe-area，bottom 继续由 dock reserve 承担；横屏安全区、岛区、圆角和左右对称的进一步细化暂记为低优先级遗留 feature
 - `Sequence` 主序列拖拽已收回到卡片本体，时间线装饰留在原位；卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义，活体卡片本身不再进入额外灰化态
-- `TaskDetailSheet` 已改为 toolbar 编辑，完成/恢复与归档收拢为同级动作行，归档继续保留确认
-- `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环
+- `TaskDetailSheet` 已改为真正的半模态轻编辑面板：toolbar 仍保留完整编辑入口，但外层已支持直接切到进行中、直接追加子任务、点击当前步骤推进串行进度，以及完成/归档操作
+- `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环，并把任务依赖改为二层 searchable picker，避免在主表单里平铺全量依赖 toggle
+- `TaskStepPreview` 已成为 Sequence / Focus / TaskPool 卡片共用的串行子任务预览组件，统一在卡片上展示当前步骤和步进位置
+- `TaskStepProgress`、`TaskRecord` 和 `TaskSyncRequest` 已把步骤 `startedAt/completedAt` 进度接入本地持久化与同步载荷；已完成步骤不再进入共享调度输入
 - `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
 - `TaskPool` 的 `list` 模式已直接绑定 store 中的可见任务序列
 - `apps/mobile/ios_ng/Norn/NornTests` 与 `apps/mobile/ios_ng/Norn/NornUITests` 已落基础数据流和 smoke 测试代码
@@ -258,6 +266,7 @@ apps/mobile/ios_ng/Norn/Norn/
       Task.swift
       TaskStatus.swift
       TaskStep.swift
+      TaskStepProgress.swift
       TaskScheduleValue.swift
       TaskDraft.swift
       QuickAddDraft.swift
@@ -272,6 +281,9 @@ apps/mobile/ios_ng/Norn/Norn/
       LoadTasksUseCase.swift
       QuickAddTaskUseCase.swift
       SaveTaskDraftUseCase.swift
+      UpdateTaskStatusUseCase.swift
+      AppendTaskStepUseCase.swift
+      CompleteTaskStepUseCase.swift
       ToggleTaskCompletionUseCase.swift
       ArchiveTaskUseCase.swift
       SaveSyncSettingsUseCase.swift
@@ -310,8 +322,10 @@ apps/mobile/ios_ng/Norn/Norn/
       Components/
         FocusCard.swift
         TaskCard.swift
+        TaskStepPreview.swift
     TaskPool/
       TaskPoolTab.swift
+      TaskDependencyPickerSheet.swift
       TaskDetailSheet.swift
       TaskEditorSheet.swift
     Settings/
@@ -331,7 +345,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | --- | --- |
 | `Task` | `id` `title` `rawInput` `description?` `status` `estimatedMinutes` `minChunkMinutes` `dueAt?` `tags` `scheduleValue` `dependsOnTaskIds` `steps` `concurrencyMode` `createdAt` `updatedAt` `extJson` |
 | `TaskScheduleValue` | `rewardOnTime` `penaltyMissed` |
-| `TaskStepTemplate` | `id` `title` `estimatedMinutes` `minChunkMinutes` `dependsOnStepIds` |
+| `TaskStepTemplate` | `id` `title` `estimatedMinutes` `minChunkMinutes` `dependsOnStepIds` `progress?{startedAt?,completedAt?}` |
 | `TaskSyncRequest` | `deviceId` `tasks` |
 | `TaskSyncResponse` | `deviceId?` `synced?` `items` |
 
@@ -354,7 +368,8 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Domain/App/AppTab.swift` | `AppTab` | 定义页面级导航枚举 | 只表达 tab 语义 |
 | `Domain/Task/Task.swift` | `Task` | 任务聚合根 | Norn 维护的主实体 |
 | `Domain/Task/TaskStatus.swift` | `TaskStatus` | 任务生命周期状态 | 只定义状态语义，不负责 UI 色彩 |
-| `Domain/Task/TaskStep.swift` | `TaskStep` | 任务内步骤单元 | 为后续 Kairos 输入做准备 |
+| `Domain/Task/TaskStep.swift` | `TaskStep` | 任务内步骤单元 | 当前默认串行推进 |
+| `Domain/Task/TaskStepProgress.swift` | `TaskStepProgress` | 步骤级 started/completed 进度 | 供 UI、持久化和同步共用 |
 | `Domain/Task/TaskScheduleValue.swift` | `TaskScheduleValue` | 任务价值输入 | 与调度价值语义对齐 |
 | `Domain/Task/TaskDraft.swift` | `TaskDraft` | 详细编辑使用的草稿模型 | 服务于 editor，不直接落盘 |
 | `Domain/Task/QuickAddDraft.swift` | `QuickAddDraft` | Quick Add 解析后的最小草稿 | 服务于快速新增入口 |
@@ -366,10 +381,13 @@ apps/mobile/ios_ng/Norn/Norn/
 
 | 文件 | 主类型 | 作用 | 对外入口 |
 | --- | --- | --- | --- |
-| `Application/State/NornAppStore.swift` | `NornAppStore` | UI 总状态入口 | `bootstrap()` `submitQuickAdd()` `openTaskDetail()` `openTaskEditor()` `openSyncSettings()` `refresh()` |
+| `Application/State/NornAppStore.swift` | `NornAppStore` | UI 总状态入口 | `bootstrap()` `submitQuickAdd()` `openNewTaskDraftFromQuickAdd()` `openTaskDetail()` `openTaskEditor()` `updateTaskStatus()` `appendTaskStep()` `completeTaskStep()` `openSyncSettings()` `refresh()` |
 | `Application/UseCases/LoadTasksUseCase.swift` | `LoadTasksUseCase` | 读取当前任务集合 | `execute()` |
 | `Application/UseCases/QuickAddTaskUseCase.swift` | `QuickAddTaskUseCase` | 处理底部快速新增 | `execute(rawInput:)` |
 | `Application/UseCases/SaveTaskDraftUseCase.swift` | `SaveTaskDraftUseCase` | 创建或保存详细任务 | `execute(draft:)` |
+| `Application/UseCases/UpdateTaskStatusUseCase.swift` | `UpdateTaskStatusUseCase` | 显式切换任务状态 | `execute(taskID:status:)` |
+| `Application/UseCases/AppendTaskStepUseCase.swift` | `AppendTaskStepUseCase` | 在详情半模态里快速追加串行子任务 | `execute(taskID:title:)` |
+| `Application/UseCases/CompleteTaskStepUseCase.swift` | `CompleteTaskStepUseCase` | 推进当前串行子任务 | `execute(taskID:stepID:)` |
 | `Application/UseCases/ReorderSequenceTasksUseCase.swift` | `ReorderSequenceTasksUseCase` | 主序列拖拽后的顺序持久化 | `execute(primaryTaskIDs:)` |
 | `Application/UseCases/ToggleTaskCompletionUseCase.swift` | `ToggleTaskCompletionUseCase` | 切换完成/恢复待办 | `execute(taskID:)` |
 | `Application/UseCases/ArchiveTaskUseCase.swift` | `ArchiveTaskUseCase` | 归档任务 | `execute(taskID:)` |
@@ -386,9 +404,9 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Infrastructure/Persistence/UserDefaultsSyncSettingsRepository.swift` | `UserDefaultsSyncSettingsRepository` | `UserDefaults` 配置存储实现 | 实现 `SyncSettingsRepositoryProtocol` |
 | `Infrastructure/Sync/TaskSyncClientProtocol.swift` | `TaskSyncClientProtocol` | 远端同步边界 | `sync(tasks:settings:)` |
 | `Infrastructure/Sync/HTTPTaskSyncClient.swift` | `HTTPTaskSyncClient` | HTTP 同步实现 | 实现 `TaskSyncClientProtocol` |
-| `Infrastructure/Sync/TaskSyncRequest.swift` | `TaskSyncRequest` | 同步请求 DTO | 只服务远端协议 |
+| `Infrastructure/Sync/TaskSyncRequest.swift` | `TaskSyncRequest` | 同步请求 DTO | 同步 `TaskStepProgress` |
 | `Infrastructure/Sync/TaskSyncResponse.swift` | `TaskSyncResponse` | 同步响应 DTO | 只服务远端协议 |
-| `Infrastructure/Mapping/TaskRecord.swift` | `TaskRecord` | 本地存储记录模型 | 负责 `Domain <-> Persistence` 映射 |
+| `Infrastructure/Mapping/TaskRecord.swift` | `TaskRecord` | 本地存储记录模型 | 负责 `Domain <-> Persistence` 映射，并落 `TaskStepProgress` |
 
 ### 5.4 Utilities
 
@@ -404,14 +422,16 @@ apps/mobile/ios_ng/Norn/Norn/
 | 文件 | 主类型 | 作用 | 备注 |
 | --- | --- | --- | --- |
 | `UI/Root/ContentView.swift` | `ContentView` | 根容器、共享背景与 sheet 挂载点 | 不直连持久化和 HTTP |
-| `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 只接受绑定和 action |
+| `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 激活态提供“详情”入口 |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
 | `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列通过长按卡片重排，落位时单次更新顺序 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前主要复用于 `TaskPool` 的 list 模式 |
+| `UI/Sequence/Components/TaskStepPreview.swift` | `TaskStepPreview` | 串行子任务当前步骤预览 | 共用于 Focus / Sequence / TaskPool 卡片 |
 | `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 本轮只做 `list` 模式 |
-| `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情展示层 | 编辑进入 toolbar，完成为主动作，归档需确认 |
-| `UI/TaskPool/TaskEditorSheet.swift` | `TaskEditorSheet` | 新建与编辑任务表单 | 基于 `TaskDraft` |
+| `UI/TaskPool/TaskDependencyPickerSheet.swift` | `TaskDependencyPickerSheet` | 任务依赖二层选择器 | searchable + filter + multi-select |
+| `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情半模态 | 外层可切进行中、追加子任务、推进当前步骤、完成/归档 |
+| `UI/TaskPool/TaskEditorSheet.swift` | `TaskEditorSheet` | 新建与编辑任务表单 | 基于 `TaskDraft`，依赖选择器改为二层 picker |
 | `UI/Settings/SyncSettingsSheet.swift` | `SyncSettingsSheet` | 同步配置页 | 基于 `SyncSettings` |
 | `UI/Schedule/ScheduleTab.swift` | `ScheduleTab` | 调度页外壳 | 本轮不扩展调度实现 |
 
@@ -422,7 +442,11 @@ apps/mobile/ios_ng/Norn/Norn/
 ```text
 QuickAddDock
   -> NornAppStore.submitQuickAdd
+    OR
+  -> NornAppStore.openNewTaskDraftFromQuickAdd()
   -> QuickAddTaskUseCase.execute(rawInput:)
+    OR
+  -> QuickAddDraft.parse(rawInput:) -> TaskEditorSheet
   -> TaskRepositoryProtocol.save/upsert
   -> LoadTasksUseCase.execute()
   -> NornAppStore refresh visible tasks
@@ -435,9 +459,13 @@ QuickAddDock
 SequenceTab / FocusCard / TaskPool list item
   -> NornAppStore.openTaskDetail(taskID:)
   -> TaskDetailSheet
+  -> NornAppStore.updateTaskStatus(taskID:status:)
+  -> NornAppStore.appendTaskStep(taskID:title:)
+  -> NornAppStore.completeTaskStep(taskID:stepID:)
   -> NornAppStore.openTaskEditor(taskID:)
   -> TaskEditorSheet
   -> SaveTaskDraftUseCase.execute(draft:)
+  -> UpdateTaskStatusUseCase / AppendTaskStepUseCase / CompleteTaskStepUseCase
   -> TaskRepositoryProtocol.save()
   -> LoadTasksUseCase.execute()
   -> SyncTasksUseCase.execute(settings:) [保守触发]
@@ -455,11 +483,14 @@ SequenceTab main sequence card drag
   -> SyncTasksUseCase.execute(settings:) [保守触发]
 ```
 
-### 6.4 完成与归档
+### 6.4 完成、推进与归档
 
 ```text
-TaskDetailSheet completion/archive action
+TaskDetailSheet completion/progress/archive action
   -> ToggleTaskCompletionUseCase.execute(taskID:)
+  -> UpdateTaskStatusUseCase.execute(taskID:status:)
+  -> AppendTaskStepUseCase.execute(taskID:title:)
+  -> CompleteTaskStepUseCase.execute(taskID:stepID:)
   -> ArchiveTaskUseCase.execute(taskID:)
   -> TaskRepositoryProtocol.toggleCompletion/archive
   -> LoadTasksUseCase.execute()

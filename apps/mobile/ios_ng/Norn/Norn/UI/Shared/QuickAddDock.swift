@@ -4,6 +4,19 @@ struct QuickAddDock: View {
   @Binding var input: String
   @FocusState.Binding var isFocused: Bool
   let onAdd: () -> Void
+  let onOpenDetail: () -> Void
+
+  init(
+    input: Binding<String>,
+    isFocused: FocusState<Bool>.Binding,
+    onAdd: @escaping () -> Void,
+    onOpenDetail: @escaping () -> Void = {}
+  ) {
+    _input = input
+    _isFocused = isFocused
+    self.onAdd = onAdd
+    self.onOpenDetail = onOpenDetail
+  }
 
   private var trimmedInput: String {
     input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -22,6 +35,22 @@ struct QuickAddDock: View {
         .font(.body)
 
       if isFocused {
+        Button(action: onOpenDetail) {
+          HStack(spacing: 6) {
+            Image(systemName: "note.text")
+              .font(.system(size: 14, weight: .semibold))
+            Text("详情")
+              .font(.subheadline.weight(.semibold))
+          }
+          .foregroundStyle(.primary)
+          .frame(height: 36)
+          .padding(.horizontal, 12)
+          .background(
+            Capsule().fill(NornTheme.pillSurfaceStrong)
+          )
+        }
+        .buttonStyle(.plain)
+
         Button(action: onAdd) {
           Image(systemName: "arrow.up")
             .font(.system(size: 16, weight: .semibold))
@@ -56,7 +85,7 @@ private struct QuickAddDockPreview: View {
   @State var input = ""
   @FocusState var focused: Bool
   var body: some View {
-    QuickAddDock(input: $input, isFocused: $focused, onAdd: {})
+    QuickAddDock(input: $input, isFocused: $focused, onAdd: {}, onOpenDetail: {})
   }
 }
 
