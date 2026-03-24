@@ -94,9 +94,14 @@ function App() {
                     <div className="panel-title">时间模板</div>
                     <div className="panel-caption">日程容量仍由周模板提供，先在这里维护，再看排程结果。</div>
                   </div>
-                  <button className="btn-text" onClick={controller.toggleTemplateOpen}>
-                    {controller.templateOpen ? "收起" : "展开"}
-                  </button>
+                  <div className="toolbar compact-toolbar">
+                    <button className="btn-text" onClick={controller.resetTimeTemplate}>
+                      重置模板
+                    </button>
+                    <button className="btn-text" onClick={controller.toggleTemplateOpen}>
+                      {controller.templateOpen ? "收起" : "展开"}
+                    </button>
+                  </div>
                 </div>
 
                 {controller.templateOpen && (
@@ -125,6 +130,11 @@ function App() {
               onSearchQueryChange={controller.setSearchQuery}
               onToggleDone={controller.toggleDone}
               onArchive={controller.archiveTask}
+              syncMessage={controller.syncMessage}
+              isSyncing={controller.isSyncing}
+              onRefresh={() => void controller.performSync()}
+              onExport={controller.exportMarkdown}
+              onImport={controller.importMarkdownFile}
               onOpenDetail={controller.openTaskDetail}
               onEdit={controller.openTaskEditor}
             />
