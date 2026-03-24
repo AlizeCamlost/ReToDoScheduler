@@ -22,6 +22,23 @@ final class NornAppStoreTests: XCTestCase {
     XCTAssertTrue(store.quickAddInput.isEmpty)
   }
 
+  func testOpenNewTaskDraftFromQuickAddSeedsDetailedDraft() {
+    let repository = InMemoryTaskRepository()
+    let settingsRepository = InMemorySyncSettingsRepository()
+    let store = makeStore(
+      repository: repository,
+      settingsRepository: settingsRepository
+    )
+
+    store.quickAddInput = "写周报 #work 45m 明天"
+    store.openNewTaskDraftFromQuickAdd()
+
+    XCTAssertEqual(store.taskDraft?.title, "写周报")
+    XCTAssertEqual(store.taskDraft?.estimatedMinutes, 45)
+    XCTAssertEqual(store.taskDraft?.tags, ["work"])
+    XCTAssertTrue(store.quickAddInput.isEmpty)
+  }
+
   func testSaveTaskDraftUpdatesExistingTask() throws {
     let existingTask = makeTask(id: "task-1", title: "Old", updatedAt: Date(timeIntervalSince1970: 100))
     let repository = InMemoryTaskRepository(tasks: [existingTask])
@@ -62,6 +79,72 @@ final class NornAppStoreTests: XCTestCase {
     store.archiveTask(taskID: "task-1")
     XCTAssertEqual(store.tasks.first?.status, .archived)
     XCTAssertNil(store.selectedTask)
+  }
+
+  func testUpdateTaskStatusAndCompleteStepsAdvanceSerialProgress() throws {
+    let task = makeTask(
+      id: "task-1",
+      title: "Task",
+      steps: [
+        TaskStep(id: "s1", title: "第一步", estimatedMinutes: 15, minChunkMinutes: 10),
+        TaskStep(id: "s2", title: "第二步", estimatedMinutes: 20, minChunkMinutes: 10, dependsOnStepIDs: ["s1"])
+      ],
+      updatedAt: Date(timeIntervalSince1970: 100)
+    )
+    let repository = InMemoryTaskRepository(tasks: [task])
+    let settingsRepository = InMemorySyncSettingsRepository()
+    let store = makeStore(
+      repository: repository,
+      settingsRepository: settingsRepository,
+      tasks: [task]
+    )
+
+    store.updateTaskStatus(taskID: "task-1", status: .doing)
+    XCTAssertEqual(store.tasks.first?.status, .doing)
+    XCTAssertEqual(store.tasks.first?.currentStep?.id, "s1")
+    XCTAssertNotNil(store.tasks.first?.currentStep?.progress?.startedAt)
+
+    store.completeTaskStep(taskID: "task-1", stepID: "s1")
+    XCTAssertEqual(store.tasks.first?.status, .doing)
+    XCTAssertTrue(store.tasks.first?.steps.first?.isCompleted ?? false)
+    XCTAssertEqual(store.tasks.first?.currentStep?.id, "s2")
+
+    store.completeTaskStep(taskID: "task-1", stepID: "s2")
+    XCTAssertEqual(store.tasks.first?.status, .done)
+    XCTAssertTrue(store.tasks.first?.allStepsCompleted ?? false)
+  }
+
+  func testAppendTaskStepReopensDoneTaskAndChainsDependency() throws {
+    let completedAt = Date(timeIntervalSince1970: 200)
+    let task = makeTask(
+      id: "task-1",
+      title: "Task",
+      status: .done,
+      steps: [
+        TaskStep(
+          id: "s1",
+          title: "第一步",
+          estimatedMinutes: 15,
+          minChunkMinutes: 10,
+          progress: TaskStepProgress(startedAt: completedAt, completedAt: completedAt)
+        )
+      ],
+      updatedAt: Date(timeIntervalSince1970: 300)
+    )
+    let repository = InMemoryTaskRepository(tasks: [task])
+    let settingsRepository = InMemorySyncSettingsRepository()
+    let store = makeStore(
+      repository: repository,
+      settingsRepository: settingsRepository,
+      tasks: [task]
+    )
+
+    store.appendTaskStep(taskID: "task-1", title: "收尾")
+
+    let updatedTask = try XCTUnwrap(store.tasks.first)
+    XCTAssertEqual(updatedTask.status, .doing)
+    XCTAssertEqual(updatedTask.steps.count, 2)
+    XCTAssertEqual(updatedTask.steps.last?.dependsOnStepIDs, ["s1"])
   }
 
   func testSaveSyncSettingsGeneratesDeviceID() {
@@ -127,6 +210,9 @@ final class NornAppStoreTests: XCTestCase {
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: repository),
       reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase(repository: repository),
       toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase(repository: repository),
+      updateTaskStatusUseCase: UpdateTaskStatusUseCase(repository: repository),
+      appendTaskStepUseCase: AppendTaskStepUseCase(repository: repository),
+      completeTaskStepUseCase: CompleteTaskStepUseCase(repository: repository),
       archiveTaskUseCase: ArchiveTaskUseCase(repository: repository),
       saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: settingsRepository),
       syncTasksUseCase: SyncTasksUseCase(repository: repository, client: StubTaskSyncClient { tasks, _ in tasks }),

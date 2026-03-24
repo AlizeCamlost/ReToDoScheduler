@@ -47,7 +47,8 @@ struct SaveTaskDraftUseCase {
           title: step.title,
           estimatedMinutes: step.estimatedMinutes,
           minChunkMinutes: step.minChunkMinutes,
-          dependsOnStepIDs: step.dependsOnStepIDs.filter { validStepIDs.contains($0) && $0 != step.id }
+          dependsOnStepIDs: step.dependsOnStepIDs.filter { validStepIDs.contains($0) && $0 != step.id },
+          progress: step.progress
         )
       },
       concurrencyMode: draft.concurrencyMode,
@@ -81,7 +82,8 @@ struct SaveTaskDraftUseCase {
         minChunkMinutes: max(1, step.minChunkMinutes),
         dependsOnStepIDs: step.dependsOnStepIDs
           .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-          .filter { !$0.isEmpty && $0 != uniqueID }
+          .filter { !$0.isEmpty && $0 != uniqueID },
+        progress: step.progress
       )
     }
   }

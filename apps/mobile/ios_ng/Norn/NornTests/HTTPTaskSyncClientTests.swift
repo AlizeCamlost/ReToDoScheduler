@@ -13,9 +13,22 @@ final class HTTPTaskSyncClientTests: XCTestCase {
     configuration.protocolClasses = [URLProtocolStub.self]
     let session = URLSession(configuration: configuration)
     let client = HTTPTaskSyncClient(session: session)
+    let startedAt = Date(timeIntervalSince1970: 450)
+    let completedAt = Date(timeIntervalSince1970: 500)
+    let responseTime = Date(timeIntervalSince1970: 1_700_000_100)
+    let responseTimeText = ISO8601DateCodec.encode(responseTime) ?? ""
     let task = makeTask(
       id: "local-1",
       title: "Local Task",
+      steps: [
+        TaskStep(
+          id: "s1",
+          title: "第一步",
+          estimatedMinutes: 15,
+          minChunkMinutes: 10,
+          progress: TaskStepProgress(startedAt: startedAt, completedAt: completedAt)
+        )
+      ],
       updatedAt: Date(timeIntervalSince1970: 500)
     )
     let settings = SyncSettings(
@@ -33,6 +46,7 @@ final class HTTPTaskSyncClientTests: XCTestCase {
       let payload = try JSONDecoder().decode(CapturedSyncRequest.self, from: body)
       XCTAssertEqual(payload.deviceId, "device-1")
       XCTAssertEqual(payload.tasks.map(\.id), ["local-1"])
+      XCTAssertEqual(payload.tasks.first?.steps.first?.progress?.completedAt, ISO8601DateCodec.encode(completedAt))
 
       let url = try XCTUnwrap(request.url)
       let response = try XCTUnwrap(HTTPURLResponse(
@@ -41,7 +55,6 @@ final class HTTPTaskSyncClientTests: XCTestCase {
         httpVersion: nil,
         headerFields: nil
       ))
-      let now = ISO8601DateCodec.encode(Date(timeIntervalSince1970: 1_700_000_100)) ?? ""
       let data = """
       {
         "deviceId": "device-1",
@@ -59,10 +72,22 @@ final class HTTPTaskSyncClientTests: XCTestCase {
             "tags": ["sync"],
             "scheduleValue": { "rewardOnTime": 10, "penaltyMissed": 25 },
             "dependsOnTaskIds": [],
-            "steps": [],
+            "steps": [
+              {
+                "id": "remote-step-1",
+                "title": "远端步骤",
+                "estimatedMinutes": 20,
+                "minChunkMinutes": 10,
+                "dependsOnStepIds": [],
+                "progress": {
+                  "startedAt": "\(responseTimeText)",
+                  "completedAt": "\(responseTimeText)"
+                }
+              }
+            ],
             "concurrencyMode": "serial",
-            "createdAt": "\(now)",
-            "updatedAt": "\(now)",
+            "createdAt": "\(responseTimeText)",
+            "updatedAt": "\(responseTimeText)",
             "extJson": {}
           }
         ]
@@ -74,12 +99,24 @@ final class HTTPTaskSyncClientTests: XCTestCase {
     let syncedTasks = try await client.sync(tasks: [task], settings: settings)
     XCTAssertEqual(syncedTasks.map(\.id), ["remote-1"])
     XCTAssertEqual(syncedTasks.first?.tags, ["sync"])
+    XCTAssertEqual(syncedTasks.first?.steps.first?.progress?.completedAt, responseTime)
   }
 }
 
 private struct CapturedSyncRequest: Decodable {
+  struct CapturedStep: Decodable {
+    struct CapturedProgress: Decodable {
+      var startedAt: String?
+      var completedAt: String?
+    }
+
+    var id: String
+    var progress: CapturedProgress?
+  }
+
   struct CapturedTask: Decodable {
     var id: String
+    var steps: [CapturedStep]
   }
 
   var deviceId: String

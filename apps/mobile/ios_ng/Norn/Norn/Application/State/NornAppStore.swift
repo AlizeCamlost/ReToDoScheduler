@@ -18,6 +18,9 @@ final class NornAppStore {
   @ObservationIgnored private let saveTaskDraftUseCase: SaveTaskDraftUseCase
   @ObservationIgnored private let reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase
   @ObservationIgnored private let toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase
+  @ObservationIgnored private let updateTaskStatusUseCase: UpdateTaskStatusUseCase
+  @ObservationIgnored private let appendTaskStepUseCase: AppendTaskStepUseCase
+  @ObservationIgnored private let completeTaskStepUseCase: CompleteTaskStepUseCase
   @ObservationIgnored private let archiveTaskUseCase: ArchiveTaskUseCase
   @ObservationIgnored private let saveSyncSettingsUseCase: SaveSyncSettingsUseCase
   @ObservationIgnored private let syncTasksUseCase: SyncTasksUseCase
@@ -38,6 +41,9 @@ final class NornAppStore {
     saveTaskDraftUseCase: SaveTaskDraftUseCase,
     reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase,
     toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase,
+    updateTaskStatusUseCase: UpdateTaskStatusUseCase,
+    appendTaskStepUseCase: AppendTaskStepUseCase,
+    completeTaskStepUseCase: CompleteTaskStepUseCase,
     archiveTaskUseCase: ArchiveTaskUseCase,
     saveSyncSettingsUseCase: SaveSyncSettingsUseCase,
     syncTasksUseCase: SyncTasksUseCase,
@@ -56,6 +62,9 @@ final class NornAppStore {
     self.saveTaskDraftUseCase = saveTaskDraftUseCase
     self.reorderSequenceTasksUseCase = reorderSequenceTasksUseCase
     self.toggleTaskCompletionUseCase = toggleTaskCompletionUseCase
+    self.updateTaskStatusUseCase = updateTaskStatusUseCase
+    self.appendTaskStepUseCase = appendTaskStepUseCase
+    self.completeTaskStepUseCase = completeTaskStepUseCase
     self.archiveTaskUseCase = archiveTaskUseCase
     self.saveSyncSettingsUseCase = saveSyncSettingsUseCase
     self.syncTasksUseCase = syncTasksUseCase
@@ -110,6 +119,13 @@ final class NornAppStore {
     }
   }
 
+  func openNewTaskDraftFromQuickAdd() {
+    let seededDraft = QuickAddDraft.parse(rawInput: quickAddInput)?.taskDraft ?? TaskDraft()
+    quickAddInput = ""
+    closeTaskDetail()
+    taskDraft = seededDraft
+  }
+
   func openTaskDetail(taskID: String) {
     selectedTaskID = taskID
   }
@@ -147,6 +163,42 @@ final class NornAppStore {
   func toggleTaskCompletion(taskID: String) {
     do {
       tasks = try toggleTaskCompletionUseCase.execute(taskID: taskID)
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
+  }
+
+  func updateTaskStatus(
+    taskID: String,
+    status: TaskStatus
+  ) {
+    do {
+      tasks = try updateTaskStatusUseCase.execute(taskID: taskID, status: status)
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
+  }
+
+  func appendTaskStep(
+    taskID: String,
+    title: String
+  ) {
+    do {
+      tasks = try appendTaskStepUseCase.execute(taskID: taskID, title: title)
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
+  }
+
+  func completeTaskStep(
+    taskID: String,
+    stepID: String
+  ) {
+    do {
+      tasks = try completeTaskStepUseCase.execute(taskID: taskID, stepID: stepID)
       scheduleConservativeSyncIfNeeded()
     } catch {
       syncStatus = .failed(message: error.localizedDescription)
@@ -235,6 +287,9 @@ extension NornAppStore {
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: taskRepository),
       reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase(repository: taskRepository),
       toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase(repository: taskRepository),
+      updateTaskStatusUseCase: UpdateTaskStatusUseCase(repository: taskRepository),
+      appendTaskStepUseCase: AppendTaskStepUseCase(repository: taskRepository),
+      completeTaskStepUseCase: CompleteTaskStepUseCase(repository: taskRepository),
       archiveTaskUseCase: ArchiveTaskUseCase(repository: taskRepository),
       saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: syncSettingsRepository),
       syncTasksUseCase: SyncTasksUseCase(repository: taskRepository, client: PreviewTaskSyncClient()),
@@ -278,8 +333,8 @@ private final class PreviewTaskRepository: TaskRepositoryProtocol {
 
   func toggleCompletion(taskID: String) throws {
     guard let index = storedTasks.firstIndex(where: { $0.id == taskID }) else { return }
-    storedTasks[index].status = storedTasks[index].status == .done ? .todo : .done
-    storedTasks[index].updatedAt = Date()
+    let nextStatus: TaskStatus = storedTasks[index].status == .done ? .todo : .done
+    storedTasks[index] = storedTasks[index].settingStatus(nextStatus, updatedAt: Date())
   }
 }
 
