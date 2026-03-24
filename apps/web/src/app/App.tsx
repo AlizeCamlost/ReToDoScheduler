@@ -1,6 +1,7 @@
 import QuickAddDock from "../features/sequence/components/QuickAddDock";
 import SequenceTab from "../features/sequence/components/SequenceTab";
 import SchedulePanel from "../features/schedule/components/SchedulePanel";
+import TaskDetailModal from "../features/task-detail/components/TaskDetailModal";
 import TaskEditModal from "../features/task-pool/components/TaskEditModal";
 import TaskPoolPanel from "../features/task-pool/components/TaskPoolPanel";
 import TimeTemplateEditor from "../features/time-template/components/TimeTemplateEditor";
@@ -80,7 +81,7 @@ function App() {
               primarySequenceTasks={controller.primarySequenceTasks}
               nextTasks={controller.nextTasks}
               getCurrentStepForTask={controller.getCurrentStepForTask}
-              onTaskTap={controller.openTaskEditor}
+              onTaskTap={controller.openTaskDetail}
               onReorderPrimarySequence={controller.reorderPrimarySequence}
             />
           )}
@@ -124,6 +125,7 @@ function App() {
               onSearchQueryChange={controller.setSearchQuery}
               onToggleDone={controller.toggleDone}
               onArchive={controller.archiveTask}
+              onOpenDetail={controller.openTaskDetail}
               onEdit={controller.openTaskEditor}
             />
           )}
@@ -148,6 +150,20 @@ function App() {
           allTasks={controller.visibleTasks}
           onSave={controller.saveEditedTask}
           onClose={controller.closeTaskEditor}
+        />
+      )}
+
+      {controller.selectedTask && (
+        <TaskDetailModal
+          task={controller.selectedTask}
+          currentStep={controller.getCurrentStepForTask(controller.selectedTask)}
+          onClose={controller.closeTaskDetail}
+          onEdit={() => controller.openTaskEditor(controller.selectedTask!)}
+          onToggleCompletion={() => controller.toggleDone(controller.selectedTask!.id)}
+          onArchive={() => controller.archiveTask(controller.selectedTask!.id)}
+          onPromoteToDoing={() => controller.promoteTaskToDoing(controller.selectedTask!.id)}
+          onAddStep={(title) => controller.appendTaskStep(controller.selectedTask!.id, title)}
+          onCompleteCurrentStep={(stepId) => controller.completeTaskStep(controller.selectedTask!.id, stepId)}
         />
       )}
     </main>

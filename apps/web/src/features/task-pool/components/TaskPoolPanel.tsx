@@ -7,6 +7,7 @@ interface TaskPoolPanelProps {
   onSearchQueryChange: (value: string) => void;
   onToggleDone: (taskId: string) => void;
   onArchive: (taskId: string) => void;
+  onOpenDetail: (task: Task) => void;
   onEdit: (task: Task) => void;
 }
 
@@ -16,6 +17,7 @@ export default function TaskPoolPanel({
   onSearchQueryChange,
   onToggleDone,
   onArchive,
+  onOpenDetail,
   onEdit
 }: TaskPoolPanelProps) {
   return (
@@ -44,6 +46,7 @@ export default function TaskPoolPanel({
             task={task}
             onToggleDone={() => onToggleDone(task.id)}
             onArchive={() => onArchive(task.id)}
+            onOpenDetail={() => onOpenDetail(task)}
             onEdit={() => onEdit(task)}
           />
         ))}
