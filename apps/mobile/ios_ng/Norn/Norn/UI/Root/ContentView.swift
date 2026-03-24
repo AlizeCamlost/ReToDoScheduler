@@ -61,7 +61,8 @@ struct ContentView: View {
         QuickAddDock(
           input: $store.quickAddInput,
           isFocused: $dockFocused,
-          onAdd: submitQuickAdd
+          onAdd: submitQuickAdd,
+          onOpenDetail: openQuickAddDetail
         )
         .padding(.bottom, 8)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
@@ -87,6 +88,16 @@ struct ContentView: View {
           },
           onEdit: {
             store.openTaskEditor(taskID: task.id)
+          },
+          onPromoteToDoing: {
+            store.updateTaskStatus(taskID: task.id, status: .doing)
+          },
+          onAddStep: { title in
+            store.appendTaskStep(taskID: task.id, title: title)
+          },
+          currentStepID: task.currentStep?.id,
+          onCurrentStepTap: { step in
+            store.completeTaskStep(taskID: task.id, stepID: step.id)
           }
         )
       }
@@ -134,6 +145,11 @@ struct ContentView: View {
 
   private func submitQuickAdd() {
     store.submitQuickAdd()
+    dismissDockFocus()
+  }
+
+  private func openQuickAddDetail() {
+    store.openNewTaskDraftFromQuickAdd()
     dismissDockFocus()
   }
 

@@ -176,7 +176,7 @@ struct SequenceTab: View {
   SequenceTab(tasks: [])
 }
 
-private enum TimelinePosition {
+private enum TimelinePosition: Equatable {
   case single
   case first
   case middle
@@ -256,12 +256,18 @@ private struct SequenceTimelineMarker: View {
   var body: some View {
     ZStack(alignment: .top) {
       if position.showsTopLine {
-        Capsule(style: .continuous)
-          .fill(color)
-          .frame(
-            width: railWidth,
-            height: max(0, nodeTopOffset - nodeLineGap)
+        SequenceTimelineRailShape()
+          .stroke(
+            color.opacity(0.92),
+            style: StrokeStyle(
+              lineWidth: railWidth,
+              lineCap: .round,
+              lineJoin: .round,
+              dash: [3.5, 7.5],
+              dashPhase: position == .first ? 0 : 2.5
+            )
           )
+          .frame(width: railWidth, height: max(0, nodeTopOffset - nodeLineGap))
       }
 
       if position.showsBottomLine {
@@ -269,8 +275,17 @@ private struct SequenceTimelineMarker: View {
           Color.clear
             .frame(height: nodeBottomOffset + nodeLineGap)
 
-          Capsule(style: .continuous)
-            .fill(color)
+          SequenceTimelineRailShape()
+            .stroke(
+              color.opacity(0.92),
+              style: StrokeStyle(
+                lineWidth: railWidth,
+                lineCap: .round,
+                lineJoin: .round,
+                dash: [3.5, 7.5],
+                dashPhase: 1.5
+              )
+            )
             .frame(width: railWidth)
             .frame(maxHeight: .infinity)
         }
@@ -290,6 +305,10 @@ private struct SequenceTimelineMarker: View {
       Circle()
         .fill(color)
         .frame(width: nodeDiameter, height: nodeDiameter)
+        .overlay(
+          Circle()
+            .strokeBorder(color.opacity(0.16), lineWidth: 1)
+        )
         .padding(.top, nodeCenterY - nodeDiameter / 2)
     }
     .frame(width: 18)
@@ -343,6 +362,15 @@ private struct SequenceTimelineTailShape: Shape {
   }
 }
 
+private struct SequenceTimelineRailShape: Shape {
+  func path(in rect: CGRect) -> Path {
+    var path = Path()
+    path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+    path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+    return path
+  }
+}
+
 private struct SequencePrimaryCard: View {
   let task: Task
   var isLifted: Bool = false
@@ -368,6 +396,13 @@ private struct SequencePrimaryCard: View {
         .font(.caption.weight(.medium))
         .foregroundStyle(.secondary)
         .lineLimit(1)
+
+      TaskStepPreviewView(
+        task: task,
+        style: .compact,
+        accentColor: TaskDisplayFormatter.statusColor(for: task.status)
+      )
+      .padding(.top, task.steps.isEmpty ? 0 : 2)
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 14)

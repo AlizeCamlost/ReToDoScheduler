@@ -3,15 +3,18 @@ import SwiftUI
 struct TaskCard: View {
   let task: Task
   let dimmed: Bool
+  let currentStepID: String?
   let onTap: () -> Void
 
   init(
     task: Task,
     dimmed: Bool = false,
+    currentStepID: String? = nil,
     onTap: @escaping () -> Void = {}
   ) {
     self.task = task
     self.dimmed = dimmed
+    self.currentStepID = currentStepID
     self.onTap = onTap
   }
 
@@ -41,6 +44,14 @@ struct TaskCard: View {
                 .foregroundStyle(.tertiary)
             }
           }
+
+          TaskStepPreviewView(
+            task: task,
+            currentStepID: currentStepID,
+            style: .compact,
+            accentColor: TaskDisplayFormatter.statusColor(for: task.status),
+            isDimmed: dimmed
+          )
         }
 
         Spacer()

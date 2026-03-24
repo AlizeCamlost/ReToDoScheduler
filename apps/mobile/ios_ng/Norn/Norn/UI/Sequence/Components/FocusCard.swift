@@ -2,7 +2,18 @@ import SwiftUI
 
 struct FocusCard: View {
   let task: Task
+  let currentStepID: String?
   let onTap: () -> Void
+
+  init(
+    task: Task,
+    currentStepID: String? = nil,
+    onTap: @escaping () -> Void = {}
+  ) {
+    self.task = task
+    self.currentStepID = currentStepID
+    self.onTap = onTap
+  }
 
   var body: some View {
     Button(action: onTap) {
@@ -56,21 +67,14 @@ struct FocusCard: View {
           }
         }
 
-        if !task.steps.isEmpty {
-          VStack(alignment: .leading, spacing: 6) {
-            ForEach(task.steps) { step in
-              HStack(spacing: 8) {
-                Circle()
-                  .fill(NornTheme.borderStrong)
-                  .frame(width: 6, height: 6)
-                Text(step.title)
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-        }
-      }
+        TaskStepPreviewView(
+          task: task,
+          currentStepID: currentStepID,
+          style: .compact,
+          accentColor: TaskDisplayFormatter.statusColor(for: task.status)
+        )
+        .padding(.top, task.steps.isEmpty ? 0 : 2)
+    }
       .padding(20)
       .frame(maxWidth: .infinity, alignment: .leading)
       .background(

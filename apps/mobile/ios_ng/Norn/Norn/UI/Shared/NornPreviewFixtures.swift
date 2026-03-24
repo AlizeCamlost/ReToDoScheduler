@@ -4,6 +4,11 @@ enum NornPreviewFixtures {
   static let tasks: [Task] = {
     let calendar = Calendar.current
     let now = Date()
+    let startedStep = TaskStepProgress(startedAt: now)
+    let completedStep = TaskStepProgress(
+      startedAt: calendar.date(byAdding: .hour, value: -2, to: now),
+      completedAt: calendar.date(byAdding: .hour, value: -1, to: now)
+    )
 
     return [
       Task(
@@ -17,7 +22,7 @@ enum NornPreviewFixtures {
         dueAt: calendar.date(byAdding: .day, value: 1, to: now),
         tags: ["ios", "release"],
         steps: [
-          TaskStep(id: "s1", title: "更新商店截图", estimatedMinutes: 30, minChunkMinutes: 15),
+          TaskStep(id: "s1", title: "更新商店截图", estimatedMinutes: 30, minChunkMinutes: 15, progress: startedStep),
           TaskStep(id: "s2", title: "核对隐私配置", estimatedMinutes: 20, minChunkMinutes: 10, dependsOnStepIDs: ["s1"])
         ]
       ),
@@ -50,8 +55,8 @@ enum NornPreviewFixtures {
         dueAt: calendar.date(byAdding: .day, value: 4, to: now),
         tags: ["ios", "storage"],
         steps: [
-          TaskStep(id: "s3", title: "设计 schema", estimatedMinutes: 30, minChunkMinutes: 15),
-          TaskStep(id: "s4", title: "实现读写层", estimatedMinutes: 60, minChunkMinutes: 30, dependsOnStepIDs: ["s3"]),
+          TaskStep(id: "s3", title: "设计 schema", estimatedMinutes: 30, minChunkMinutes: 15, progress: completedStep),
+          TaskStep(id: "s4", title: "实现读写层", estimatedMinutes: 60, minChunkMinutes: 30, dependsOnStepIDs: ["s3"], progress: startedStep),
           TaskStep(id: "s5", title: "写集成测试", estimatedMinutes: 30, minChunkMinutes: 15, dependsOnStepIDs: ["s4"])
         ]
       )
