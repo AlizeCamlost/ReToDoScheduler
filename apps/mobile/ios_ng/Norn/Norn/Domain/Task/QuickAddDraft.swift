@@ -89,9 +89,9 @@ extension QuickAddDraft {
 
   private static func parseDuration(from source: String, fallback: Int) -> Int {
     let patterns = [
-      #"(\\d+)\\s*(?:分钟|mins?|minutes?)"#,
-      #"(\\d+)\\s*m\\b"#,
-      #"(\\d+)\\s*h\\b"#
+      #"(\d+)\s*(?:分钟|mins?|minutes?)"#,
+      #"(\d+)\s*m\b"#,
+      #"(\d+)\s*h\b"#
     ]
 
     for pattern in patterns {
