@@ -7,12 +7,18 @@ export interface TaskValueSpec {
   penaltyMissed: number;
 }
 
+export interface TaskStepProgress {
+  startedAt?: string | undefined;
+  completedAt?: string | undefined;
+}
+
 export interface TaskStepTemplate {
   id: string;
   title: string;
   estimatedMinutes: number;
   minChunkMinutes: number;
   dependsOnStepIds: string[];
+  progress?: TaskStepProgress | undefined;
 }
 
 export interface Task {
@@ -74,6 +80,7 @@ export interface TaskStep {
   rewardOnTime: number;
   penaltyMissed: number;
   dependsOnStepIds: string[];
+  progress?: TaskStepProgress | undefined;
   concurrencyMode: ConcurrencyMode;
   source: "task" | "task-step";
   updatedAt: string;
@@ -102,6 +109,7 @@ export interface OrderedTaskStep {
   penaltyMissed: number;
   source: "task" | "task-step";
   dependsOnStepIds: string[];
+  progress?: TaskStepProgress | undefined;
 }
 
 export interface ScheduleWarning {

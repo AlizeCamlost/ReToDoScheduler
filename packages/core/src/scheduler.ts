@@ -53,6 +53,9 @@ const getBlockMinutes = (block: ScheduleBlock): number => minutesBetween(new Dat
 
 const buildStepId = (taskId: string, stepId?: string): string => (stepId ? `task:${taskId}/step:${stepId}` : `task:${taskId}`);
 
+const isStepCompleted = (step: Pick<TaskStep, "progress">): boolean =>
+  typeof step.progress?.completedAt === "string" && step.progress.completedAt.trim().length > 0;
+
 const getComparatorContext = (now: Date, horizonStart: Date, horizonEnd: Date): ComparatorContext => ({
   now: now.toISOString(),
   horizonStart: horizonStart.toISOString(),
@@ -173,6 +176,7 @@ export const buildTaskSteps = (tasks: Task[]): TaskStep[] => {
         rewardOnTime: task.scheduleValue.rewardOnTime,
         penaltyMissed: task.scheduleValue.penaltyMissed,
         dependsOnStepIds: [],
+        progress: undefined,
         concurrencyMode: task.concurrencyMode,
         source: "task",
         updatedAt: task.updatedAt
@@ -180,12 +184,15 @@ export const buildTaskSteps = (tasks: Task[]): TaskStep[] => {
       continue;
     }
 
+    const activeSteps = task.steps.filter((step) => !isStepCompleted(step));
+    if (activeSteps.length === 0) continue;
+
     const localToReal = new Map<string, string>();
-    for (const step of task.steps) {
+    for (const step of activeSteps) {
       localToReal.set(step.id, buildStepId(task.id, step.id));
     }
 
-    for (const step of task.steps) {
+    for (const step of activeSteps) {
       steps.push({
         id: localToReal.get(step.id) ?? buildStepId(task.id, step.id),
         taskId: task.id,
@@ -199,6 +206,7 @@ export const buildTaskSteps = (tasks: Task[]): TaskStep[] => {
         dependsOnStepIds: step.dependsOnStepIds
           .map((dependencyId) => localToReal.get(dependencyId))
           .filter((dependencyId): dependencyId is string => Boolean(dependencyId)),
+        progress: step.progress ? { ...step.progress } : undefined,
         concurrencyMode: task.concurrencyMode,
         source: "task-step",
         updatedAt: task.updatedAt
@@ -462,7 +470,8 @@ const buildOrderedStep = (step: TaskStep, state: SchedulerState): OrderedTaskSte
     rewardOnTime: step.rewardOnTime,
     penaltyMissed: step.penaltyMissed,
     source: step.source,
-    dependsOnStepIds: step.dependsOnStepIds
+    dependsOnStepIds: step.dependsOnStepIds,
+    progress: step.progress ? { ...step.progress } : undefined
   };
 };
 
@@ -527,7 +536,8 @@ export const refreshSchedule = (
       rewardOnTime: step.rewardOnTime,
       penaltyMissed: step.penaltyMissed,
       source: step.source,
-      dependsOnStepIds: step.dependsOnStepIds
+      dependsOnStepIds: step.dependsOnStepIds,
+      progress: step.progress ? { ...step.progress } : undefined
     }));
 
     return {

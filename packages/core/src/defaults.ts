@@ -1,6 +1,7 @@
 import type {
   ConcurrencyMode,
   Task,
+  TaskStepProgress,
   TaskStepTemplate,
   TaskValueSpec,
   TimeTemplate,
@@ -60,6 +61,22 @@ const normalizeNumber = (value: unknown, fallback: number): number => {
 const readExt = (extJson: unknown): Record<string, unknown> =>
   typeof extJson === "object" && extJson ? (extJson as Record<string, unknown>) : {};
 
+const readTaskStepProgress = (value: unknown): TaskStepProgress | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+
+  const progress = value as Record<string, unknown>;
+  const result: TaskStepProgress = {};
+
+  if (typeof progress.startedAt === "string" && progress.startedAt.trim()) {
+    result.startedAt = progress.startedAt.trim();
+  }
+  if (typeof progress.completedAt === "string" && progress.completedAt.trim()) {
+    result.completedAt = progress.completedAt.trim();
+  }
+
+  return Object.keys(result).length > 0 ? result : undefined;
+};
+
 const readTaskModel = (
   extJson: unknown
 ): {
@@ -96,7 +113,8 @@ const readTaskModel = (
           minChunkMinutes: Math.max(1, normalizeNumber(item.minChunkMinutes, DEFAULT_MIN_CHUNK_MINUTES)),
           dependsOnStepIds: Array.isArray(item.dependsOnStepIds)
             ? item.dependsOnStepIds.map((stepId) => String(stepId))
-            : []
+            : [],
+          progress: readTaskStepProgress(item.progress)
         }))
     : undefined;
 
@@ -136,13 +154,18 @@ export const embedTaskModel = (task: Task): Record<string, unknown> => {
 const normalizeTaskSteps = (steps: TaskStepTemplate[] | undefined, fallbackMinutes: number, fallbackChunk: number): TaskStepTemplate[] => {
   if (!steps || steps.length === 0) return [];
 
-  return steps.map((step, index) => ({
-    id: step.id.trim() || `step-${index + 1}`,
-    title: step.title.trim() || `步骤 ${index + 1}`,
-    estimatedMinutes: Math.max(1, normalizeNumber(step.estimatedMinutes, fallbackMinutes)),
-    minChunkMinutes: Math.max(1, normalizeNumber(step.minChunkMinutes, fallbackChunk)),
-    dependsOnStepIds: step.dependsOnStepIds.filter(Boolean)
-  }));
+  return steps
+    .filter((step): step is TaskStepTemplate => typeof step === "object" && step !== null)
+    .map((step, index) => ({
+      id: typeof step.id === "string" && step.id.trim() ? step.id.trim() : `step-${index + 1}`,
+      title: typeof step.title === "string" && step.title.trim() ? step.title.trim() : `步骤 ${index + 1}`,
+      estimatedMinutes: Math.max(1, normalizeNumber(step.estimatedMinutes, fallbackMinutes)),
+      minChunkMinutes: Math.max(1, normalizeNumber(step.minChunkMinutes, fallbackChunk)),
+      dependsOnStepIds: Array.isArray(step.dependsOnStepIds)
+        ? step.dependsOnStepIds.map((stepId) => String(stepId)).filter(Boolean)
+        : [],
+      progress: readTaskStepProgress(step.progress)
+    }));
 };
 
 export const makeTask = (input: Pick<Task, "id" | "title" | "rawInput"> & Partial<Task>): Task => {

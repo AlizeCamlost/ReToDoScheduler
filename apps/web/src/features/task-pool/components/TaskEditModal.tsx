@@ -2,6 +2,7 @@ import {
   makeTask,
   nowIso,
   type Task,
+  type TaskStepProgress,
   type TaskStepTemplate
 } from "@retodo/core";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +15,9 @@ interface TaskEditModalProps {
 }
 
 interface EditableStep extends TaskStepTemplate {}
+
+const isTaskStepProgress = (value: unknown): value is TaskStepProgress =>
+  !!value && typeof value === "object" && !Array.isArray(value);
 
 const slugify = (value: string): string =>
   value
@@ -33,7 +37,8 @@ const normalizeSteps = (steps: EditableStep[]): TaskStepTemplate[] =>
         title,
         estimatedMinutes: Math.max(1, Number(step.estimatedMinutes) || 30),
         minChunkMinutes: Math.max(1, Number(step.minChunkMinutes) || 25),
-        dependsOnStepIds: step.dependsOnStepIds.filter(Boolean)
+        dependsOnStepIds: step.dependsOnStepIds.filter(Boolean),
+        progress: isTaskStepProgress(step.progress) ? { ...step.progress } : undefined
       };
     })
     .filter((step) => step.title.trim().length > 0);
@@ -105,7 +110,8 @@ export default function TaskEditModal({ task, allTasks, onSave, onClose }: TaskE
         title: "",
         estimatedMinutes: 30,
         minChunkMinutes: 25,
-        dependsOnStepIds: current.length > 0 ? [current[current.length - 1]?.id ?? ""] : []
+        dependsOnStepIds: current.length > 0 ? [current[current.length - 1]?.id ?? ""] : [],
+        progress: undefined
       }
     ]);
   };
