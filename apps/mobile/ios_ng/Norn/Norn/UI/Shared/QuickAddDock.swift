@@ -6,6 +6,8 @@ struct QuickAddDock: View {
   let onAdd: () -> Void
   let onOpenDetail: () -> Void
 
+  private let cornerRadius: CGFloat = 16
+
   init(
     input: Binding<String>,
     isFocused: FocusState<Bool>.Binding,
@@ -28,56 +30,64 @@ struct QuickAddDock: View {
 
   var body: some View {
     HStack(spacing: 12) {
+      Image(systemName: "plus.circle")
+        .font(.body.weight(.semibold))
+        .foregroundStyle(isFocused ? Color.accentColor : .secondary)
+
       TextField("添加任务…", text: $input)
         .focused($isFocused)
+        .textFieldStyle(.plain)
         .submitLabel(.done)
         .onSubmit(onAdd)
         .font(.body)
 
       if isFocused {
-        Button(action: onOpenDetail) {
-          HStack(spacing: 6) {
-            Image(systemName: "note.text")
-              .font(.system(size: 14, weight: .semibold))
-            Text("详情")
-              .font(.subheadline.weight(.semibold))
-          }
-          .foregroundStyle(.primary)
-          .frame(height: 36)
-          .padding(.horizontal, 12)
-          .background(
-            Capsule().fill(NornTheme.pillSurfaceStrong)
-          )
-        }
-        .buttonStyle(.plain)
+        HStack(spacing: 12) {
+          divider
 
-        Button(action: onAdd) {
-          Image(systemName: "arrow.up")
-            .font(.system(size: 16, weight: .semibold))
-            .foregroundStyle(submitEnabled ? Color.white : Color.secondary)
-            .frame(width: 36, height: 36)
-            .background(
-              Circle().fill(submitEnabled ? Color.accentColor : NornTheme.pillSurfaceStrong)
-            )
+          Button(action: onOpenDetail) {
+            HStack(spacing: 6) {
+              Image(systemName: "note.text")
+                .font(.caption.weight(.semibold))
+              Text("详情")
+                .font(.subheadline.weight(.semibold))
+            }
+            .foregroundStyle(.primary)
+          }
+          .buttonStyle(.plain)
+
+          divider
+
+          Button(action: onAdd) {
+            Image(systemName: submitEnabled ? "arrow.up.circle.fill" : "arrow.up.circle")
+              .font(.title3)
+              .foregroundStyle(submitEnabled ? Color.accentColor : .secondary)
+          }
+          .buttonStyle(.plain)
+          .disabled(!submitEnabled)
         }
-        .buttonStyle(.plain)
-        .disabled(!submitEnabled)
-        .transition(.scale(scale: 0.7, anchor: .trailing).combined(with: .opacity))
+        .transition(.move(edge: .trailing).combined(with: .opacity))
       }
     }
-    .padding(.horizontal, 20)
-    .padding(.vertical, 14)
+    .padding(.horizontal, 14)
+    .padding(.vertical, 12)
     .background(
-      Capsule()
-        .fill(NornTheme.cardSurface)
-        .shadow(color: NornTheme.shadow, radius: 20, y: 8)
+      RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        .fill(NornTheme.cardSurfaceMuted)
+        .shadow(color: NornTheme.shadow, radius: 18, y: 8)
     )
     .overlay(
-      Capsule()
-        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
+      RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        .strokeBorder(NornTheme.border, lineWidth: 1)
     )
     .padding(.horizontal, 16)
     .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isFocused)
+  }
+
+  private var divider: some View {
+    Rectangle()
+      .fill(NornTheme.borderStrong)
+      .frame(width: 1, height: 22)
   }
 }
 
