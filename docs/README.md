@@ -1,6 +1,6 @@
 # 文档目录
 
-最后更新：2026-03-24
+最后更新：2026-03-25
 
 `docs/` 根目录只保留这个索引。当前真相源、runbook、协作指南和历史材料全部放在子目录下。
 
@@ -13,7 +13,7 @@
 ## specs
 
 - [specs/architecture.md](specs/architecture.md): 当前系统架构真相源。定义运行时分层、仓库职责、数据流、最小 Task sync contract 和双端改动对齐约束。最后更新：2026-03-22
-- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑，并同步记录根容器背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset、当前竖屏优先的安全区策略、横屏安全区细化作为低优先级遗留 feature，以及带节点间隔和末端渐隐射线的 VS Code 风格 Sequence 时间线笔触与更朴素的主序列拖拽反馈。当前实施状态：F13 已完成。最后更新：2026-03-24
+- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑，并同步记录根容器背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset、Sequence 上下 safe-area 渐变 chrome、当前竖屏优先的安全区策略、横屏安全区细化作为低优先级遗留 feature，以及带节点间隔和末端渐隐射线的 VS Code 风格 Sequence 时间线笔触与更朴素的主序列拖拽反馈。当前实施状态：F13 已完成。最后更新：2026-03-25
 - [specs/product-model.md](specs/product-model.md): 当前产品语义真相源。定义 Norn / Kairos 边界、任务池核心抽象、价值语义和输入契约，并补充串行子任务进度作为当前稳定语义。最后更新：2026-03-24
 - [specs/scheduling-model.md](specs/scheduling-model.md): 当前调度模型真相源。把 Kairos 明确为“硬约束 + 价值最大化”的滚动装箱问题，并说明比较器接口与实现边界。最后更新：2026-03-22
 

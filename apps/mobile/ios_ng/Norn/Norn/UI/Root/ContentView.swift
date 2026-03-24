@@ -56,15 +56,25 @@ struct ContentView: View {
       .background(Color.clear)
       .ignoresSafeArea()
     }
+    .overlay(alignment: .top) {
+      if store.currentTab == .sequence {
+        SequenceSafeAreaScrim(edge: .top)
+          .ignoresSafeArea(edges: .top)
+      }
+    }
     .safeAreaInset(edge: .bottom, spacing: 0) {
       if store.currentTab == .sequence {
-        QuickAddDock(
-          input: $store.quickAddInput,
-          isFocused: $dockFocused,
-          onAdd: submitQuickAdd,
-          onOpenDetail: openQuickAddDetail
-        )
-        .padding(.bottom, 8)
+        VStack(spacing: 0) {
+          SequenceSafeAreaScrim(edge: .bottom)
+
+          QuickAddDock(
+            input: $store.quickAddInput,
+            isFocused: $dockFocused,
+            onAdd: submitQuickAdd,
+            onOpenDetail: openQuickAddDetail
+          )
+          .padding(.bottom, 8)
+        }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
           guard height > 0 else { return }
           reservedDockHeight = height
@@ -196,6 +206,40 @@ struct ContentView: View {
         }
       }
     )
+  }
+}
+
+private struct SequenceSafeAreaScrim: View {
+  let edge: VerticalEdge
+
+  var body: some View {
+    LinearGradient(
+      stops: gradientStops,
+      startPoint: .top,
+      endPoint: .bottom
+    )
+    .frame(height: edge == .top ? 68 : 30)
+    .frame(maxWidth: .infinity)
+    .allowsHitTesting(false)
+  }
+
+  private var gradientStops: [Gradient.Stop] {
+    switch edge {
+    case .top:
+      return [
+        .init(color: NornTheme.canvasTop.opacity(0.98), location: 0),
+        .init(color: NornTheme.canvasTop.opacity(0.92), location: 0.32),
+        .init(color: NornTheme.shadow.opacity(0.08), location: 0.66),
+        .init(color: .clear, location: 1)
+      ]
+    case .bottom:
+      return [
+        .init(color: .clear, location: 0),
+        .init(color: NornTheme.shadow.opacity(0.08), location: 0.28),
+        .init(color: NornTheme.canvasBottom.opacity(0.86), location: 0.72),
+        .init(color: NornTheme.canvasBottom.opacity(0.98), location: 1)
+      ]
+    }
   }
 }
 

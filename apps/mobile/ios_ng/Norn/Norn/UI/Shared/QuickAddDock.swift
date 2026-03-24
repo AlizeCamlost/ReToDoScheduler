@@ -6,7 +6,7 @@ struct QuickAddDock: View {
   let onAdd: () -> Void
   let onOpenDetail: () -> Void
 
-  private let cornerRadius: CGFloat = 16
+  private let cornerRadius: CGFloat = 30
 
   init(
     input: Binding<String>,
@@ -31,7 +31,7 @@ struct QuickAddDock: View {
   var body: some View {
     HStack(spacing: 12) {
       Image(systemName: "plus.circle")
-        .font(.body.weight(.semibold))
+        .font(.title3.weight(.semibold))
         .foregroundStyle(isFocused ? Color.accentColor : .secondary)
 
       TextField("添加任务…", text: $input)
@@ -60,7 +60,7 @@ struct QuickAddDock: View {
 
           Button(action: onAdd) {
             Image(systemName: submitEnabled ? "arrow.up.circle.fill" : "arrow.up.circle")
-              .font(.title3)
+              .font(.title2)
               .foregroundStyle(submitEnabled ? Color.accentColor : .secondary)
           }
           .buttonStyle(.plain)
@@ -69,8 +69,8 @@ struct QuickAddDock: View {
         .transition(.move(edge: .trailing).combined(with: .opacity))
       }
     }
-    .padding(.horizontal, 14)
-    .padding(.vertical, 12)
+    .padding(.horizontal, 18)
+    .padding(.vertical, 15)
     .background(
       RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         .fill(NornTheme.cardSurfaceMuted)
@@ -87,7 +87,7 @@ struct QuickAddDock: View {
   private var divider: some View {
     Rectangle()
       .fill(NornTheme.borderStrong)
-      .frame(width: 1, height: 22)
+      .frame(width: 1, height: 26)
   }
 }
 
