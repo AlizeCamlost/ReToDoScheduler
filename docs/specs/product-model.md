@@ -35,7 +35,8 @@ ReToDoScheduler 不是静态 todo list，也不是一次性离线排程器。它
 
 - 系统长期维护的是任务池，不是静态日程表。
 - 调度真正操作的是 `TaskStep`，不是抽象口号或任务分类。
-- 依赖、子步骤序列、时间模板和观察窗口共同定义了当前可排的状态空间。
+- 依赖、子步骤序列、步骤进度、时间模板和观察窗口共同定义了当前可排的状态空间。
+- 当前 `TaskStep` 默认按串行链推进；并行子任务仍保留为后续需求，通过 `concurrencyMode` 扩展，而不是在现阶段把双模交互混进主路径。
 - UI 中的原型、标签、提醒策略、AI 提示都只是输入层或交互层，不是调度本体。
 
 ## 4. 价值语义
@@ -75,6 +76,7 @@ ReToDoScheduler 不是静态 todo list，也不是一次性离线排程器。它
 - `minChunkMinutes`
 - `dependsOnTaskIds`
 - `steps`
+- `steps[].progress`
 - `scheduleValue`
 - 自然语言备注
 
