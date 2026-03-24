@@ -64,17 +64,13 @@ struct ContentView: View {
     }
     .safeAreaInset(edge: .bottom, spacing: 0) {
       if store.currentTab == .sequence {
-        VStack(spacing: 0) {
-          SequenceSafeAreaScrim(edge: .bottom)
-
-          QuickAddDock(
+        QuickAddDock(
             input: $store.quickAddInput,
             isFocused: $dockFocused,
             onAdd: submitQuickAdd,
             onOpenDetail: openQuickAddDetail
-          )
-          .padding(.bottom, 8)
-        }
+        )
+        .padding(.bottom, 8)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
           guard height > 0 else { return }
           reservedDockHeight = height
@@ -218,7 +214,7 @@ private struct SequenceSafeAreaScrim: View {
       startPoint: .top,
       endPoint: .bottom
     )
-    .frame(height: edge == .top ? 68 : 30)
+    .frame(height: edge == .top ? 120 : 30)
     .frame(maxWidth: .infinity)
     .allowsHitTesting(false)
   }
@@ -228,7 +224,7 @@ private struct SequenceSafeAreaScrim: View {
     case .top:
       return [
         .init(color: NornTheme.canvasTop.opacity(0.98), location: 0),
-        .init(color: NornTheme.canvasTop.opacity(0.92), location: 0.32),
+        .init(color: NornTheme.canvasTop.opacity(0.68), location: 0.32),
         .init(color: NornTheme.shadow.opacity(0.08), location: 0.66),
         .init(color: .clear, location: 1)
       ]
@@ -236,7 +232,7 @@ private struct SequenceSafeAreaScrim: View {
       return [
         .init(color: .clear, location: 0),
         .init(color: NornTheme.shadow.opacity(0.08), location: 0.28),
-        .init(color: NornTheme.canvasBottom.opacity(0.86), location: 0.72),
+        .init(color: NornTheme.canvasBottom.opacity(0.68), location: 0.72),
         .init(color: NornTheme.canvasBottom.opacity(0.98), location: 1)
       ]
     }

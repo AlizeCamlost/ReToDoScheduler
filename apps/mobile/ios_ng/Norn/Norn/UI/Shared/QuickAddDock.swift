@@ -72,6 +72,17 @@ struct QuickAddDock: View {
     .padding(.horizontal, 18)
     .padding(.vertical, 15)
     .background(
+      RoundedRectangle(cornerRadius: cornerRadius + 8, style: .continuous)
+        .fill(.ultraThinMaterial)
+        .padding(-8)
+        .mask(
+          RoundedRectangle(cornerRadius: cornerRadius + 8, style: .continuous)
+            .stroke(lineWidth: 14)
+        )
+        .blur(radius: 10)
+        .opacity(0.78)
+    )
+    .background(
       RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         .fill(NornTheme.cardSurfaceMuted)
         .shadow(color: NornTheme.shadow, radius: 18, y: 8)

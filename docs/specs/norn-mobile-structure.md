@@ -237,7 +237,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已进一步收敛为更接近手绘参考的纯色圆点 + 分段点划轨：节点与上下虚线段留出间隔，末端继续保留渐隐渐细的射线尾迹
 - `Sequence` 底部输入 dock 重新由 root scoped `safeAreaInset` 编排，并继续通过 `reservedDockHeight` 驱动内容 safe-area 让位，避免横向切 tab 时出现滚动偏移跳变
-- `Sequence` 顶部状态栏区域与底部 dock 区域已补齐原生风格的渐变 safe-area chrome；dock 本体也进一步放大高度并把圆角收敛到更接近屏幕圆角同心的几何
+- `Sequence` 顶部状态栏区域与底部 dock 区域已补齐更柔和的原生风格渐变 safe-area chrome：顶部渐变抬高并减轻不透明度，底部渐变改为挂在 dock 背后做过渡；dock 本体也进一步放大高度、把圆角收敛到更接近屏幕圆角同心的几何，并在外缘补上一圈半透明模糊 halo
 - `Sequence` 的滚动裁剪范围重新由 root page shell 的全屏 edge-to-edge 延伸承担，不与 dock 的 safe-area 语义混用
 - `Sequence` 在竖屏主要只补 top safe-area，bottom 继续由 dock reserve 承担；横屏安全区、岛区、圆角和左右对称的进一步细化暂记为低优先级遗留 feature
 - `Sequence` 主序列拖拽已收回到卡片本体，时间线装饰留在原位；卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义，活体卡片本身不再进入额外灰化态
