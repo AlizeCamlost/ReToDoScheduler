@@ -4,6 +4,7 @@
 
 - [product-model.md](product-model.md)
 - [scheduling-model.md](scheduling-model.md)
+- [web-app-structure.md](web-app-structure.md)
 - [../adr/0001-monorepo-and-stack.md](../adr/0001-monorepo-and-stack.md)
 - [../adr/0002-local-first-sync.md](../adr/0002-local-first-sync.md)
 
@@ -51,6 +52,7 @@ apps/web + apps/mobile
 - 浏览器端任务池、时间模板、调度视图 UI
 - 以服务端同步为主要远端入口
 - 对外呈现 `packages/core` 的派生结果
+- 当前主壳对齐 `Norn` 的 `Sequence / Schedule / Task Pool` 三入口；更细的 Web 交互结构见 [web-app-structure.md](web-app-structure.md)
 
 ### 3.3 `apps/mobile`
 
