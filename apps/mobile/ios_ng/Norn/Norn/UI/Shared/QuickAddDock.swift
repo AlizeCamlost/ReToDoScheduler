@@ -11,6 +11,7 @@ struct QuickAddDock: View {
   @FocusState.Binding var isFocused: Bool
   let onAdd: () -> Void
   let onOpenDetail: () -> Void
+  let onOpenSequence: () -> Void
 
   private let cornerRadius: CGFloat = 30
 
@@ -18,12 +19,14 @@ struct QuickAddDock: View {
     input: Binding<String>,
     isFocused: FocusState<Bool>.Binding,
     onAdd: @escaping () -> Void,
-    onOpenDetail: @escaping () -> Void = {}
+    onOpenDetail: @escaping () -> Void = {},
+    onOpenSequence: @escaping () -> Void = {}
   ) {
     _input = input
     _isFocused = isFocused
     self.onAdd = onAdd
     self.onOpenDetail = onOpenDetail
+    self.onOpenSequence = onOpenSequence
   }
 
   private var trimmedInput: String {
@@ -56,6 +59,19 @@ struct QuickAddDock: View {
               Image(systemName: "note.text")
                 .font(.caption.weight(.semibold))
               Text("详情")
+                .font(.subheadline.weight(.semibold))
+            }
+            .foregroundStyle(.primary)
+          }
+          .buttonStyle(.plain)
+
+          divider
+
+          Button(action: onOpenSequence) {
+            HStack(spacing: 6) {
+              Image(systemName: "list.bullet.rectangle.portrait")
+                .font(.caption.weight(.semibold))
+              Text("序列")
                 .font(.subheadline.weight(.semibold))
             }
             .foregroundStyle(.primary)
@@ -123,7 +139,7 @@ private struct QuickAddDockPreview: View {
   @State var input = ""
   @FocusState var focused: Bool
   var body: some View {
-    QuickAddDock(input: $input, isFocused: $focused, onAdd: {}, onOpenDetail: {})
+    QuickAddDock(input: $input, isFocused: $focused, onAdd: {}, onOpenDetail: {}, onOpenSequence: {})
   }
 }
 

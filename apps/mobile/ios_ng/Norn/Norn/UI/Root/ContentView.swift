@@ -68,7 +68,8 @@ struct ContentView: View {
             input: $store.quickAddInput,
             isFocused: $dockFocused,
             onAdd: submitQuickAdd,
-            onOpenDetail: openQuickAddDetail
+            onOpenDetail: openQuickAddDetail,
+            onOpenSequence: openQuickAddSequence
         )
         .padding(.bottom, QuickAddDockLayout.bottomSpacing)
         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -118,6 +119,36 @@ struct ContentView: View {
         )
       }
     }
+    .sheet(isPresented: taskSequenceSheetPresented) {
+      if store.taskSequenceDraft != nil {
+        NavigationStack {
+          ZStack {
+            NornScreenBackground()
+
+            VStack(spacing: 12) {
+              Text("任务序列编辑器下一步接入。")
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+              Text("这一层先把 Quick Add 的“序列”入口和 sheet 生命周期接通。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            }
+            .padding(24)
+          }
+          .navigationTitle("任务序列")
+          .navigationBarTitleDisplayMode(.inline)
+          .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+              Button("取消") {
+                store.closeTaskSequenceEditor()
+              }
+            }
+          }
+        }
+      }
+    }
     .sheet(isPresented: syncSettingsSheetPresented) {
       SyncSettingsSheet(
         settings: store.syncSettings,
@@ -152,6 +183,11 @@ struct ContentView: View {
 
   private func openQuickAddDetail() {
     store.openNewTaskDraftFromQuickAdd()
+    dismissDockFocus()
+  }
+
+  private func openQuickAddSequence() {
+    store.openNewTaskSequenceDraftFromQuickAdd()
     dismissDockFocus()
   }
 
@@ -195,6 +231,17 @@ struct ContentView: View {
       set: { presented in
         if !presented {
           store.closeSyncSettings()
+        }
+      }
+    )
+  }
+
+  private var taskSequenceSheetPresented: Binding<Bool> {
+    Binding(
+      get: { store.taskSequenceDraft != nil },
+      set: { presented in
+        if !presented {
+          store.closeTaskSequenceEditor()
         }
       }
     )
