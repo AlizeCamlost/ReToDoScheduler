@@ -85,7 +85,7 @@ struct FocusCard: View {
         RoundedRectangle(cornerRadius: 28, style: .continuous)
           .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
       )
-      .shadow(color: NornTheme.shadow, radius: 16, y: 6)
+      .shadow(color: NornTheme.shadow.opacity(0.7), radius: 10, y: 4)
     }
     .buttonStyle(.plain)
   }

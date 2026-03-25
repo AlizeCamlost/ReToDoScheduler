@@ -88,6 +88,14 @@ struct SequenceTab: View {
   }
 
   private func syncPrimarySequenceOrder() {
+    guard
+      primarySequenceOrder != primarySequenceSignature
+        || draggedPrimaryTaskID != nil
+        || hasPendingPrimaryReorder
+    else {
+      return
+    }
+
     primarySequenceOrder = primarySequenceSignature
     draggedPrimaryTaskID = nil
     hasPendingPrimaryReorder = false
@@ -116,7 +124,7 @@ struct SequenceTab: View {
     VStack(alignment: .leading, spacing: 12) {
       SequenceSectionHeader(
         title: "主序列",
-        detail: displayedPrimarySequenceTasks.count > 1 ? "长按卡片并拖动调整顺序" : nil
+        detail: displayedPrimarySequenceTasks.count > 1 ? "长按右上角把手并拖动调整顺序" : nil
       )
 
       if displayedPrimarySequenceTasks.isEmpty {
@@ -127,6 +135,7 @@ struct SequenceTab: View {
             SequenceTimelineRow(
               task: task,
               position: timelinePosition(for: index, count: displayedPrimarySequenceTasks.count),
+              dropEnabled: draggedPrimaryTaskID != nil,
               onDragStart: {
                 draggedPrimaryTaskID = task.id
                 hasPendingPrimaryReorder = false
@@ -213,6 +222,7 @@ private enum TimelinePosition: Equatable {
 private struct SequenceTimelineRow: View {
   let task: Task
   let position: TimelinePosition
+  let dropEnabled: Bool
   let onDragStart: () -> NSItemProvider
   let dropDelegate: PrimarySequenceDropDelegate
   let onTap: () -> Void
@@ -225,14 +235,46 @@ private struct SequenceTimelineRow: View {
     HStack(alignment: .top, spacing: 14) {
       SequenceTimelineMarker(color: statusColor, position: position)
 
+      ZStack(alignment: .topTrailing) {
+        interactiveCard
+
+        dragHandle
+          .padding(.top, 20)
+          .padding(.trailing, 16)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var interactiveCard: some View {
+    if dropEnabled {
       SequencePrimaryCard(task: task)
         .padding(.vertical, 8)
         .onTapGesture(perform: onTap)
-        .onDrag(onDragStart) {
-          SequencePrimaryCard(task: task, isLifted: true)
-        }
         .onDrop(of: [UTType.plainText.identifier], delegate: dropDelegate)
+    } else {
+      SequencePrimaryCard(task: task)
+        .padding(.vertical, 8)
+        .onTapGesture(perform: onTap)
     }
+  }
+
+  private var dragHandle: some View {
+    Image(systemName: "line.3.horizontal")
+      .font(.caption.weight(.bold))
+      .foregroundStyle(.secondary)
+      .padding(.horizontal, 8)
+      .padding(.vertical, 6)
+      .background(NornTheme.pillSurface, in: Capsule())
+      .overlay(
+        Capsule()
+          .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
+      )
+      .contentShape(Capsule())
+      .contentShape(.dragPreview, Capsule())
+      .onDrag(onDragStart) {
+        SequencePrimaryCard(task: task, isLifted: true)
+      }
   }
 }
 
@@ -256,17 +298,8 @@ private struct SequenceTimelineMarker: View {
   var body: some View {
     ZStack(alignment: .top) {
       if position.showsTopLine {
-        SequenceTimelineRailShape()
-          .stroke(
-            color.opacity(0.92),
-            style: StrokeStyle(
-              lineWidth: railWidth,
-              lineCap: .round,
-              lineJoin: .round,
-              dash: [3.5, 7.5],
-              dashPhase: position == .first ? 0 : 2.5
-            )
-          )
+        Capsule(style: .continuous)
+          .fill(color.opacity(0.9))
           .frame(width: railWidth, height: max(0, nodeTopOffset - nodeLineGap))
       }
 
@@ -275,17 +308,8 @@ private struct SequenceTimelineMarker: View {
           Color.clear
             .frame(height: nodeBottomOffset + nodeLineGap)
 
-          SequenceTimelineRailShape()
-            .stroke(
-              color.opacity(0.92),
-              style: StrokeStyle(
-                lineWidth: railWidth,
-                lineCap: .round,
-                lineJoin: .round,
-                dash: [3.5, 7.5],
-                dashPhase: 1.5
-              )
-            )
+          Capsule(style: .continuous)
+            .fill(color.opacity(0.78))
             .frame(width: railWidth)
             .frame(maxHeight: .infinity)
         }
@@ -296,8 +320,7 @@ private struct SequenceTimelineMarker: View {
           Color.clear
             .frame(height: nodeBottomOffset + nodeLineGap)
 
-          SequenceTimelineTail(color: color, topWidth: railWidth)
-            .frame(width: 8)
+          SequenceTimelineTail(color: color, width: railWidth)
             .frame(maxHeight: .infinity)
         }
       }
@@ -319,7 +342,7 @@ private struct SequenceTimelineMarker: View {
 
 private struct SequenceTimelineTail: View {
   let color: Color
-  let topWidth: CGFloat
+  let width: CGFloat
 
   var body: some View {
     LinearGradient(
@@ -331,43 +354,7 @@ private struct SequenceTimelineTail: View {
       startPoint: .top,
       endPoint: .bottom
     )
-    .mask(
-      SequenceTimelineTailShape(
-        topWidth: topWidth,
-        bottomWidth: max(0.5, topWidth * 0.2)
-      )
-    )
-  }
-}
-
-private struct SequenceTimelineTailShape: Shape {
-  let topWidth: CGFloat
-  let bottomWidth: CGFloat
-
-  func path(in rect: CGRect) -> Path {
-    let top = min(rect.width, max(0, topWidth))
-    let bottom = min(rect.width, max(0, bottomWidth))
-    let topLeadingX = rect.midX - top / 2
-    let topTrailingX = rect.midX + top / 2
-    let bottomLeadingX = rect.midX - bottom / 2
-    let bottomTrailingX = rect.midX + bottom / 2
-
-    var path = Path()
-    path.move(to: CGPoint(x: topLeadingX, y: rect.minY))
-    path.addLine(to: CGPoint(x: topTrailingX, y: rect.minY))
-    path.addLine(to: CGPoint(x: bottomTrailingX, y: rect.maxY))
-    path.addLine(to: CGPoint(x: bottomLeadingX, y: rect.maxY))
-    path.closeSubpath()
-    return path
-  }
-}
-
-private struct SequenceTimelineRailShape: Shape {
-  func path(in rect: CGRect) -> Path {
-    var path = Path()
-    path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-    path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-    return path
+    .frame(width: width)
   }
 }
 
@@ -416,14 +403,12 @@ private struct SequencePrimaryCard: View {
         .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
     .shadow(
-      color: NornTheme.shadow,
-      radius: isLifted ? 18 : 10,
-      y: isLifted ? 8 : 4
+      color: NornTheme.shadow.opacity(isLifted ? 1 : 0.72),
+      radius: isLifted ? 18 : 5,
+      y: isLifted ? 8 : 2
     )
-    .clipShape(cardShape)
     .contentShape(cardShape)
     .contentShape(.dragPreview, cardShape)
-    .compositingGroup()
   }
 }
 
@@ -560,7 +545,7 @@ private struct EmptyFocusCard: View {
       RoundedRectangle(cornerRadius: 28, style: .continuous)
         .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
-    .shadow(color: NornTheme.shadow, radius: 16, y: 6)
+    .shadow(color: NornTheme.shadow.opacity(0.7), radius: 10, y: 4)
   }
 }
 
@@ -571,7 +556,12 @@ private struct EmptyPrimarySequenceCard: View {
         .font(.headline.weight(.semibold))
         .foregroundStyle(.primary)
 
-      Text("执行中的任务和近期待启动的任务会集中排列在这里，长按卡片即可调整顺序。")
+      Text("执行中的任务和近期待启动的任务会集中排列在这里。")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+
+      Text("需要重排时，长按卡片右上角把手即可拖动。")
         .font(.subheadline)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)

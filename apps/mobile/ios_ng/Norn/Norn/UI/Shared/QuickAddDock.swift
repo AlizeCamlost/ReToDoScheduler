@@ -1,5 +1,11 @@
 import SwiftUI
 
+enum QuickAddDockLayout {
+  static let minHeight: CGFloat = 56
+  static let bottomSpacing: CGFloat = 8
+  static let reserveHeight: CGFloat = 68
+}
+
 struct QuickAddDock: View {
   @Binding var input: String
   @FocusState.Binding var isFocused: Bool
@@ -71,16 +77,21 @@ struct QuickAddDock: View {
     }
     .padding(.horizontal, 18)
     .padding(.vertical, 15)
+    .frame(minHeight: QuickAddDockLayout.minHeight)
     .background(
-      RoundedRectangle(cornerRadius: cornerRadius + 8, style: .continuous)
-        .fill(.ultraThinMaterial)
-        .padding(-8)
-        .mask(
-          RoundedRectangle(cornerRadius: cornerRadius + 8, style: .continuous)
-            .stroke(lineWidth: 14)
+      RoundedRectangle(cornerRadius: cornerRadius + 6, style: .continuous)
+        .fill(
+          LinearGradient(
+            stops: [
+              .init(color: NornTheme.cardSurface.opacity(0.28), location: 0),
+              .init(color: NornTheme.canvasBottom.opacity(0.10), location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+          )
         )
-        .blur(radius: 10)
-        .opacity(0.78)
+        .padding(.horizontal, -4)
+        .padding(.vertical, -4)
     )
     .background(
       RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -90,6 +101,12 @@ struct QuickAddDock: View {
     .overlay(
       RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         .strokeBorder(NornTheme.border, lineWidth: 1)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: cornerRadius + 6, style: .continuous)
+        .strokeBorder(NornTheme.borderStrong.opacity(0.35), lineWidth: 1)
+        .padding(.horizontal, -4)
+        .padding(.vertical, -4)
     )
     .padding(.horizontal, 16)
     .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isFocused)

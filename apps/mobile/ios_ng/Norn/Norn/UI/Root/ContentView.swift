@@ -6,7 +6,7 @@ struct ContentView: View {
   @Bindable var store: NornAppStore
 
   @FocusState private var dockFocused: Bool
-  @State private var reservedDockHeight: CGFloat = 60
+  private let reservedDockHeight = QuickAddDockLayout.reserveHeight
 
   var body: some View {
     ZStack {
@@ -70,11 +70,7 @@ struct ContentView: View {
             onAdd: submitQuickAdd,
             onOpenDetail: openQuickAddDetail
         )
-        .padding(.bottom, 8)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-          guard height > 0 else { return }
-          reservedDockHeight = height
-        }
+        .padding(.bottom, QuickAddDockLayout.bottomSpacing)
         .transition(.move(edge: .bottom).combined(with: .opacity))
       }
     }
