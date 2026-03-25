@@ -5,6 +5,10 @@ struct FocusCard: View {
   let currentStepID: String?
   let onTap: () -> Void
 
+  private var bundleMetadata: TaskBundleMetadata? {
+    TaskBundleMetadata.metadata(for: task)
+  }
+
   init(
     task: Task,
     currentStepID: String? = nil,
@@ -40,6 +44,10 @@ struct FocusCard: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .lineLimit(2)
+        }
+
+        if let bundleMetadata {
+          TaskBundleBadge(metadata: bundleMetadata)
         }
 
         HStack(spacing: 8) {

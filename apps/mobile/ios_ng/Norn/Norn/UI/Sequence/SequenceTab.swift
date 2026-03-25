@@ -364,6 +364,10 @@ private struct SequencePrimaryCard: View {
 
   private let cardShape = RoundedRectangle(cornerRadius: 18, style: .continuous)
 
+  private var bundleMetadata: TaskBundleMetadata? {
+    TaskBundleMetadata.metadata(for: task)
+  }
+
   private var metaSummary: String {
     var items = [TaskDisplayFormatter.statusLabel(for: task.status), "估时 \(task.estimatedMinutes) 分钟"]
     if let dueLabel = RelativeDueDateFormatter.label(for: task.dueAt) {
@@ -383,6 +387,10 @@ private struct SequencePrimaryCard: View {
         .font(.caption.weight(.medium))
         .foregroundStyle(.secondary)
         .lineLimit(1)
+
+      if let bundleMetadata {
+        TaskBundleBadge(metadata: bundleMetadata)
+      }
 
       TaskStepPreviewView(
         task: task,

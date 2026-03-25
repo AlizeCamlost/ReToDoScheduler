@@ -144,6 +144,7 @@ apps/mobile/ios_ng/Norn/Norn/
       LoadTasksUseCase.swift
       QuickAddTaskUseCase.swift
       SaveTaskDraftUseCase.swift
+      SaveTaskSequenceUseCase.swift
       UpdateTaskStatusUseCase.swift
       AppendTaskStepUseCase.swift
       CompleteTaskStepUseCase.swift
@@ -163,8 +164,10 @@ apps/mobile/ios_ng/Norn/Norn/
       TaskStep.swift
       TaskStepProgress.swift
       TaskScheduleValue.swift
+      TaskBundleMetadata.swift
       TaskDraft.swift
       QuickAddDraft.swift
+      TaskSequenceDraft.swift
     Sync/
       SyncSettings.swift
       SyncStatus.swift
@@ -197,6 +200,7 @@ apps/mobile/ios_ng/Norn/Norn/
       QuickAddDock.swift
       EdgeFadeDivider.swift
       NornPreviewFixtures.swift
+      TaskBundleBadge.swift
     Sequence/
       SequenceTab.swift
       Components/
@@ -207,6 +211,7 @@ apps/mobile/ios_ng/Norn/Norn/
       TaskDependencyPickerSheet.swift
       TaskEditorSheet.swift
       TaskDetailSheet.swift
+      TaskSequenceEditorSheet.swift
       TaskPoolTab.swift
     Schedule/
       ScheduleTab.swift
@@ -223,7 +228,7 @@ apps/mobile/ios_ng/Norn/Norn/
 当前快照说明：
 
 - `Application/State` 已落 `NornAppStore`，作为当前唯一 UI 状态入口
-- `Application/UseCases` 已落读取、快速新增、保存草稿、主序列重排、显式任务状态切换、详情内追加子任务、串行子任务推进、完成/归档、同步设置和同步用例
+- `Application/UseCases` 已落读取、快速新增、保存草稿、任务序列批量保存、主序列重排、显式任务状态切换、详情内追加子任务、串行子任务推进、完成/归档、同步设置和同步用例
 - `Infrastructure/Persistence`、`Infrastructure/Mapping` 已落本地任务仓库、设置仓库和记录映射
 - `Infrastructure/Sync` 已落 HTTP client、sync request 和 sync response DTO
 - `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
@@ -231,7 +236,8 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已接管当前 UI 使用的主语义类型
 - `Domain/Legacy/Models.swift` 已缩成占位壳，只保留过渡文件名
 - `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset 和 sheet 挂载点
-- `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环，并在激活态提供“详情”入口把 Quick Add 草稿直接提升到详细新建 sheet
+- `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环，并在激活态同时提供“详情”和“序列”入口：前者把 Quick Add 草稿提升到详细新建 sheet，后者进入任务序列批量录入 sheet
+- `TaskSequenceDraft`、`TaskBundleMetadata` 与 `SaveTaskSequenceUseCase` 已接住“连续录入多条任务并共享 bundle 标识”的能力；任务仍以多条 `Task` 落库，只通过共享元数据和顺序位维持成组展示
 - `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过方向感知的 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让：竖屏主避让 top/bottom；横屏细化仍属后续低优先级收敛项，当前只保留不破坏竖屏和 dock 编排的保守实现
 - `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片右上角把手直接拖拽重排并通过现有 sync 同步顺序
 - `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
@@ -241,6 +247,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Sequence` 的滚动裁剪范围重新由 root page shell 的全屏 edge-to-edge 延伸承担，不与 dock 的 safe-area 语义混用
 - `Sequence` 在竖屏主要只补 top safe-area，bottom 继续由 dock reserve 承担；横屏安全区、岛区、圆角和左右对称的进一步细化暂记为低优先级遗留 feature
 - `Sequence` 主序列拖拽已收回到卡片右上角把手，普通滚动期不再常驻挂整卡 drop 命中层；时间线装饰留在原位，卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义，活体卡片本身不再进入额外灰化态
+- `TaskSequenceEditorSheet` 已支持连续输入多条任务描述、设置可选序列标签并一次保存；现阶段 bundle 仅作为卡片标识与顺序保持语义，不在 `Sequence` 中折叠成组卡
 - `TaskDetailSheet` 已改为真正的半模态轻编辑面板：toolbar 仍保留完整编辑入口，但外层已支持直接切到进行中、直接追加子任务、点击当前步骤推进串行进度，以及完成/归档操作
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环，并把任务依赖改为二层 searchable picker，避免在主表单里平铺全量依赖 toggle
 - `TaskStepPreview` 已成为 Sequence / Focus / TaskPool 卡片共用的串行子任务预览组件，统一在卡片上展示当前步骤和步进位置
@@ -269,8 +276,10 @@ apps/mobile/ios_ng/Norn/Norn/
       TaskStep.swift
       TaskStepProgress.swift
       TaskScheduleValue.swift
+      TaskBundleMetadata.swift
       TaskDraft.swift
       QuickAddDraft.swift
+      TaskSequenceDraft.swift
     Sync/
       SyncSettings.swift
       SyncStatus.swift
@@ -282,6 +291,7 @@ apps/mobile/ios_ng/Norn/Norn/
       LoadTasksUseCase.swift
       QuickAddTaskUseCase.swift
       SaveTaskDraftUseCase.swift
+      SaveTaskSequenceUseCase.swift
       UpdateTaskStatusUseCase.swift
       AppendTaskStepUseCase.swift
       CompleteTaskStepUseCase.swift
@@ -318,6 +328,7 @@ apps/mobile/ios_ng/Norn/Norn/
     Shared/
       QuickAddDock.swift
       EdgeFadeDivider.swift
+      TaskBundleBadge.swift
     Sequence/
       SequenceTab.swift
       Components/
@@ -329,6 +340,7 @@ apps/mobile/ios_ng/Norn/Norn/
       TaskDependencyPickerSheet.swift
       TaskDetailSheet.swift
       TaskEditorSheet.swift
+      TaskSequenceEditorSheet.swift
     Settings/
       SyncSettingsSheet.swift
     Schedule/
@@ -423,8 +435,9 @@ apps/mobile/ios_ng/Norn/Norn/
 | 文件 | 主类型 | 作用 | 备注 |
 | --- | --- | --- | --- |
 | `UI/Root/ContentView.swift` | `ContentView` | 根容器、共享背景与 sheet 挂载点 | 不直连持久化和 HTTP |
-| `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 激活态提供“详情”入口 |
+| `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 激活态提供“详情 / 序列”入口 |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
+| `UI/Shared/TaskBundleBadge.swift` | `TaskBundleBadge` | 任务 bundle 标识 | 共用于 Focus / Sequence / TaskPool 卡片 |
 | `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列通过长按右上角把手重排，落位时单次更新顺序 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前主要复用于 `TaskPool` 的 list 模式 |
@@ -433,6 +446,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/TaskPool/TaskDependencyPickerSheet.swift` | `TaskDependencyPickerSheet` | 任务依赖二层选择器 | searchable + filter + multi-select |
 | `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情半模态 | 外层可切进行中、追加子任务、推进当前步骤、完成/归档 |
 | `UI/TaskPool/TaskEditorSheet.swift` | `TaskEditorSheet` | 新建与编辑任务表单 | 基于 `TaskDraft`，依赖选择器改为二层 picker |
+| `UI/TaskPool/TaskSequenceEditorSheet.swift` | `TaskSequenceEditorSheet` | 任务序列批量录入表单 | 支持连续输入多条任务并一次保存 |
 | `UI/Settings/SyncSettingsSheet.swift` | `SyncSettingsSheet` | 同步配置页 | 基于 `SyncSettings` |
 | `UI/Schedule/ScheduleTab.swift` | `ScheduleTab` | 调度页外壳 | 本轮不扩展调度实现 |
 
@@ -445,9 +459,14 @@ QuickAddDock
   -> NornAppStore.submitQuickAdd
     OR
   -> NornAppStore.openNewTaskDraftFromQuickAdd()
+    OR
+  -> NornAppStore.openNewTaskSequenceDraftFromQuickAdd()
   -> QuickAddTaskUseCase.execute(rawInput:)
     OR
   -> QuickAddDraft.parse(rawInput:) -> TaskEditorSheet
+    OR
+  -> TaskSequenceEditorSheet
+  -> SaveTaskSequenceUseCase.execute(draft:)
   -> TaskRepositoryProtocol.save/upsert
   -> LoadTasksUseCase.execute()
   -> NornAppStore refresh visible tasks
@@ -617,3 +636,4 @@ flowchart LR
 - 若后续发现 `TaskDraft` 或 `SyncStatus` 需要进一步拆分，应优先新增语义化文件，而不是回退到巨型共享模型。
 - 如果未来 Kairos 的 Swift 侧实现单独恢复，应另开文档定义其目录与类型，而不是继续堆进这份 Norn 文档。
 - 横屏场景下的安全区细化仍未收敛：当前先保证不破坏竖屏质量、dock 下沉编排和滚动裁剪延伸；后续应把“岛区/圆角避让、header 不被裁切、左右占位对称”作为一个低优先级独立 feature 再处理。
+- 任务序列当前只共享 bundle 标识并保持单卡展示；如果未来需要在 `Sequence` 中折叠成组卡或组块，应作为独立 feature 设计，避免和现有主序列重排语义混用。

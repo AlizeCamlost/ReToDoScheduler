@@ -6,6 +6,10 @@ struct TaskCard: View {
   let currentStepID: String?
   let onTap: () -> Void
 
+  private var bundleMetadata: TaskBundleMetadata? {
+    TaskBundleMetadata.metadata(for: task)
+  }
+
   init(
     task: Task,
     dimmed: Bool = false,
@@ -31,6 +35,10 @@ struct TaskCard: View {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(dimmed ? .secondary : .primary)
             .lineLimit(2)
+
+          if let bundleMetadata {
+            TaskBundleBadge(metadata: bundleMetadata)
+          }
 
           HStack(spacing: 6) {
             if let label = RelativeDueDateFormatter.label(for: task.dueAt) {
