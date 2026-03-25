@@ -39,6 +39,23 @@ final class NornAppStoreTests: XCTestCase {
     XCTAssertTrue(store.quickAddInput.isEmpty)
   }
 
+  func testOpenNewTaskSequenceDraftFromQuickAddSeedsFirstEntry() {
+    let repository = InMemoryTaskRepository()
+    let settingsRepository = InMemorySyncSettingsRepository()
+    let store = makeStore(
+      repository: repository,
+      settingsRepository: settingsRepository
+    )
+
+    store.quickAddInput = "回邮件 #work 20m"
+    store.openNewTaskSequenceDraftFromQuickAdd()
+
+    XCTAssertEqual(store.taskSequenceDraft?.entries.count, 1)
+    XCTAssertEqual(store.taskSequenceDraft?.entries.first?.rawInput, "回邮件 #work 20m")
+    XCTAssertNil(store.taskDraft)
+    XCTAssertTrue(store.quickAddInput.isEmpty)
+  }
+
   func testSaveTaskDraftUpdatesExistingTask() throws {
     let existingTask = makeTask(id: "task-1", title: "Old", updatedAt: Date(timeIntervalSince1970: 100))
     let repository = InMemoryTaskRepository(tasks: [existingTask])
@@ -208,6 +225,7 @@ final class NornAppStoreTests: XCTestCase {
       loadTasksUseCase: LoadTasksUseCase(repository: repository),
       quickAddTaskUseCase: QuickAddTaskUseCase(repository: repository),
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: repository),
+      saveTaskSequenceUseCase: SaveTaskSequenceUseCase(repository: repository),
       reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase(repository: repository),
       toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase(repository: repository),
       updateTaskStatusUseCase: UpdateTaskStatusUseCase(repository: repository),

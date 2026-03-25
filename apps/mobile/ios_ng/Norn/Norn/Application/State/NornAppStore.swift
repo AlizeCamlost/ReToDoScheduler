@@ -11,11 +11,13 @@ final class NornAppStore {
   var syncStatus: SyncStatus
   var selectedTaskID: String?
   var taskDraft: TaskDraft?
+  var taskSequenceDraft: TaskSequenceDraft?
   var isSyncSettingsPresented: Bool
 
   @ObservationIgnored private let loadTasksUseCase: LoadTasksUseCase
   @ObservationIgnored private let quickAddTaskUseCase: QuickAddTaskUseCase
   @ObservationIgnored private let saveTaskDraftUseCase: SaveTaskDraftUseCase
+  @ObservationIgnored private let saveTaskSequenceUseCase: SaveTaskSequenceUseCase
   @ObservationIgnored private let reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase
   @ObservationIgnored private let toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase
   @ObservationIgnored private let updateTaskStatusUseCase: UpdateTaskStatusUseCase
@@ -35,10 +37,12 @@ final class NornAppStore {
     syncStatus: SyncStatus = .notConfigured,
     selectedTaskID: String? = nil,
     taskDraft: TaskDraft? = nil,
+    taskSequenceDraft: TaskSequenceDraft? = nil,
     isSyncSettingsPresented: Bool = false,
     loadTasksUseCase: LoadTasksUseCase,
     quickAddTaskUseCase: QuickAddTaskUseCase,
     saveTaskDraftUseCase: SaveTaskDraftUseCase,
+    saveTaskSequenceUseCase: SaveTaskSequenceUseCase,
     reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase,
     toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase,
     updateTaskStatusUseCase: UpdateTaskStatusUseCase,
@@ -56,10 +60,12 @@ final class NornAppStore {
     self.syncStatus = syncStatus
     self.selectedTaskID = selectedTaskID
     self.taskDraft = taskDraft
+    self.taskSequenceDraft = taskSequenceDraft
     self.isSyncSettingsPresented = isSyncSettingsPresented
     self.loadTasksUseCase = loadTasksUseCase
     self.quickAddTaskUseCase = quickAddTaskUseCase
     self.saveTaskDraftUseCase = saveTaskDraftUseCase
+    self.saveTaskSequenceUseCase = saveTaskSequenceUseCase
     self.reorderSequenceTasksUseCase = reorderSequenceTasksUseCase
     self.toggleTaskCompletionUseCase = toggleTaskCompletionUseCase
     self.updateTaskStatusUseCase = updateTaskStatusUseCase
@@ -123,7 +129,18 @@ final class NornAppStore {
     let seededDraft = QuickAddDraft.parse(rawInput: quickAddInput)?.taskDraft ?? TaskDraft()
     quickAddInput = ""
     closeTaskDetail()
+    closeTaskSequenceEditor()
     taskDraft = seededDraft
+  }
+
+  func openNewTaskSequenceDraftFromQuickAdd() {
+    let seededDraft = quickAddInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      ? TaskSequenceDraft()
+      : TaskSequenceDraft(seedInput: quickAddInput)
+    quickAddInput = ""
+    closeTaskDetail()
+    closeTaskEditor()
+    taskSequenceDraft = seededDraft
   }
 
   func openTaskDetail(taskID: String) {
@@ -137,6 +154,7 @@ final class NornAppStore {
   func openTaskEditor(taskID: String) {
     guard let task = tasks.first(where: { $0.id == taskID }) else { return }
     closeTaskDetail()
+    closeTaskSequenceEditor()
     taskDraft = TaskDraft(task: task)
   }
 
@@ -145,6 +163,21 @@ final class NornAppStore {
       _ = try saveTaskDraftUseCase.execute(draft: draft)
       tasks = try loadTasksUseCase.execute()
       closeTaskEditor()
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
+  }
+
+  func saveTaskSequenceDraft(_ draft: TaskSequenceDraft) {
+    do {
+      let createdTasks = try saveTaskSequenceUseCase.execute(draft: draft)
+      guard !createdTasks.isEmpty else {
+        closeTaskSequenceEditor()
+        return
+      }
+      tasks = try loadTasksUseCase.execute()
+      closeTaskSequenceEditor()
       scheduleConservativeSyncIfNeeded()
     } catch {
       syncStatus = .failed(message: error.localizedDescription)
@@ -219,6 +252,10 @@ final class NornAppStore {
     taskDraft = nil
   }
 
+  func closeTaskSequenceEditor() {
+    taskSequenceDraft = nil
+  }
+
   func saveSyncSettings(_ settings: SyncSettings) {
     let lastSyncedAt = currentLastSyncedAt
     syncSettings = saveSyncSettingsUseCase.execute(settings: settings)
@@ -285,6 +322,7 @@ extension NornAppStore {
       loadTasksUseCase: LoadTasksUseCase(repository: taskRepository),
       quickAddTaskUseCase: QuickAddTaskUseCase(repository: taskRepository),
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: taskRepository),
+      saveTaskSequenceUseCase: SaveTaskSequenceUseCase(repository: taskRepository),
       reorderSequenceTasksUseCase: ReorderSequenceTasksUseCase(repository: taskRepository),
       toggleTaskCompletionUseCase: ToggleTaskCompletionUseCase(repository: taskRepository),
       updateTaskStatusUseCase: UpdateTaskStatusUseCase(repository: taskRepository),

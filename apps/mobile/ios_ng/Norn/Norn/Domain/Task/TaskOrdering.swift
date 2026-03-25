@@ -78,6 +78,18 @@ enum TaskOrdering {
       }
     }
 
+    let leftBundle = TaskBundleMetadata.metadata(for: left)
+    let rightBundle = TaskBundleMetadata.metadata(for: right)
+
+    if
+      let leftBundle,
+      let rightBundle,
+      leftBundle.id == rightBundle.id,
+      leftBundle.position != rightBundle.position
+    {
+      return leftBundle.position < rightBundle.position
+    }
+
     return left.updatedAt > right.updatedAt
   }
 
