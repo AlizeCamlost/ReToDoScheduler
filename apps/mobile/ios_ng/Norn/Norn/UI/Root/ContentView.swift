@@ -120,33 +120,16 @@ struct ContentView: View {
       }
     }
     .sheet(isPresented: taskSequenceSheetPresented) {
-      if store.taskSequenceDraft != nil {
-        NavigationStack {
-          ZStack {
-            NornScreenBackground()
-
-            VStack(spacing: 12) {
-              Text("任务序列编辑器下一步接入。")
-                .font(.headline)
-                .foregroundStyle(.primary)
-
-              Text("这一层先把 Quick Add 的“序列”入口和 sheet 生命周期接通。")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            }
-            .padding(24)
+      if let draft = store.taskSequenceDraft {
+        TaskSequenceEditorSheet(
+          draft: draft,
+          onSave: { updatedDraft in
+            store.saveTaskSequenceDraft(updatedDraft)
+          },
+          onCancel: {
+            store.closeTaskSequenceEditor()
           }
-          .navigationTitle("任务序列")
-          .navigationBarTitleDisplayMode(.inline)
-          .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-              Button("取消") {
-                store.closeTaskSequenceEditor()
-              }
-            }
-          }
-        }
+        )
       }
     }
     .sheet(isPresented: syncSettingsSheetPresented) {
