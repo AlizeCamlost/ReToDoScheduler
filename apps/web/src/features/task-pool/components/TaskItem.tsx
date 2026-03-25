@@ -4,6 +4,7 @@ interface TaskItemProps {
   task: Task;
   onToggleDone: () => void;
   onArchive: () => void;
+  onOpenDetail: () => void;
   onEdit: () => void;
 }
 
@@ -22,7 +23,7 @@ const getDueLabel = (dueAt?: string): string | null => {
   return `${diffDays} 天后截止`;
 };
 
-export default function TaskItem({ task, onToggleDone, onArchive, onEdit }: TaskItemProps) {
+export default function TaskItem({ task, onToggleDone, onArchive, onOpenDetail, onEdit }: TaskItemProps) {
   const isDone = task.status === "done";
   const dueLabel = getDueLabel(task.dueAt);
 
@@ -34,7 +35,7 @@ export default function TaskItem({ task, onToggleDone, onArchive, onEdit }: Task
         title={isDone ? "标记未完成" : "标记完成"}
       />
 
-      <div className="task-body" onClick={onEdit}>
+      <div className="task-body" onClick={onOpenDetail}>
         <div className={`task-title${isDone ? " done" : ""}`}>{task.title}</div>
 
         <div className="task-meta">
@@ -56,11 +57,14 @@ export default function TaskItem({ task, onToggleDone, onArchive, onEdit }: Task
       </div>
 
       <div className="task-actions visible">
+        <button className="btn-action" onClick={onOpenDetail}>
+          详情
+        </button>
         <button className="btn-action" onClick={onEdit}>
           编辑
         </button>
         <button className="btn-action danger" onClick={onArchive}>
-          删除
+          归档
         </button>
       </div>
     </li>

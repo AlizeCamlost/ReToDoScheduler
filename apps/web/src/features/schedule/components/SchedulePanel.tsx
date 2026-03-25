@@ -23,7 +23,7 @@ export default function SchedulePanel({
     <section className="card">
       <div className="panel-header">
         <div>
-          <div className="panel-title">动态调度视图</div>
+          <div className="panel-title">时间视图</div>
           <div className="panel-caption">查看时按当前任务池、时间模板和观察窗口实时重算。</div>
         </div>
         <div className="horizon-tabs">

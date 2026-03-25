@@ -10,7 +10,8 @@ export interface ParseResult {
 
 const DURATION_PATTERNS = [
   /(\d+)\s*(?:分钟|mins?|minutes?)/i,
-  /(\d+)\s*m\b/i
+  /(\d+)\s*m\b/i,
+  /(\d+)\s*h\b/i
 ];
 
 const MIN_CHUNK_PATTERNS = [
@@ -46,7 +47,8 @@ const parseDuration = (source: string, fallback: number): number => {
   for (const pattern of DURATION_PATTERNS) {
     const matched = source.match(pattern);
     if (matched) {
-      return Number(matched[1]);
+      const value = Number(matched[1]);
+      return pattern.source.includes("\\s*h\\b") ? value * 60 : value;
     }
   }
   return fallback;
@@ -67,11 +69,30 @@ const parseTags = (source: string): string[] => {
   return matched.map((tag) => tag.replace(/^#/, "").toLowerCase());
 };
 
-const sanitizeTitle = (source: string): string =>
-  source
-    .replace(/#[\w\u4e00-\u9fa5-]+/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+const sanitizeTitle = (source: string): string => {
+  const cleanupPatterns = [
+    /#[\w\u4e00-\u9fa5-]+/g,
+    /(\d+)\s*(?:分钟|mins?|minutes?)/gi,
+    /(\d+)\s*m\b/gi,
+    /(\d+)\s*h\b/gi,
+    /至少\s*(\d+)\s*分钟/g,
+    /最少\s*(\d+)\s*分钟/g,
+    /min\s*chunk\s*(\d+)/gi,
+    /今天/g,
+    /明天/g,
+    /后天/g,
+    /\btoday\b/gi,
+    /\btomorrow\b/gi,
+    /\b\d{4}-\d{1,2}-\d{1,2}\b/g
+  ];
+
+  let title = source;
+  for (const pattern of cleanupPatterns) {
+    title = title.replace(pattern, "");
+  }
+
+  return title.replace(/\s+/g, " ").trim();
+};
 
 export const parseQuickInput = (input: string): ParseResult => {
   const fallbackMinutes = DEFAULT_TASK_NUMERIC.estimatedMinutes;
