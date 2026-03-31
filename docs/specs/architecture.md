@@ -36,13 +36,14 @@ apps/web + apps/mobile
 - `Norn`: 任务池维护层
 - `Kairos`: 动态调度层
 
-但代码与产品文案统一使用直接命名的实体，如 `Task`、`TaskStep`、`TaskGraph`、`TimeTemplate`、`ScheduleView`。
+但代码与产品文案统一使用直接命名的实体，如 `Task`、`TaskStep`、`TaskGraph`、`TimeTemplate`、`ScheduleView`、`TaskPoolOrganizationDocument`。
 
 ## 3. 仓库职责
 
 ### 3.1 `packages/core`
 
 - 维护共享的任务、时间模板、调度视图类型
+- 维护共享的任务池组织文档类型与归一化规则
 - 维护默认值、归一化和快速输入辅助
 - 维护 TypeScript 版调度器与比较器接口
 - 作为 Web 端语义真相源
@@ -57,7 +58,7 @@ apps/web + apps/mobile
 ### 3.3 `apps/mobile`
 
 - SwiftUI 原生 iPhone 客户端
-- 本地 JSON 持久化、设置存储、同步入口
+- 本地 JSON 持久化、任务池组织文档存储、设置存储、同步入口
 - 保留一份 Swift 调度实现，但语义必须对齐 [scheduling-model.md](scheduling-model.md)
 
 ### 3.4 `services/api`
@@ -65,7 +66,7 @@ apps/web + apps/mobile
 - 对外提供 `/health`、`/v1/tasks`、`/v1/tasks/sync`
 - 以 Bearer token 作为当前 MVP 认证边界
 - 负责同步收敛和持久化出入口
-- 对外只暴露最小 `Task` sync contract，旧数据库列只作为内部兼容细节
+- 对外暴露最小 `Task` sync contract，并并行承载 `TaskPoolOrganizationDocument`；旧数据库列只作为内部兼容细节
 
 ### 3.5 `services/db`
 
@@ -83,14 +84,21 @@ apps/web + apps/mobile
 - `scheduleValue` `dependsOnTaskIds` `steps` `concurrencyMode`
 - `createdAt` `updatedAt` `extJson`
 
+并行同步的任务池组织文档为：
+
+- `TaskPoolOrganizationDocument`
+- `version` `rootDirectoryId` `inboxDirectoryId`
+- `directories` `taskPlacements` `canvasNodes`
+- `updatedAt`
+
 ### 4.1 任务录入与同步
 
-1. 用户在 Web 或 iPhone 创建、编辑、完成或归档任务。
-2. 客户端先更新本地状态。
-3. 客户端向 `/v1/tasks/sync` 发起同步。
-4. 服务端按 `updatedAt` 做 LWW 收敛。
-5. 服务端返回当前任务集合。
-6. 客户端收敛到服务端返回结果。
+1. 用户在 Web 或 iPhone 创建、编辑、完成或归档任务，或在 iPhone 调整任务池目录树 / 画布组织。
+2. 客户端先更新本地任务表与本地 `TaskPoolOrganizationDocument`。
+3. 客户端向 `/v1/tasks/sync` 发起同步；未实现组织编辑的客户端可以省略 `taskPoolOrganization`。
+4. 服务端对任务按各自 `updatedAt` 做 LWW，对任务池组织文档按文档级 `updatedAt` 做 LWW。
+5. 服务端返回当前任务集合与当前 `TaskPoolOrganizationDocument`。
+6. 客户端收敛到服务端返回结果；若请求省略 `taskPoolOrganization`，服务端必须保留现有组织文档。
 
 ### 4.2 调度视图生成
 
@@ -107,6 +115,7 @@ apps/web + apps/mobile
 - 改时间模板结构时，必须同时检查 Web 的模板存取逻辑和 iOS `TaskRepository` 的读写逻辑。
 - 改调度展示语义时，必须同时检查 Web `SchedulePanel` 和 iOS `ScheduleSection`。
 - 改同步协议时，必须同时检查 Web `features/sync/data/taskSync.ts`、iOS `Infrastructure/Sync/HTTPTaskSyncClient.swift` 和 API 路由。
+- 改任务池目录树 / 画布组织语义时，必须同时检查 `packages/core` 的组织文档类型、API `/v1/tasks*`、iOS `TaskPoolOrganization*` 仓库与 sync DTO。
 - 只做单端的视觉样式微调可以分开改；只要涉及字段、流程、信息架构或调度语义，就必须按双端改动处理。
 
 ## 6. 当前边界

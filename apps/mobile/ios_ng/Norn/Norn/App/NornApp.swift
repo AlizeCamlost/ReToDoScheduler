@@ -13,11 +13,13 @@ struct NornApp: App {
 
     init() {
         let taskRepository = TaskFileRepository()
+        let taskPoolOrganizationRepository = TaskPoolOrganizationFileRepository()
         let syncSettingsRepository = UserDefaultsSyncSettingsRepository()
         let syncClient = HTTPTaskSyncClient()
 
         _store = State(initialValue: NornAppStore(
             loadTasksUseCase: LoadTasksUseCase(repository: taskRepository),
+            loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase(repository: taskPoolOrganizationRepository),
             quickAddTaskUseCase: QuickAddTaskUseCase(repository: taskRepository),
             saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: taskRepository),
             saveTaskSequenceUseCase: SaveTaskSequenceUseCase(repository: taskRepository),
@@ -28,7 +30,11 @@ struct NornApp: App {
             completeTaskStepUseCase: CompleteTaskStepUseCase(repository: taskRepository),
             archiveTaskUseCase: ArchiveTaskUseCase(repository: taskRepository),
             saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: syncSettingsRepository),
-            syncTasksUseCase: SyncTasksUseCase(repository: taskRepository, client: syncClient),
+            syncTasksUseCase: SyncTasksUseCase(
+                taskRepository: taskRepository,
+                taskPoolOrganizationRepository: taskPoolOrganizationRepository,
+                client: syncClient
+            ),
             syncSettingsRepository: syncSettingsRepository
         ))
     }

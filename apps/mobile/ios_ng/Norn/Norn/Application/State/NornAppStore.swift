@@ -6,6 +6,7 @@ import Observation
 final class NornAppStore {
   var currentTab: AppTab
   var tasks: [Task]
+  var taskPoolOrganization: TaskPoolOrganizationDocument
   var quickAddInput: String
   var syncSettings: SyncSettings
   var syncStatus: SyncStatus
@@ -15,6 +16,7 @@ final class NornAppStore {
   var isSyncSettingsPresented: Bool
 
   @ObservationIgnored private let loadTasksUseCase: LoadTasksUseCase
+  @ObservationIgnored private let loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase
   @ObservationIgnored private let quickAddTaskUseCase: QuickAddTaskUseCase
   @ObservationIgnored private let saveTaskDraftUseCase: SaveTaskDraftUseCase
   @ObservationIgnored private let saveTaskSequenceUseCase: SaveTaskSequenceUseCase
@@ -32,6 +34,7 @@ final class NornAppStore {
   init(
     currentTab: AppTab = .sequence,
     tasks: [Task] = [],
+    taskPoolOrganization: TaskPoolOrganizationDocument = .defaultValue(),
     quickAddInput: String = "",
     syncSettings: SyncSettings = .empty,
     syncStatus: SyncStatus = .notConfigured,
@@ -40,6 +43,7 @@ final class NornAppStore {
     taskSequenceDraft: TaskSequenceDraft? = nil,
     isSyncSettingsPresented: Bool = false,
     loadTasksUseCase: LoadTasksUseCase,
+    loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase,
     quickAddTaskUseCase: QuickAddTaskUseCase,
     saveTaskDraftUseCase: SaveTaskDraftUseCase,
     saveTaskSequenceUseCase: SaveTaskSequenceUseCase,
@@ -55,6 +59,7 @@ final class NornAppStore {
   ) {
     self.currentTab = currentTab
     self.tasks = tasks
+    self.taskPoolOrganization = taskPoolOrganization
     self.quickAddInput = quickAddInput
     self.syncSettings = syncSettings
     self.syncStatus = syncStatus
@@ -63,6 +68,7 @@ final class NornAppStore {
     self.taskSequenceDraft = taskSequenceDraft
     self.isSyncSettingsPresented = isSyncSettingsPresented
     self.loadTasksUseCase = loadTasksUseCase
+    self.loadTaskPoolOrganizationUseCase = loadTaskPoolOrganizationUseCase
     self.quickAddTaskUseCase = quickAddTaskUseCase
     self.saveTaskDraftUseCase = saveTaskDraftUseCase
     self.saveTaskSequenceUseCase = saveTaskSequenceUseCase
@@ -99,6 +105,7 @@ final class NornAppStore {
     guard syncSettings.isConfigured else {
       syncStatus = .notConfigured
       tasks = (try? loadTasksUseCase.execute()) ?? tasks
+      taskPoolOrganization = (try? loadTaskPoolOrganizationUseCase.execute()) ?? taskPoolOrganization
       return
     }
 
@@ -277,6 +284,11 @@ final class NornAppStore {
     } catch {
       tasks = []
     }
+    do {
+      taskPoolOrganization = try loadTaskPoolOrganizationUseCase.execute()
+    } catch {
+      taskPoolOrganization = .defaultValue()
+    }
 
     syncSettings = syncSettingsRepository.load()
     syncStatus = syncSettings.isConfigured ? .idle(lastSyncedAt: currentLastSyncedAt) : .notConfigured
@@ -296,7 +308,9 @@ final class NornAppStore {
 
   private func performConservativeSync(settings: SyncSettings) async {
     do {
-      tasks = try await syncTasksUseCase.execute(settings: settings)
+      let snapshot = try await syncTasksUseCase.execute(settings: settings)
+      tasks = snapshot.tasks
+      taskPoolOrganization = snapshot.taskPoolOrganization
       syncStatus = .idle(lastSyncedAt: Date())
     } catch {
       syncStatus = .failed(message: error.localizedDescription)
@@ -312,14 +326,20 @@ final class NornAppStore {
 }
 
 extension NornAppStore {
-  static func preview(tasks: [Task] = NornPreviewFixtures.tasks) -> NornAppStore {
+  static func preview(
+    tasks: [Task] = NornPreviewFixtures.tasks,
+    taskPoolOrganization: TaskPoolOrganizationDocument = .defaultValue()
+  ) -> NornAppStore {
     let taskRepository = PreviewTaskRepository(tasks: tasks)
+    let taskPoolOrganizationRepository = PreviewTaskPoolOrganizationRepository(document: taskPoolOrganization)
     let syncSettingsRepository = PreviewSyncSettingsRepository(settings: .empty)
     let store = NornAppStore(
       tasks: tasks,
+      taskPoolOrganization: taskPoolOrganization,
       syncSettings: syncSettingsRepository.load(),
       syncStatus: .notConfigured,
       loadTasksUseCase: LoadTasksUseCase(repository: taskRepository),
+      loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase(repository: taskPoolOrganizationRepository),
       quickAddTaskUseCase: QuickAddTaskUseCase(repository: taskRepository),
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: taskRepository),
       saveTaskSequenceUseCase: SaveTaskSequenceUseCase(repository: taskRepository),
@@ -330,7 +350,11 @@ extension NornAppStore {
       completeTaskStepUseCase: CompleteTaskStepUseCase(repository: taskRepository),
       archiveTaskUseCase: ArchiveTaskUseCase(repository: taskRepository),
       saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: syncSettingsRepository),
-      syncTasksUseCase: SyncTasksUseCase(repository: taskRepository, client: PreviewTaskSyncClient()),
+      syncTasksUseCase: SyncTasksUseCase(
+        taskRepository: taskRepository,
+        taskPoolOrganizationRepository: taskPoolOrganizationRepository,
+        client: PreviewTaskSyncClient()
+      ),
       syncSettingsRepository: syncSettingsRepository
     )
     store.hasBootstrapped = true
@@ -376,6 +400,22 @@ private final class PreviewTaskRepository: TaskRepositoryProtocol {
   }
 }
 
+private final class PreviewTaskPoolOrganizationRepository: TaskPoolOrganizationRepositoryProtocol {
+  private var storedDocument: TaskPoolOrganizationDocument
+
+  init(document: TaskPoolOrganizationDocument) {
+    self.storedDocument = document.normalized()
+  }
+
+  func load() throws -> TaskPoolOrganizationDocument {
+    storedDocument
+  }
+
+  func save(_ document: TaskPoolOrganizationDocument) throws {
+    storedDocument = document.normalized()
+  }
+}
+
 private final class PreviewSyncSettingsRepository: SyncSettingsRepositoryProtocol {
   private var storedSettings: SyncSettings
 
@@ -393,7 +433,11 @@ private final class PreviewSyncSettingsRepository: SyncSettingsRepositoryProtoco
 }
 
 private struct PreviewTaskSyncClient: TaskSyncClientProtocol {
-  func sync(tasks: [Task], settings: SyncSettings) async throws -> [Task] {
-    tasks
+  func sync(
+    tasks: [Task],
+    taskPoolOrganization: TaskPoolOrganizationDocument,
+    settings: SyncSettings
+  ) async throws -> TaskSyncSnapshot {
+    TaskSyncSnapshot(tasks: tasks, taskPoolOrganization: taskPoolOrganization)
   }
 }

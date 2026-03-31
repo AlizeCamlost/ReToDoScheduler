@@ -47,6 +47,7 @@ final class HTTPTaskSyncClientTests: XCTestCase {
       XCTAssertEqual(payload.deviceId, "device-1")
       XCTAssertEqual(payload.tasks.map(\.id), ["local-1"])
       XCTAssertEqual(payload.tasks.first?.steps.first?.progress?.completedAt, ISO8601DateCodec.encode(completedAt))
+      XCTAssertEqual(payload.taskPoolOrganization?.inboxDirectoryId, TaskPoolOrganizationDocument.defaultInboxDirectoryID)
 
       let url = try XCTUnwrap(request.url)
       let response = try XCTUnwrap(HTTPURLResponse(
@@ -59,6 +60,23 @@ final class HTTPTaskSyncClientTests: XCTestCase {
       {
         "deviceId": "device-1",
         "synced": 1,
+        "taskPoolOrganization": {
+          "version": 1,
+          "rootDirectoryId": "root",
+          "inboxDirectoryId": "inbox",
+          "directories": [
+            { "id": "root", "name": "根目录", "sortOrder": 0 },
+            { "id": "inbox", "name": "待整理", "parentDirectoryId": "root", "sortOrder": 0 },
+            { "id": "dir-1", "name": "项目", "parentDirectoryId": "root", "sortOrder": 1 }
+          ],
+          "taskPlacements": [
+            { "taskId": "remote-1", "parentDirectoryId": "dir-1", "sortOrder": 0 }
+          ],
+          "canvasNodes": [
+            { "nodeId": "dir-1", "nodeKind": "directory", "x": 120, "y": 80, "isCollapsed": false }
+          ],
+          "updatedAt": "\(responseTimeText)"
+        },
         "items": [
           {
             "id": "remote-1",
@@ -96,10 +114,15 @@ final class HTTPTaskSyncClientTests: XCTestCase {
       return (response, data)
     }
 
-    let syncedTasks = try await client.sync(tasks: [task], settings: settings)
-    XCTAssertEqual(syncedTasks.map(\.id), ["remote-1"])
-    XCTAssertEqual(syncedTasks.first?.tags, ["sync"])
-    XCTAssertEqual(syncedTasks.first?.steps.first?.progress?.completedAt, responseTime)
+    let snapshot = try await client.sync(
+      tasks: [task],
+      taskPoolOrganization: .defaultValue { Date(timeIntervalSince1970: 1_700_000_050) },
+      settings: settings
+    )
+    XCTAssertEqual(snapshot.tasks.map(\.id), ["remote-1"])
+    XCTAssertEqual(snapshot.tasks.first?.tags, ["sync"])
+    XCTAssertEqual(snapshot.tasks.first?.steps.first?.progress?.completedAt, responseTime)
+    XCTAssertEqual(snapshot.taskPoolOrganization.taskPlacements.first?.parentDirectoryID, "dir-1")
   }
 }
 
@@ -121,6 +144,11 @@ private struct CapturedSyncRequest: Decodable {
 
   var deviceId: String
   var tasks: [CapturedTask]
+  var taskPoolOrganization: CapturedTaskPoolOrganization?
+}
+
+private struct CapturedTaskPoolOrganization: Decodable {
+  var inboxDirectoryId: String
 }
 
 private final class URLProtocolStub: URLProtocol {

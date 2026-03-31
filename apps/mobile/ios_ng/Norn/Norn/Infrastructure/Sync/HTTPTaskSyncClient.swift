@@ -34,7 +34,11 @@ struct HTTPTaskSyncClient: TaskSyncClientProtocol {
     self.decoder = JSONDecoder()
   }
 
-  func sync(tasks: [Task], settings: SyncSettings) async throws -> [Task] {
+  func sync(
+    tasks: [Task],
+    taskPoolOrganization: TaskPoolOrganizationDocument,
+    settings: SyncSettings
+  ) async throws -> TaskSyncSnapshot {
     let baseURL = settings.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !baseURL.isEmpty else {
       throw SyncError.missingBaseURL
@@ -54,7 +58,13 @@ struct HTTPTaskSyncClient: TaskSyncClientProtocol {
     request.httpMethod = "POST"
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-    request.httpBody = try encoder.encode(TaskSyncRequest(deviceID: settings.deviceID, tasks: tasks))
+    request.httpBody = try encoder.encode(
+      TaskSyncRequest(
+        deviceID: settings.deviceID,
+        tasks: tasks,
+        taskPoolOrganization: taskPoolOrganization
+      )
+    )
 
     let (data, response) = try await session.data(for: request)
     guard let httpResponse = response as? HTTPURLResponse else {
@@ -65,6 +75,9 @@ struct HTTPTaskSyncClient: TaskSyncClientProtocol {
     }
 
     let payload = try decoder.decode(TaskSyncResponse.self, from: data)
-    return payload.toTasks()
+    return TaskSyncSnapshot(
+      tasks: payload.toTasks(),
+      taskPoolOrganization: payload.toTaskPoolOrganization() ?? taskPoolOrganization
+    )
   }
 }

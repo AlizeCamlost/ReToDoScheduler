@@ -52,11 +52,12 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - `NornApp.swift` 已移入 `App/`
 - 资源目录已移入 `Resources/`
 - `Domain/App`、`Domain/Task`、`Domain/Sync` 已建立最小领域骨架
+- `Domain/TaskPool` 已补任务池组织文档、目录、任务归属和画布节点布局这组共享语义
 - 原有混合模型文件已收缩为 `Domain/Legacy/Models.swift` 过渡占位
-- `packages/core` 已收敛到本轮最小 `Task` 模型
-- `services/api` 已切到最小 sync contract，对旧数据库列只保留内部兼容
+- `packages/core` 已补齐任务池目录树 / 画布共用的 `TaskPoolOrganizationDocument` 类型与归一化规则
+- `services/api` 已切到最小 sync contract，对旧数据库列只保留内部兼容，并新增任务池组织文档的并行同步承载
 - `apps/web` 已跟随最小模型收敛编辑与 sync 解析
-- iOS 本地持久化边界、编码工具和 sync boundary 已落地
+- iOS 本地持久化边界、编码工具和 sync boundary 已落地，并新增 `task-pool-organization.json` 本地仓库与同步承载层
 - iOS 应用状态壳、用例壳和根视图组装已落地
 - Quick Add 本地新增与已配置时的保守同步已接通
 - 任务详情页与完成/归档动作已接通
@@ -64,7 +65,7 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - 同步设置与手动同步已接通
 - 任务池 `list` 模式已接通真实任务数据
 - `Norn.xcodeproj` 已补 `NornTests` / `NornUITests` target 和基础覆盖代码
-- 本轮未执行任何构建或测试，等待后续手工验收
+- 当前已完成 `packages/core` / `services/api` 的类型检查与 `Norn` iOS build；更完整的 Simulator 测试仍需在可用 CoreSimulator 环境复检
 
 ## 3. 分层约束
 
@@ -142,6 +143,7 @@ apps/mobile/ios_ng/Norn/Norn/
       NornAppStore.swift
     UseCases/
       LoadTasksUseCase.swift
+      LoadTaskPoolOrganizationUseCase.swift
       QuickAddTaskUseCase.swift
       SaveTaskDraftUseCase.swift
       SaveTaskSequenceUseCase.swift
@@ -158,6 +160,11 @@ apps/mobile/ios_ng/Norn/Norn/
       AppTab.swift
     Legacy/
       Models.swift
+    TaskPool/
+      TaskPoolDirectory.swift
+      TaskPoolTaskPlacement.swift
+      TaskPoolCanvasNodeLayout.swift
+      TaskPoolOrganizationDocument.swift
     Task/
       Task.swift
       TaskStatus.swift
@@ -171,13 +178,17 @@ apps/mobile/ios_ng/Norn/Norn/
     Sync/
       SyncSettings.swift
       SyncStatus.swift
+      TaskSyncSnapshot.swift
 
   Infrastructure/
     Mapping/
       TaskRecord.swift
+      TaskPoolOrganizationRecord.swift
     Persistence/
       TaskRepositoryProtocol.swift
       TaskFileRepository.swift
+      TaskPoolOrganizationRepositoryProtocol.swift
+      TaskPoolOrganizationFileRepository.swift
       SyncSettingsRepositoryProtocol.swift
       UserDefaultsSyncSettingsRepository.swift
     Sync/
@@ -379,6 +390,10 @@ apps/mobile/ios_ng/Norn/Norn/
 | 文件 | 主类型 | 作用 | 备注 |
 | --- | --- | --- | --- |
 | `Domain/App/AppTab.swift` | `AppTab` | 定义页面级导航枚举 | 只表达 tab 语义 |
+| `Domain/TaskPool/TaskPoolDirectory.swift` | `TaskPoolDirectory` | 任务池目录节点 | 用于目录树与画布的共享目录语义 |
+| `Domain/TaskPool/TaskPoolTaskPlacement.swift` | `TaskPoolTaskPlacement` | 任务目录归属 | 表达任务挂在哪个目录下 |
+| `Domain/TaskPool/TaskPoolCanvasNodeLayout.swift` | `TaskPoolCanvasNodeLayout` | 画布节点位置与折叠状态 | 只承载浏览组织，不改任务本体 |
+| `Domain/TaskPool/TaskPoolOrganizationDocument.swift` | `TaskPoolOrganizationDocument` | 任务池组织文档 | 目录树 / 画布共用且进入同步边界 |
 | `Domain/Task/Task.swift` | `Task` | 任务聚合根 | Norn 维护的主实体 |
 | `Domain/Task/TaskStatus.swift` | `TaskStatus` | 任务生命周期状态 | 只定义状态语义，不负责 UI 色彩 |
 | `Domain/Task/TaskStep.swift` | `TaskStep` | 任务内步骤单元 | 当前默认串行推进 |
@@ -389,6 +404,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Domain/Task/TaskOrdering.swift` | `TaskOrdering` | 任务排序与主序列顺序元数据 | 负责 `extJSON.norn.sequenceRank` 读写与排序比较 |
 | `Domain/Sync/SyncSettings.swift` | `SyncSettings` | 同步配置语义模型 | 只表达 URL、token 等配置概念 |
 | `Domain/Sync/SyncStatus.swift` | `SyncStatus` | 同步状态模型 | 表达未配置、空闲、同步中、失败等状态 |
+| `Domain/Sync/TaskSyncSnapshot.swift` | `TaskSyncSnapshot` | 同步返回快照 | 同时承载任务集合与任务池组织文档 |
 
 ### 5.2 Application
 
@@ -396,6 +412,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | --- | --- | --- | --- |
 | `Application/State/NornAppStore.swift` | `NornAppStore` | UI 总状态入口 | `bootstrap()` `submitQuickAdd()` `openNewTaskDraftFromQuickAdd()` `openTaskDetail()` `openTaskEditor()` `updateTaskStatus()` `appendTaskStep()` `completeTaskStep()` `openSyncSettings()` `refresh()` |
 | `Application/UseCases/LoadTasksUseCase.swift` | `LoadTasksUseCase` | 读取当前任务集合 | `execute()` |
+| `Application/UseCases/LoadTaskPoolOrganizationUseCase.swift` | `LoadTaskPoolOrganizationUseCase` | 读取当前任务池组织文档 | `execute()` |
 | `Application/UseCases/QuickAddTaskUseCase.swift` | `QuickAddTaskUseCase` | 处理底部快速新增 | `execute(rawInput:)` |
 | `Application/UseCases/SaveTaskDraftUseCase.swift` | `SaveTaskDraftUseCase` | 创建或保存详细任务 | `execute(draft:)` |
 | `Application/UseCases/UpdateTaskStatusUseCase.swift` | `UpdateTaskStatusUseCase` | 显式切换任务状态 | `execute(taskID:status:)` |
@@ -405,7 +422,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Application/UseCases/ToggleTaskCompletionUseCase.swift` | `ToggleTaskCompletionUseCase` | 切换完成/恢复待办 | `execute(taskID:)` |
 | `Application/UseCases/ArchiveTaskUseCase.swift` | `ArchiveTaskUseCase` | 归档任务 | `execute(taskID:)` |
 | `Application/UseCases/SaveSyncSettingsUseCase.swift` | `SaveSyncSettingsUseCase` | 保存同步设置 | `execute(settings:)` |
-| `Application/UseCases/SyncTasksUseCase.swift` | `SyncTasksUseCase` | 手动同步与变更后保守同步 | `execute(settings:)` |
+| `Application/UseCases/SyncTasksUseCase.swift` | `SyncTasksUseCase` | 手动同步与变更后保守同步 | `execute(settings:)`，同时收敛任务与任务池组织文档 |
 
 ### 5.3 Infrastructure
 
@@ -413,13 +430,16 @@ apps/mobile/ios_ng/Norn/Norn/
 | --- | --- | --- | --- |
 | `Infrastructure/Persistence/TaskRepositoryProtocol.swift` | `TaskRepositoryProtocol` | 任务持久化边界 | `loadAll()` `save()` `upsert()` `archive()` `toggleCompletion()` |
 | `Infrastructure/Persistence/TaskFileRepository.swift` | `TaskFileRepository` | JSON 文件本地任务仓库 | 实现 `TaskRepositoryProtocol` |
+| `Infrastructure/Persistence/TaskPoolOrganizationRepositoryProtocol.swift` | `TaskPoolOrganizationRepositoryProtocol` | 任务池组织文档持久化边界 | `load()` `save()` |
+| `Infrastructure/Persistence/TaskPoolOrganizationFileRepository.swift` | `TaskPoolOrganizationFileRepository` | JSON 文件本地组织仓库 | 落 `task-pool-organization.json` |
 | `Infrastructure/Persistence/SyncSettingsRepositoryProtocol.swift` | `SyncSettingsRepositoryProtocol` | 同步配置持久化边界 | `load()` `save()` |
 | `Infrastructure/Persistence/UserDefaultsSyncSettingsRepository.swift` | `UserDefaultsSyncSettingsRepository` | `UserDefaults` 配置存储实现 | 实现 `SyncSettingsRepositoryProtocol` |
-| `Infrastructure/Sync/TaskSyncClientProtocol.swift` | `TaskSyncClientProtocol` | 远端同步边界 | `sync(tasks:settings:)` |
+| `Infrastructure/Sync/TaskSyncClientProtocol.swift` | `TaskSyncClientProtocol` | 远端同步边界 | `sync(tasks:taskPoolOrganization:settings:)` |
 | `Infrastructure/Sync/HTTPTaskSyncClient.swift` | `HTTPTaskSyncClient` | HTTP 同步实现 | 实现 `TaskSyncClientProtocol` |
-| `Infrastructure/Sync/TaskSyncRequest.swift` | `TaskSyncRequest` | 同步请求 DTO | 同步 `TaskStepProgress` |
-| `Infrastructure/Sync/TaskSyncResponse.swift` | `TaskSyncResponse` | 同步响应 DTO | 只服务远端协议 |
+| `Infrastructure/Sync/TaskSyncRequest.swift` | `TaskSyncRequest` | 同步请求 DTO | 同步 `TaskStepProgress` 与 `taskPoolOrganization` |
+| `Infrastructure/Sync/TaskSyncResponse.swift` | `TaskSyncResponse` | 同步响应 DTO | 回传任务集合与任务池组织文档 |
 | `Infrastructure/Mapping/TaskRecord.swift` | `TaskRecord` | 本地存储记录模型 | 负责 `Domain <-> Persistence` 映射，并落 `TaskStepProgress` |
+| `Infrastructure/Mapping/TaskPoolOrganizationRecord.swift` | `TaskPoolOrganizationRecord` | 任务池组织记录模型 | 负责 `Domain <-> Persistence/Sync` 映射 |
 
 ### 5.4 Utilities
 

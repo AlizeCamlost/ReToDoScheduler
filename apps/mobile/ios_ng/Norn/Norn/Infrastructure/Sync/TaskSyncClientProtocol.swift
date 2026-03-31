@@ -1,5 +1,9 @@
 import Foundation
 
 protocol TaskSyncClientProtocol {
-  func sync(tasks: [Task], settings: SyncSettings) async throws -> [Task]
+  func sync(
+    tasks: [Task],
+    taskPoolOrganization: TaskPoolOrganizationDocument,
+    settings: SyncSettings
+  ) async throws -> TaskSyncSnapshot
 }

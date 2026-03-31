@@ -42,6 +42,8 @@ VITE_API_AUTH_TOKEN=<与服务端一致的 token>
 - 冲突策略是 LWW，依据 `updatedAt`
 - 删除在 MVP 中通过 `archived` 实现软删除
 - 当前对外同步 payload 使用最小 `Task` 模型：标题、raw input、状态、估时、最小块、DDL、标签、价值、依赖、步骤、并行模式、时间戳和 `extJson`
+- 任务池目录树 / 画布组织通过并行的 `taskPoolOrganization` 文档同步，文档自身也按 `updatedAt` 做 LWW
+- 若客户端请求中省略 `taskPoolOrganization`，服务端会保留现有组织文档，不会清空
 - 服务端仍可把旧数据库列当内部兼容细节处理，但不再把旧字段暴露回客户端
 
 ## 4. 验证方法
@@ -58,12 +60,16 @@ curl <server-base-url>/health
 curl -H "Authorization: Bearer <API_AUTH_TOKEN>" <server-base-url>/v1/tasks
 ```
 
+返回体除 `items` 外，还应包含当前 `taskPoolOrganization`；若服务端尚未收到过该文档，则该字段可为 `null`。
+
 ### 4.3 双端联调
 
 1. 在 Web 创建或编辑任务
 2. 等待或触发 iPhone 同步，确认任务收敛
-3. 在 iPhone 完成或归档任务
-4. 返回 Web，确认状态同步回来
+3. 在 iPhone 调整任务池目录树或画布局部位置并触发同步
+4. 返回 Web 或再次请求 `GET /v1/tasks`，确认 `taskPoolOrganization` 未丢失
+5. 在 iPhone 完成或归档任务
+6. 返回 Web，确认状态同步回来
 
 ## 5. 常见问题
 
@@ -83,6 +89,7 @@ curl -H "Authorization: Bearer <API_AUTH_TOKEN>" <server-base-url>/v1/tasks
 
 - 当前策略是 LWW，不保留操作级历史
 - 两端几乎同时写入同一任务时，以更新时间更晚者为准
+- 任务池组织文档同样按文档级 `updatedAt` 收敛；省略字段不会覆盖已有文档
 
 ## 6. 当前边界
 

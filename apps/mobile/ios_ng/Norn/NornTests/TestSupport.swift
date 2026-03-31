@@ -43,6 +43,22 @@ final class InMemoryTaskRepository: TaskRepositoryProtocol {
   }
 }
 
+final class InMemoryTaskPoolOrganizationRepository: TaskPoolOrganizationRepositoryProtocol {
+  private(set) var document: TaskPoolOrganizationDocument
+
+  init(document: TaskPoolOrganizationDocument = .defaultValue()) {
+    self.document = document.normalized()
+  }
+
+  func load() throws -> TaskPoolOrganizationDocument {
+    document
+  }
+
+  func save(_ document: TaskPoolOrganizationDocument) throws {
+    self.document = document.normalized()
+  }
+}
+
 final class InMemorySyncSettingsRepository: SyncSettingsRepositoryProtocol {
   private var settings: SyncSettings
 
@@ -60,10 +76,14 @@ final class InMemorySyncSettingsRepository: SyncSettingsRepositoryProtocol {
 }
 
 struct StubTaskSyncClient: TaskSyncClientProtocol {
-  var handler: @Sendable ([Task], SyncSettings) async throws -> [Task]
+  var handler: @Sendable ([Task], TaskPoolOrganizationDocument, SyncSettings) async throws -> TaskSyncSnapshot
 
-  func sync(tasks: [Task], settings: SyncSettings) async throws -> [Task] {
-    try await handler(tasks, settings)
+  func sync(
+    tasks: [Task],
+    taskPoolOrganization: TaskPoolOrganizationDocument,
+    settings: SyncSettings
+  ) async throws -> TaskSyncSnapshot {
+    try await handler(tasks, taskPoolOrganization, settings)
   }
 }
 

@@ -40,6 +40,37 @@ export interface Task {
   extJson: Record<string, unknown>;
 }
 
+export interface TaskPoolDirectory {
+  id: string;
+  name: string;
+  parentDirectoryId?: string | undefined;
+  sortOrder: number;
+}
+
+export interface TaskPoolTaskPlacement {
+  taskId: string;
+  parentDirectoryId: string;
+  sortOrder: number;
+}
+
+export interface TaskPoolCanvasNodeLayout {
+  nodeId: string;
+  nodeKind: "directory" | "task";
+  x: number;
+  y: number;
+  isCollapsed: boolean;
+}
+
+export interface TaskPoolOrganizationDocument {
+  version: number;
+  rootDirectoryId: string;
+  inboxDirectoryId: string;
+  directories: TaskPoolDirectory[];
+  taskPlacements: TaskPoolTaskPlacement[];
+  canvasNodes: TaskPoolCanvasNodeLayout[];
+  updatedAt: string;
+}
+
 export interface WeeklyTimeRange {
   id: string;
   weekday: Weekday;

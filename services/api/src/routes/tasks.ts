@@ -1,12 +1,22 @@
-import { embedTaskModel, makeTask, type Task } from "@retodo/core";
+import {
+  embedTaskModel,
+  makeTask,
+  parseTaskPoolOrganizationDocument,
+  type Task,
+  type TaskPoolOrganizationDocument
+} from "@retodo/core";
 import type { FastifyPluginAsync } from "fastify";
 import { pool } from "../db.js";
 
 type SyncTaskPayload = Task;
+type SyncTaskPoolOrganizationPayload = TaskPoolOrganizationDocument;
+
+const TASK_POOL_ORGANIZATION_DOCUMENT_ID = "global";
 
 interface SyncBody {
   deviceId: string;
   tasks: SyncTaskPayload[];
+  taskPoolOrganization?: SyncTaskPoolOrganizationPayload;
 }
 
 const LEGACY_DB_DEFAULTS = {
@@ -96,6 +106,21 @@ const fetchAllTasks = async (): Promise<SyncTaskPayload[]> => {
   return result.rows.map(rowToTask);
 };
 
+const fetchTaskPoolOrganization = async (): Promise<SyncTaskPoolOrganizationPayload | null> => {
+  const result = await pool.query<Record<string, unknown>>(
+    `SELECT payload_json
+     FROM task_pool_organization_documents
+     WHERE id = $1`,
+    [TASK_POOL_ORGANIZATION_DOCUMENT_ID]
+  );
+  const row = result.rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return parseTaskPoolOrganizationDocument(row.payload_json) ?? null;
+};
+
 const upsertOneTask = async (task: SyncTaskPayload): Promise<void> => {
   await pool.query(
     `INSERT INTO tasks (
@@ -150,6 +175,28 @@ const upsertOneTask = async (task: SyncTaskPayload): Promise<void> => {
   );
 };
 
+const upsertTaskPoolOrganization = async (
+  taskPoolOrganization: SyncTaskPoolOrganizationPayload
+): Promise<void> => {
+  await pool.query(
+    `INSERT INTO task_pool_organization_documents (
+      id, payload_json, created_at, updated_at
+    ) VALUES (
+      $1, $2::jsonb, $3::timestamptz, $4::timestamptz
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      payload_json = EXCLUDED.payload_json,
+      updated_at = EXCLUDED.updated_at
+    WHERE EXCLUDED.updated_at > task_pool_organization_documents.updated_at`,
+    [
+      TASK_POOL_ORGANIZATION_DOCUMENT_ID,
+      JSON.stringify(taskPoolOrganization),
+      taskPoolOrganization.updatedAt,
+      taskPoolOrganization.updatedAt
+    ]
+  );
+};
+
 const taskRoutes: FastifyPluginAsync = async (app) => {
   const requiredToken = process.env.API_AUTH_TOKEN;
   if (!requiredToken) {
@@ -172,7 +219,8 @@ const taskRoutes: FastifyPluginAsync = async (app) => {
 
   app.get("/v1/tasks", async () => {
     const items = await fetchAllTasks();
-    return { items };
+    const taskPoolOrganization = await fetchTaskPoolOrganization();
+    return { items, taskPoolOrganization };
   });
 
   app.post<{ Body: SyncBody }>("/v1/tasks/sync", async (request, reply) => {
@@ -180,6 +228,14 @@ const taskRoutes: FastifyPluginAsync = async (app) => {
     if (!body || typeof body.deviceId !== "string" || !Array.isArray(body.tasks)) {
       reply.code(400);
       return { error: "Invalid sync payload" };
+    }
+    const hasTaskPoolOrganization = Object.prototype.hasOwnProperty.call(body, "taskPoolOrganization");
+    const normalizedTaskPoolOrganization = hasTaskPoolOrganization
+      ? parseTaskPoolOrganizationDocument(body.taskPoolOrganization)
+      : null;
+    if (hasTaskPoolOrganization && normalizedTaskPoolOrganization === null) {
+      reply.code(400);
+      return { error: "Invalid taskPoolOrganization payload" };
     }
 
     const normalized = body.tasks
@@ -189,12 +245,17 @@ const taskRoutes: FastifyPluginAsync = async (app) => {
     for (const task of normalized) {
       await upsertOneTask(task);
     }
+    if (normalizedTaskPoolOrganization) {
+      await upsertTaskPoolOrganization(normalizedTaskPoolOrganization);
+    }
 
     const items = await fetchAllTasks();
+    const taskPoolOrganization = await fetchTaskPoolOrganization();
     return {
       deviceId: body.deviceId,
       synced: normalized.length,
-      items
+      items,
+      taskPoolOrganization
     };
   });
 };

@@ -216,13 +216,16 @@ final class NornAppStoreTests: XCTestCase {
   private func makeStore(
     repository: InMemoryTaskRepository,
     settingsRepository: InMemorySyncSettingsRepository,
+    taskPoolOrganizationRepository: InMemoryTaskPoolOrganizationRepository = InMemoryTaskPoolOrganizationRepository(),
     tasks: [Task] = []
   ) -> NornAppStore {
     NornAppStore(
       tasks: tasks,
+      taskPoolOrganization: (try? taskPoolOrganizationRepository.load()) ?? .defaultValue(),
       syncSettings: settingsRepository.load(),
       syncStatus: .notConfigured,
       loadTasksUseCase: LoadTasksUseCase(repository: repository),
+      loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase(repository: taskPoolOrganizationRepository),
       quickAddTaskUseCase: QuickAddTaskUseCase(repository: repository),
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: repository),
       saveTaskSequenceUseCase: SaveTaskSequenceUseCase(repository: repository),
@@ -233,7 +236,13 @@ final class NornAppStoreTests: XCTestCase {
       completeTaskStepUseCase: CompleteTaskStepUseCase(repository: repository),
       archiveTaskUseCase: ArchiveTaskUseCase(repository: repository),
       saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: settingsRepository),
-      syncTasksUseCase: SyncTasksUseCase(repository: repository, client: StubTaskSyncClient { tasks, _ in tasks }),
+      syncTasksUseCase: SyncTasksUseCase(
+        taskRepository: repository,
+        taskPoolOrganizationRepository: taskPoolOrganizationRepository,
+        client: StubTaskSyncClient { tasks, organization, _ in
+          TaskSyncSnapshot(tasks: tasks, taskPoolOrganization: organization)
+        }
+      ),
       syncSettingsRepository: settingsRepository
     )
   }

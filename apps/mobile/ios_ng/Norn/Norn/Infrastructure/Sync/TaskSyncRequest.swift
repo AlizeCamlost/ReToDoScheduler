@@ -109,9 +109,15 @@ struct TaskSyncRequest: Encodable {
 
   var deviceId: String
   var tasks: [TaskPayload]
+  var taskPoolOrganization: TaskPoolOrganizationRecord?
 
-  init(deviceID: String, tasks: [Task]) {
+  init(
+    deviceID: String,
+    tasks: [Task],
+    taskPoolOrganization: TaskPoolOrganizationDocument? = nil
+  ) {
     deviceId = deviceID
     self.tasks = tasks.map(TaskPayload.init(task:))
+    self.taskPoolOrganization = taskPoolOrganization.map(TaskPoolOrganizationRecord.init(document:))
   }
 }
