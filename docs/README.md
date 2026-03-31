@@ -13,7 +13,7 @@
 ## specs
 
 - [specs/architecture.md](specs/architecture.md): 当前系统架构真相源。定义运行时分层、仓库职责、数据流、最小 Task sync contract，以及并行同步 `TaskPoolOrganizationDocument` 的双端对齐约束。最后更新：2026-03-31
-- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑，并同步记录根容器背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset、固定化的 dock reserve、高开销 halo 改为轻量静态外环后的 Sequence chrome、右上角把手触发且仅在拖拽期启用落位命中的主序列交互、Quick Add 拉起任务序列编辑器的批量录入路径，以及任务 bundle 标识的单卡展示边界，并补充顶层分页顺序已调整为 `Sequence -> Task Pool -> Schedule`、任务池组织文档同步承载层，以及已集成的 `目录树 / 画布` 双模式任务池，其中画布已收敛为带父子连线、可展开/收拢目录子树的思维导图视图。当前实施状态：F17 已完成。最后更新：2026-04-01
+- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑，并同步记录根容器背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset、固定化的 dock reserve、高开销 halo 改为轻量静态外环后的 Sequence chrome、右上角把手触发且仅在拖拽期启用落位命中的主序列交互、Quick Add 拉起任务序列编辑器的批量录入路径，以及任务 bundle 标识的单卡展示边界，并补充顶层分页顺序已调整为 `Sequence -> Task Pool -> Schedule`、任务池组织文档同步承载层，以及已集成的 `目录树 / 画布` 双模式任务池，其中画布已收敛为带父子连线、可展开/收拢目录子树、并由稳定树布局算法驱动的思维导图视图。当前实施状态：F18 已完成。最后更新：2026-04-01
 - [specs/product-model.md](specs/product-model.md): 当前产品语义真相源。定义 Norn / Kairos 边界、任务池核心抽象、价值语义和输入契约，并补充目录树 / 画布共用的 `TaskPoolOrganizationDocument` 语义。最后更新：2026-03-31
 - [specs/scheduling-model.md](specs/scheduling-model.md): 当前调度模型真相源。把 Kairos 明确为“硬约束 + 价值最大化”的滚动装箱问题，并说明比较器接口与实现边界。最后更新：2026-03-22
 - [specs/web-app-structure.md](specs/web-app-structure.md): Web 端当前对齐 Norn 移动端后的主壳、三 tab 信息架构、详情流、Sequence 交互和 feature 边界真相源。最后更新：2026-03-25

@@ -64,18 +64,32 @@ private extension TaskPoolCanvasMindMap {
     let edges: [Edge]
   }
 
+  struct VisibleNode {
+    let key: NodeKey
+    let title: String
+    let subtitle: String
+    let detail: String?
+    let isCollapsed: Bool
+    let hasChildren: Bool
+    let accent: AccentKind
+    let task: Task?
+    let children: [VisibleNode]
+  }
+
   struct Builder {
-    private static let leadingInset: CGFloat = 220
-    private static let topInset: CGFloat = 170
+    private static let leadingInset: CGFloat = 240
+    private static let topInset: CGFloat = 150
     private static let horizontalSpacing: CGFloat = 300
-    private static let verticalSpacing: CGFloat = 170
-    private static let rootSubtreeSpacing: CGFloat = 36
+    private static let siblingSpacing: CGFloat = 28
+    private static let rootSubtreeSpacing: CGFloat = 64
+    private static let expandedDirectoryHeight: CGFloat = 124
+    private static let collapsedDirectoryHeight: CGFloat = 92
+    private static let taskHeight: CGFloat = 162
 
     private let normalizedOrganization: TaskPoolOrganizationDocument
     private let childDirectoriesByParentID: [String: [TaskPoolDirectory]]
     private let tasksByDirectoryID: [String: [Task]]
     private let storedLayouts: [NodeKey: TaskPoolCanvasNodeLayout]
-    private let defaultPositions: [NodeKey: CGPoint]
 
     init(tasks: [Task], organization: TaskPoolOrganizationDocument) {
       let normalizedOrganization = organization.normalized()
@@ -83,15 +97,17 @@ private extension TaskPoolCanvasMindMap {
       let taskPlacements = Dictionary(
         uniqueKeysWithValues: normalizedOrganization.taskPlacements.map { ($0.taskID, $0.parentDirectoryID) }
       )
-      let childDirectoriesByParentID = Dictionary(grouping: normalizedOrganization.directories.filter {
+
+      self.normalizedOrganization = normalizedOrganization
+      childDirectoriesByParentID = Dictionary(grouping: normalizedOrganization.directories.filter {
         $0.id != normalizedOrganization.rootDirectoryID
       }) { directory in
         directory.parentDirectoryID ?? normalizedOrganization.rootDirectoryID
       }
-      let tasksByDirectoryID = Dictionary(grouping: visibleTasks) { task in
+      tasksByDirectoryID = Dictionary(grouping: visibleTasks) { task in
         taskPlacements[task.id] ?? normalizedOrganization.inboxDirectoryID
       }
-      let storedLayouts = Dictionary(
+      storedLayouts = Dictionary(
         uniqueKeysWithValues: normalizedOrganization.canvasNodes.map { layout in
           (
             NodeKey(nodeID: layout.nodeID, nodeKind: layout.nodeKind),
@@ -99,41 +115,36 @@ private extension TaskPoolCanvasMindMap {
           )
         }
       )
-
-      self.normalizedOrganization = normalizedOrganization
-      self.childDirectoriesByParentID = childDirectoriesByParentID
-      self.tasksByDirectoryID = tasksByDirectoryID
-      self.storedLayouts = storedLayouts
-      self.defaultPositions = Builder.buildDefaultPositions(
-        normalizedOrganization: normalizedOrganization,
-        childDirectoriesByParentID: childDirectoriesByParentID,
-        tasksByDirectoryID: tasksByDirectoryID,
-        storedLayouts: storedLayouts,
-        leadingInset: Self.leadingInset,
-        topInset: Self.topInset,
-        horizontalSpacing: Self.horizontalSpacing,
-        verticalSpacing: Self.verticalSpacing,
-        rootSubtreeSpacing: Self.rootSubtreeSpacing
-      )
     }
 
     func build() -> BuildResult {
+      let roots = rootElements().map(buildVisibleTree)
+
       var nodes: [Node] = []
       var edges: [Edge] = []
+      var currentTop = Self.topInset
 
-      for element in rootElements() {
-        append(element, parent: nil, nodes: &nodes, edges: &edges)
+      for (index, root) in roots.enumerated() {
+        let subtreeHeight = subtreeHeight(for: root)
+        let centerY = currentTop + subtreeHeight / 2
+        append(
+          root,
+          depth: 0,
+          centerY: centerY,
+          inheritedDirectoryOffset: .zero,
+          nodes: &nodes,
+          edges: &edges
+        )
+        currentTop += subtreeHeight
+        if index < roots.count - 1 {
+          currentTop += Self.rootSubtreeSpacing
+        }
       }
 
       return BuildResult(nodes: nodes, edges: edges)
     }
 
-    private func append(
-      _ element: TreeElement,
-      parent: NodeKey?,
-      nodes: inout [Node],
-      edges: inout [Edge]
-    ) {
+    private func buildVisibleTree(_ element: TreeElement) -> VisibleNode {
       switch element {
       case .directory(let directory):
         let key = NodeKey(nodeID: directory.id, nodeKind: .directory)
@@ -141,63 +152,163 @@ private extension TaskPoolCanvasMindMap {
         let childTasks = tasks(in: directory.id)
         let hasChildren = !childDirectories.isEmpty || !childTasks.isEmpty
         let isCollapsed = storedLayouts[key]?.isCollapsed ?? false
+        let visibleChildren: [VisibleNode] = isCollapsed
+          ? []
+          : childDirectories.map { buildVisibleTree(.directory($0)) }
+            + childTasks.map { buildVisibleTree(.task($0)) }
 
-        nodes.append(
-          Node(
-            key: key,
-            title: displayName(for: directory),
-            subtitle: directoryPathLabel(for: directory.id),
-            detail: "\(childDirectories.count) 个子目录 · \(childTasks.count) 个任务",
-            position: resolvedPosition(for: key),
-            isCollapsed: isCollapsed,
-            hasChildren: hasChildren,
-            accent: directory.id == normalizedOrganization.inboxDirectoryID ? .inbox : .directory,
-            task: nil
-          )
+        return VisibleNode(
+          key: key,
+          title: displayName(for: directory),
+          subtitle: directoryPathLabel(for: directory.id),
+          detail: "\(childDirectories.count) 个子目录 · \(childTasks.count) 个任务",
+          isCollapsed: isCollapsed,
+          hasChildren: hasChildren,
+          accent: directory.id == normalizedOrganization.inboxDirectoryID ? .inbox : .directory,
+          task: nil,
+          children: visibleChildren
         )
-
-        if let parent {
-          edges.append(Edge(parent: parent, child: key))
-        }
-
-        guard !isCollapsed else {
-          return
-        }
-
-        for childDirectory in childDirectories {
-          append(.directory(childDirectory), parent: key, nodes: &nodes, edges: &edges)
-        }
-        for task in childTasks {
-          append(.task(task), parent: key, nodes: &nodes, edges: &edges)
-        }
 
       case .task(let task):
-        let key = NodeKey(nodeID: task.id, nodeKind: .task)
-        nodes.append(
-          Node(
-            key: key,
-            title: task.title,
-            subtitle: directoryPathLabel(for: directoryID(for: task.id)),
-            detail: task.description?.nilIfBlank,
-            position: resolvedPosition(for: key),
-            isCollapsed: false,
-            hasChildren: false,
-            accent: .task(task.status),
-            task: task
-          )
+        return VisibleNode(
+          key: NodeKey(nodeID: task.id, nodeKind: .task),
+          title: task.title,
+          subtitle: directoryPathLabel(for: directoryID(for: task.id)),
+          detail: task.description?.nilIfBlank,
+          isCollapsed: false,
+          hasChildren: false,
+          accent: .task(task.status),
+          task: task,
+          children: []
         )
-
-        if let parent {
-          edges.append(Edge(parent: parent, child: key))
-        }
       }
     }
 
-    private func resolvedPosition(for key: NodeKey) -> CGPoint {
-      if let stored = storedLayouts[key] {
-        return CGPoint(x: stored.x, y: stored.y)
+    private func append(
+      _ node: VisibleNode,
+      depth: Int,
+      centerY: CGFloat,
+      inheritedDirectoryOffset: CGSize,
+      nodes: inout [Node],
+      edges: inout [Edge]
+    ) {
+      let basePosition = CGPoint(
+        x: Self.leadingInset + CGFloat(depth) * Self.horizontalSpacing,
+        y: centerY
+      )
+      let ownOffset = resolvedOffset(
+        for: node,
+        depth: depth,
+        basePosition: basePosition,
+        inheritedDirectoryOffset: inheritedDirectoryOffset
+      )
+      let descendantOffset: CGSize
+      let finalPosition: CGPoint
+
+      switch node.key.nodeKind {
+      case .directory:
+        descendantOffset = inheritedDirectoryOffset + ownOffset
+        finalPosition = basePosition + descendantOffset
+      case .task:
+        descendantOffset = inheritedDirectoryOffset
+        finalPosition = basePosition + inheritedDirectoryOffset + ownOffset
       }
-      return defaultPositions[key] ?? CGPoint(x: Self.leadingInset, y: Self.topInset)
+
+      nodes.append(
+        Node(
+          key: node.key,
+          title: node.title,
+          subtitle: node.subtitle,
+          detail: node.detail,
+          position: finalPosition,
+          isCollapsed: node.isCollapsed,
+          hasChildren: node.hasChildren,
+          accent: node.accent,
+          task: node.task
+        )
+      )
+
+      guard !node.children.isEmpty else {
+        return
+      }
+
+      let childHeights = node.children.map(subtreeHeight(for:))
+      let totalChildrenHeight = childHeights.reduce(0, +)
+        + CGFloat(max(0, node.children.count - 1)) * Self.siblingSpacing
+      var currentTop = centerY - totalChildrenHeight / 2
+
+      for (child, childHeight) in zip(node.children, childHeights) {
+        let childCenterY = currentTop + childHeight / 2
+        edges.append(Edge(parent: node.key, child: child.key))
+        append(
+          child,
+          depth: depth + 1,
+          centerY: childCenterY,
+          inheritedDirectoryOffset: descendantOffset,
+          nodes: &nodes,
+          edges: &edges
+        )
+        currentTop += childHeight + Self.siblingSpacing
+      }
+    }
+
+    private func resolvedOffset(
+      for node: VisibleNode,
+      depth: Int,
+      basePosition: CGPoint,
+      inheritedDirectoryOffset: CGSize
+    ) -> CGSize {
+      guard let storedLayout = storedLayouts[node.key] else {
+        return .zero
+      }
+
+      let rawOffset = CGSize(
+        width: storedLayout.x - basePosition.x - inheritedDirectoryOffset.width,
+        height: storedLayout.y - basePosition.y - inheritedDirectoryOffset.height
+      )
+
+      switch node.key.nodeKind {
+      case .directory:
+        return clampedDirectoryOffset(rawOffset, depth: depth)
+      case .task:
+        return clampedTaskOffset(rawOffset)
+      }
+    }
+
+    private func clampedDirectoryOffset(_ offset: CGSize, depth: Int) -> CGSize {
+      let horizontalLimit: CGFloat = depth == 0 ? 220 : 120
+      let verticalLimit: CGFloat = depth == 0 ? 240 : 140
+      return CGSize(
+        width: min(max(offset.width, -horizontalLimit), horizontalLimit),
+        height: min(max(offset.height, -verticalLimit), verticalLimit)
+      )
+    }
+
+    private func clampedTaskOffset(_ offset: CGSize) -> CGSize {
+      CGSize(
+        width: min(max(offset.width, -56), 56),
+        height: min(max(offset.height, -48), 48)
+      )
+    }
+
+    private func subtreeHeight(for node: VisibleNode) -> CGFloat {
+      let selfHeight = nodeHeight(for: node)
+      guard !node.children.isEmpty else {
+        return selfHeight
+      }
+
+      let childrenHeight = node.children.map(subtreeHeight(for:)).reduce(0, +)
+        + CGFloat(max(0, node.children.count - 1)) * Self.siblingSpacing
+      return max(selfHeight, childrenHeight)
+    }
+
+    private func nodeHeight(for node: VisibleNode) -> CGFloat {
+      switch node.key.nodeKind {
+      case .directory:
+        return node.isCollapsed ? Self.collapsedDirectoryHeight : Self.expandedDirectoryHeight
+      case .task:
+        return Self.taskHeight
+      }
     }
 
     private func rootElements() -> [TreeElement] {
@@ -263,104 +374,18 @@ private extension TaskPoolCanvasMindMap {
         }
       }
     }
+  }
+}
 
-    private static func buildDefaultPositions(
-      normalizedOrganization: TaskPoolOrganizationDocument,
-      childDirectoriesByParentID: [String: [TaskPoolDirectory]],
-      tasksByDirectoryID: [String: [Task]],
-      storedLayouts: [NodeKey: TaskPoolCanvasNodeLayout],
-      leadingInset: CGFloat,
-      topInset: CGFloat,
-      horizontalSpacing: CGFloat,
-      verticalSpacing: CGFloat,
-      rootSubtreeSpacing: CGFloat
-    ) -> [NodeKey: CGPoint] {
-      var positions: [NodeKey: CGPoint] = [:]
-      var nextLeafY = topInset
+private extension CGPoint {
+  static func + (lhs: CGPoint, rhs: CGSize) -> CGPoint {
+    CGPoint(x: lhs.x + rhs.width, y: lhs.y + rhs.height)
+  }
+}
 
-      let directorySortComparator: (TaskPoolDirectory, TaskPoolDirectory) -> Bool = { lhs, rhs in
-        if lhs.sortOrder != rhs.sortOrder {
-          return lhs.sortOrder < rhs.sortOrder
-        }
-        return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-      }
-      let taskSortComparator: (Task, Task) -> Bool = { lhs, rhs in
-        switch (lhs.dueAt, rhs.dueAt) {
-        case let (left?, right?) where left != right:
-          return left < right
-        case (.some, .none):
-          return true
-        case (.none, .some):
-          return false
-        default:
-          return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
-        }
-      }
-
-      func childDirectories(of directoryID: String) -> [TaskPoolDirectory] {
-        (childDirectoriesByParentID[directoryID] ?? []).sorted(by: directorySortComparator)
-      }
-
-      func tasks(in directoryID: String) -> [Task] {
-        (tasksByDirectoryID[directoryID] ?? []).sorted(by: taskSortComparator)
-      }
-
-      func childElements(of directoryID: String) -> [TreeElement] {
-        childDirectories(of: directoryID).map(TreeElement.directory)
-          + tasks(in: directoryID).map(TreeElement.task)
-      }
-
-      func point(depth: Int, y: CGFloat) -> CGPoint {
-        CGPoint(
-          x: leadingInset + CGFloat(depth) * horizontalSpacing,
-          y: y
-        )
-      }
-
-      func resolvedY(for key: NodeKey, fallback: CGFloat) -> CGFloat {
-        CGFloat(storedLayouts[key]?.y ?? Double(fallback))
-      }
-
-      func assign(_ element: TreeElement, depth: Int) -> CGFloat {
-        switch element {
-        case .directory(let directory):
-          let key = NodeKey(nodeID: directory.id, nodeKind: .directory)
-          let children = childElements(of: directory.id)
-          let y: CGFloat
-          if children.isEmpty {
-            y = nextLeafY
-            nextLeafY += verticalSpacing
-          } else {
-            let childYs = children.map { assign($0, depth: depth + 1) }
-            let firstY = childYs.first ?? nextLeafY
-            let lastY = childYs.last ?? firstY
-            y = (firstY + lastY) / 2
-          }
-          let fallbackY = resolvedY(for: key, fallback: y)
-          positions[key] = point(depth: depth, y: fallbackY)
-          return fallbackY
-
-        case .task(let task):
-          let key = NodeKey(nodeID: task.id, nodeKind: .task)
-          let y = resolvedY(for: key, fallback: nextLeafY)
-          positions[key] = point(depth: depth, y: y)
-          nextLeafY = max(nextLeafY, y + verticalSpacing)
-          return y
-        }
-      }
-
-      let rootElements = childDirectories(of: normalizedOrganization.rootDirectoryID).map(TreeElement.directory)
-        + tasks(in: normalizedOrganization.rootDirectoryID).map(TreeElement.task)
-
-      for (index, element) in rootElements.enumerated() {
-        _ = assign(element, depth: 0)
-        if index < rootElements.count - 1 {
-          nextLeafY += rootSubtreeSpacing
-        }
-      }
-
-      return positions
-    }
+private extension CGSize {
+  static func + (lhs: CGSize, rhs: CGSize) -> CGSize {
+    CGSize(width: lhs.width + rhs.width, height: lhs.height + rhs.height)
   }
 }
 

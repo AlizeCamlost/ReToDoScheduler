@@ -39,6 +39,10 @@ struct TaskPoolCanvasView: View {
     Dictionary(uniqueKeysWithValues: nodePresentations.map { ($0.id, $0) })
   }
 
+  private var parentNodeIDByChildID: [String: String] {
+    Dictionary(uniqueKeysWithValues: visibleEdges.map { ($0.child.stableID, $0.parent.stableID) })
+  }
+
   var body: some View {
     ScrollView([.horizontal, .vertical], showsIndicators: false) {
       ZStack(alignment: .topLeading) {
@@ -149,7 +153,7 @@ struct TaskPoolCanvasView: View {
   }
 
   private func position(for node: TaskPoolCanvasNodePresentation) -> CGPoint {
-    let translation = dragTranslations[node.id] ?? .zero
+    let translation = accumulatedDragTranslation(for: node)
     return clampedPosition(
       CGPoint(
         x: node.position.x + translation.width,
@@ -195,6 +199,19 @@ struct TaskPoolCanvasView: View {
     case .task(let status):
       return TaskDisplayFormatter.statusColor(for: status)
     }
+  }
+
+  private func accumulatedDragTranslation(for node: TaskPoolCanvasNodePresentation) -> CGSize {
+    var total = CGSize.zero
+    var currentNodeID: String? = node.id
+
+    while let current = currentNodeID {
+      total.width += dragTranslations[current]?.width ?? 0
+      total.height += dragTranslations[current]?.height ?? 0
+      currentNodeID = parentNodeIDByChildID[current]
+    }
+
+    return total
   }
 
   private func clampedPosition(_ point: CGPoint) -> CGPoint {

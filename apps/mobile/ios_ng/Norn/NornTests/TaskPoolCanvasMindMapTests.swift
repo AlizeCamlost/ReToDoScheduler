@@ -42,21 +42,84 @@ final class TaskPoolCanvasMindMapTests: XCTestCase {
     XCTAssertEqual(graph.nodes.first(where: { $0.key == directoryKey("dir-a") })?.isCollapsed, true)
   }
 
-  func testStoredPositionsOverrideDefaultTreeLayout() {
+  func testAutoLayoutCentersParentBetweenSiblingLeaves() throws {
     let graph = TaskPoolCanvasMindMap(
       tasks: [
-        makeTask(id: "task-a", title: "Alpha")
+        makeTask(id: "task-a", title: "Alpha"),
+        makeTask(id: "task-c", title: "Charlie")
+      ],
+      organization: organizationWithSiblingLeaves()
+    )
+
+    let parent = try unwrapNode(directoryKey("dir-a"), in: graph)
+    let firstChild = try unwrapNode(taskKey("task-a"), in: graph)
+    let secondChild = try unwrapNode(taskKey("task-c"), in: graph)
+
+    XCTAssertTrue(firstChild.position.x > parent.position.x)
+    XCTAssertTrue(secondChild.position.x > parent.position.x)
+    XCTAssertEqual(parent.position.y, (firstChild.position.y + secondChild.position.y) / 2, accuracy: 0.001)
+    XCTAssertTrue(firstChild.position.y < secondChild.position.y)
+  }
+
+  func testStoredDirectoryPositionOffsetsWholeVisibleSubtree() throws {
+    let baseGraph = TaskPoolCanvasMindMap(
+      tasks: [
+        makeTask(id: "task-a", title: "Alpha"),
+        makeTask(id: "task-b", title: "Beta")
+      ],
+      organization: organization()
+    )
+    let movedGraph = TaskPoolCanvasMindMap(
+      tasks: [
+        makeTask(id: "task-a", title: "Alpha"),
+        makeTask(id: "task-b", title: "Beta")
       ],
       organization: organization(
         canvasNodes: [
-          TaskPoolCanvasNodeLayout(nodeID: "dir-a", nodeKind: .directory, x: 840, y: 410),
-          TaskPoolCanvasNodeLayout(nodeID: "task-a", nodeKind: .task, x: 1_120, y: 470)
+          TaskPoolCanvasNodeLayout(nodeID: "dir-a", nodeKind: .directory, x: 420, y: 420)
         ]
       )
     )
 
-    XCTAssertEqual(graph.nodes.first(where: { $0.key == directoryKey("dir-a") })?.position, CGPoint(x: 840, y: 410))
-    XCTAssertEqual(graph.nodes.first(where: { $0.key == taskKey("task-a") })?.position, CGPoint(x: 1_120, y: 470))
+    let baseParent = try unwrapNode(directoryKey("dir-a"), in: baseGraph)
+    let movedParent = try unwrapNode(directoryKey("dir-a"), in: movedGraph)
+    let baseChildDirectory = try unwrapNode(directoryKey("dir-b"), in: baseGraph)
+    let movedChildDirectory = try unwrapNode(directoryKey("dir-b"), in: movedGraph)
+    let baseChildTask = try unwrapNode(taskKey("task-a"), in: baseGraph)
+    let movedChildTask = try unwrapNode(taskKey("task-a"), in: movedGraph)
+
+    let dx = movedParent.position.x - baseParent.position.x
+    let dy = movedParent.position.y - baseParent.position.y
+
+    XCTAssertEqual(movedChildDirectory.position.x - baseChildDirectory.position.x, dx, accuracy: 0.001)
+    XCTAssertEqual(movedChildDirectory.position.y - baseChildDirectory.position.y, dy, accuracy: 0.001)
+    XCTAssertEqual(movedChildTask.position.x - baseChildTask.position.x, dx, accuracy: 0.001)
+    XCTAssertEqual(movedChildTask.position.y - baseChildTask.position.y, dy, accuracy: 0.001)
+  }
+
+  func testStoredTaskPositionIsClampedToKeepTreeOrderly() throws {
+    let baseGraph = TaskPoolCanvasMindMap(
+      tasks: [
+        makeTask(id: "task-a", title: "Alpha")
+      ],
+      organization: organizationWithSiblingLeaves()
+    )
+    let movedGraph = TaskPoolCanvasMindMap(
+      tasks: [
+        makeTask(id: "task-a", title: "Alpha")
+      ],
+      organization: organizationWithSiblingLeaves(
+        canvasNodes: [
+          TaskPoolCanvasNodeLayout(nodeID: "task-a", nodeKind: .task, x: 2_000, y: 2_000)
+        ]
+      )
+    )
+
+    let baseTask = try unwrapNode(taskKey("task-a"), in: baseGraph)
+    let movedTask = try unwrapNode(taskKey("task-a"), in: movedGraph)
+
+    XCTAssertLessThanOrEqual(movedTask.position.x - baseTask.position.x, 56.001)
+    XCTAssertLessThanOrEqual(movedTask.position.y - baseTask.position.y, 48.001)
   }
 
   private func organization(canvasNodes: [TaskPoolCanvasNodeLayout] = []) -> TaskPoolOrganizationDocument {
@@ -76,6 +139,37 @@ final class TaskPoolCanvasMindMapTests: XCTestCase {
     )
   }
 
+  private func organizationWithSiblingLeaves(
+    canvasNodes: [TaskPoolCanvasNodeLayout] = []
+  ) -> TaskPoolOrganizationDocument {
+    TaskPoolOrganizationDocument(
+      directories: [
+        TaskPoolDirectory(id: "root", name: "根目录", sortOrder: 0),
+        TaskPoolDirectory(id: "inbox", name: "待整理", parentDirectoryID: "root", sortOrder: 0),
+        TaskPoolDirectory(id: "dir-a", name: "项目", parentDirectoryID: "root", sortOrder: 1)
+      ],
+      taskPlacements: [
+        TaskPoolTaskPlacement(taskID: "task-a", parentDirectoryID: "dir-a", sortOrder: 0),
+        TaskPoolTaskPlacement(taskID: "task-c", parentDirectoryID: "dir-a", sortOrder: 1)
+      ],
+      canvasNodes: canvasNodes,
+      updatedAt: Date(timeIntervalSince1970: 1_700_000_000)
+    )
+  }
+
+  private func unwrapNode(
+    _ key: TaskPoolCanvasMindMap.NodeKey,
+    in graph: TaskPoolCanvasMindMap,
+    file: StaticString = #filePath,
+    line: UInt = #line
+  ) throws -> TaskPoolCanvasMindMap.Node {
+    guard let node = graph.nodes.first(where: { $0.key == key }) else {
+      XCTFail("Missing node \(key.stableID)", file: file, line: line)
+      throw TestFailure()
+    }
+    return node
+  }
+
   private func directoryKey(_ id: String) -> TaskPoolCanvasMindMap.NodeKey {
     TaskPoolCanvasMindMap.NodeKey(nodeID: id, nodeKind: .directory)
   }
@@ -84,3 +178,5 @@ final class TaskPoolCanvasMindMapTests: XCTestCase {
     TaskPoolCanvasMindMap.NodeKey(nodeID: id, nodeKind: .task)
   }
 }
+
+private struct TestFailure: Error {}
