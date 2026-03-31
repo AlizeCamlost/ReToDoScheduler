@@ -1,6 +1,44 @@
 import Foundation
 
 enum NornPreviewFixtures {
+  static let taskPoolOrganization: TaskPoolOrganizationDocument = {
+    let now = Date()
+    return TaskPoolOrganizationDocument(
+      directories: [
+        TaskPoolDirectory(
+          id: TaskPoolOrganizationDocument.defaultRootDirectoryID,
+          name: TaskPoolOrganizationDocument.defaultRootDirectoryName,
+          sortOrder: 0
+        ),
+        TaskPoolDirectory(
+          id: TaskPoolOrganizationDocument.defaultInboxDirectoryID,
+          name: TaskPoolOrganizationDocument.defaultInboxDirectoryName,
+          parentDirectoryID: TaskPoolOrganizationDocument.defaultRootDirectoryID,
+          sortOrder: 0
+        ),
+        TaskPoolDirectory(
+          id: "dir-release",
+          name: "版本发布",
+          parentDirectoryID: TaskPoolOrganizationDocument.defaultRootDirectoryID,
+          sortOrder: 1
+        ),
+        TaskPoolDirectory(
+          id: "dir-docs",
+          name: "文档整理",
+          parentDirectoryID: "dir-release",
+          sortOrder: 0
+        )
+      ],
+      taskPlacements: [
+        TaskPoolTaskPlacement(taskID: "task-1", parentDirectoryID: "dir-release", sortOrder: 0),
+        TaskPoolTaskPlacement(taskID: "task-2", parentDirectoryID: TaskPoolOrganizationDocument.defaultInboxDirectoryID, sortOrder: 0),
+        TaskPoolTaskPlacement(taskID: "task-3", parentDirectoryID: "dir-docs", sortOrder: 0),
+        TaskPoolTaskPlacement(taskID: "task-4", parentDirectoryID: "dir-release", sortOrder: 1)
+      ],
+      updatedAt: now
+    ).normalized()
+  }()
+
   static let tasks: [Task] = {
     let calendar = Calendar.current
     let now = Date()

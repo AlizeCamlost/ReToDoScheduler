@@ -30,6 +30,7 @@ struct ContentView: View {
 
         TaskPoolTab(
           tasks: store.visibleTasks,
+          organization: store.taskPoolOrganization,
           syncStatus: store.syncStatus,
           onOpenSyncSettings: {
             store.openSyncSettings()
@@ -39,6 +40,21 @@ struct ContentView: View {
           },
           onTaskTap: { task in
             store.openTaskDetail(taskID: task.id)
+          },
+          onCreateDirectory: { name, parentDirectoryID in
+            store.createTaskPoolDirectory(name: name, parentDirectoryID: parentDirectoryID)
+          },
+          onRenameDirectory: { directoryID, name in
+            store.renameTaskPoolDirectory(directoryID: directoryID, name: name)
+          },
+          onDeleteDirectory: { directoryID in
+            store.deleteTaskPoolDirectory(directoryID: directoryID)
+          },
+          onMoveDirectory: { directoryID, parentDirectoryID in
+            store.moveTaskPoolDirectory(directoryID: directoryID, parentDirectoryID: parentDirectoryID)
+          },
+          onMoveTask: { taskID, parentDirectoryID in
+            store.placeTaskInTaskPool(taskID: taskID, parentDirectoryID: parentDirectoryID)
           }
         )
           .safeAreaPadding(pageContentAvoidanceEdges)

@@ -63,7 +63,7 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - 任务详情页与完成/归档动作已接通
 - 编辑器与任务保存流已接通
 - 同步设置与手动同步已接通
-- 任务池 `list` 模式已接通真实任务数据
+- 任务池目录树浏览器已接通真实任务数据、目录 CRUD、目录移动和任务归属调整入口
 - `Norn.xcodeproj` 已补 `NornTests` / `NornUITests` target 和基础覆盖代码
 - 当前已完成 `packages/core` / `services/api` 的类型检查与 `Norn` iOS build；更完整的 Simulator 测试仍需在可用 CoreSimulator 环境复检
 
@@ -144,6 +144,7 @@ apps/mobile/ios_ng/Norn/Norn/
     UseCases/
       LoadTasksUseCase.swift
       LoadTaskPoolOrganizationUseCase.swift
+      SaveTaskPoolOrganizationUseCase.swift
       QuickAddTaskUseCase.swift
       SaveTaskDraftUseCase.swift
       SaveTaskSequenceUseCase.swift
@@ -219,6 +220,9 @@ apps/mobile/ios_ng/Norn/Norn/
         TaskCard.swift
         TaskStepPreview.swift
     TaskPool/
+      Tree/
+        TaskPoolDirectoryEditorSheet.swift
+        TaskPoolTreeBrowser.swift
       TaskDependencyPickerSheet.swift
       TaskEditorSheet.swift
       TaskDetailSheet.swift
@@ -264,7 +268,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `TaskStepPreview` 已成为 Sequence / Focus / TaskPool 卡片共用的串行子任务预览组件，统一在卡片上展示当前步骤和步进位置
 - `TaskStepProgress`、`TaskRecord` 和 `TaskSyncRequest` 已把步骤 `startedAt/completedAt` 进度接入本地持久化与同步载荷；已完成步骤不再进入共享调度输入
 - `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
-- `TaskPool` 的 `list` 模式已直接绑定 store 中的可见任务序列
+- `TaskPool` 已改成目录树主浏览面，并通过 `NornAppStore` 的任务池组织操作入口直接落本地仓库与保守同步
 - `apps/mobile/ios_ng/Norn/NornTests` 与 `apps/mobile/ios_ng/Norn/NornUITests` 已落基础数据流和 smoke 测试代码
 - `UI/` 已经按页面和共享组件分层
 - `Resources/Assets.xcassets` 已从工程根平移到资源目录
@@ -413,6 +417,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Application/State/NornAppStore.swift` | `NornAppStore` | UI 总状态入口 | `bootstrap()` `submitQuickAdd()` `openNewTaskDraftFromQuickAdd()` `openTaskDetail()` `openTaskEditor()` `updateTaskStatus()` `appendTaskStep()` `completeTaskStep()` `openSyncSettings()` `refresh()` |
 | `Application/UseCases/LoadTasksUseCase.swift` | `LoadTasksUseCase` | 读取当前任务集合 | `execute()` |
 | `Application/UseCases/LoadTaskPoolOrganizationUseCase.swift` | `LoadTaskPoolOrganizationUseCase` | 读取当前任务池组织文档 | `execute()` |
+| `Application/UseCases/SaveTaskPoolOrganizationUseCase.swift` | `SaveTaskPoolOrganizationUseCase` | 保存当前任务池组织文档 | `execute(document:)` |
 | `Application/UseCases/QuickAddTaskUseCase.swift` | `QuickAddTaskUseCase` | 处理底部快速新增 | `execute(rawInput:)` |
 | `Application/UseCases/SaveTaskDraftUseCase.swift` | `SaveTaskDraftUseCase` | 创建或保存详细任务 | `execute(draft:)` |
 | `Application/UseCases/UpdateTaskStatusUseCase.swift` | `UpdateTaskStatusUseCase` | 显式切换任务状态 | `execute(taskID:status:)` |
@@ -460,9 +465,11 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Shared/TaskBundleBadge.swift` | `TaskBundleBadge` | 任务 bundle 标识 | 共用于 Focus / Sequence / TaskPool 卡片 |
 | `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列通过长按右上角把手重排，落位时单次更新顺序 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
-| `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前主要复用于 `TaskPool` 的 list 模式 |
+| `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前复用于 `TaskPool` 的目录树内容区 |
 | `UI/Sequence/Components/TaskStepPreview.swift` | `TaskStepPreview` | 串行子任务当前步骤预览 | 共用于 Focus / Sequence / TaskPool 卡片 |
-| `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 当前位于第二个顶层分页入口，本轮只做 `list` 模式 |
+| `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 当前位于第二个顶层分页入口，已挂目录树浏览器 |
+| `UI/TaskPool/Tree/TaskPoolTreeBrowser.swift` | `TaskPoolTreeBrowser` | 目录树主浏览器 | 浏览目录树、目录内容和任务归属 |
+| `UI/TaskPool/Tree/TaskPoolDirectoryEditorSheet.swift` | `TaskPoolDirectoryEditorSheet` | 目录名称编辑 sheet | 新建 / 重命名目录共用 |
 | `UI/TaskPool/TaskDependencyPickerSheet.swift` | `TaskDependencyPickerSheet` | 任务依赖二层选择器 | searchable + filter + multi-select |
 | `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情半模态 | 外层可切进行中、追加子任务、推进当前步骤、完成/归档 |
 | `UI/TaskPool/TaskEditorSheet.swift` | `TaskEditorSheet` | 新建与编辑任务表单 | 基于 `TaskDraft`，依赖选择器改为二层 picker |
@@ -608,6 +615,7 @@ flowchart LR
 | `F11` | 接通同步设置与手动同步 | `UI/Settings` `Application/UseCases/SyncTasksUseCase.swift` `docs/runbooks/ios.md` | `feat(norn): add sync settings and manual sync` |
 | `F12` | 让 TaskPool 的 `list` 模式接入真实数据 | `UI/TaskPool/TaskPoolTab.swift` | `feat(norn): connect task pool list to app state` |
 | `F13` | 加上数据流和 UI smoke tests | `NornTests` `NornUITests` | `test(norn): add data flow and smoke coverage` |
+| `F14` | 把 TaskPool 切到目录树浏览器并接通组织操作 | `Application/UseCases/SaveTaskPoolOrganizationUseCase.swift` `Application/State/NornAppStore.swift` `UI/TaskPool/TaskPoolTab.swift` `UI/TaskPool/Tree/*` | `feat(norn): add task pool tree browser` |
 
 ## 9. 每步 review 的关注点
 

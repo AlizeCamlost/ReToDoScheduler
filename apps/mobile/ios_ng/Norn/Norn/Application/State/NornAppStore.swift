@@ -17,6 +17,7 @@ final class NornAppStore {
 
   @ObservationIgnored private let loadTasksUseCase: LoadTasksUseCase
   @ObservationIgnored private let loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase
+  @ObservationIgnored private let saveTaskPoolOrganizationUseCase: SaveTaskPoolOrganizationUseCase
   @ObservationIgnored private let quickAddTaskUseCase: QuickAddTaskUseCase
   @ObservationIgnored private let saveTaskDraftUseCase: SaveTaskDraftUseCase
   @ObservationIgnored private let saveTaskSequenceUseCase: SaveTaskSequenceUseCase
@@ -44,6 +45,7 @@ final class NornAppStore {
     isSyncSettingsPresented: Bool = false,
     loadTasksUseCase: LoadTasksUseCase,
     loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase,
+    saveTaskPoolOrganizationUseCase: SaveTaskPoolOrganizationUseCase,
     quickAddTaskUseCase: QuickAddTaskUseCase,
     saveTaskDraftUseCase: SaveTaskDraftUseCase,
     saveTaskSequenceUseCase: SaveTaskSequenceUseCase,
@@ -69,6 +71,7 @@ final class NornAppStore {
     self.isSyncSettingsPresented = isSyncSettingsPresented
     self.loadTasksUseCase = loadTasksUseCase
     self.loadTaskPoolOrganizationUseCase = loadTaskPoolOrganizationUseCase
+    self.saveTaskPoolOrganizationUseCase = saveTaskPoolOrganizationUseCase
     self.quickAddTaskUseCase = quickAddTaskUseCase
     self.saveTaskDraftUseCase = saveTaskDraftUseCase
     self.saveTaskSequenceUseCase = saveTaskSequenceUseCase
@@ -278,6 +281,69 @@ final class NornAppStore {
     isSyncSettingsPresented = false
   }
 
+  func createTaskPoolDirectory(name: String, parentDirectoryID: String?) {
+    let nextDocument = taskPoolOrganization.creatingDirectory(
+      directoryID: UUID().uuidString,
+      name: name,
+      parentDirectoryID: parentDirectoryID,
+      updatedAt: Date()
+    )
+    saveTaskPoolOrganization(nextDocument)
+  }
+
+  func renameTaskPoolDirectory(directoryID: String, name: String) {
+    let nextDocument = taskPoolOrganization.renamingDirectory(
+      directoryID: directoryID,
+      name: name,
+      updatedAt: Date()
+    )
+    saveTaskPoolOrganization(nextDocument)
+  }
+
+  func deleteTaskPoolDirectory(directoryID: String) {
+    let nextDocument = taskPoolOrganization.deletingDirectory(
+      directoryID: directoryID,
+      updatedAt: Date()
+    )
+    saveTaskPoolOrganization(nextDocument)
+  }
+
+  func moveTaskPoolDirectory(directoryID: String, parentDirectoryID: String?) {
+    let nextDocument = taskPoolOrganization.movingDirectory(
+      directoryID: directoryID,
+      parentDirectoryID: parentDirectoryID,
+      updatedAt: Date()
+    )
+    saveTaskPoolOrganization(nextDocument)
+  }
+
+  func placeTaskInTaskPool(taskID: String, parentDirectoryID: String?) {
+    let nextDocument = taskPoolOrganization.placingTask(
+      taskID: taskID,
+      parentDirectoryID: parentDirectoryID,
+      updatedAt: Date()
+    )
+    saveTaskPoolOrganization(nextDocument)
+  }
+
+  func updateTaskPoolCanvasNode(
+    nodeID: String,
+    nodeKind: TaskPoolCanvasNodeLayout.NodeKind,
+    x: Double,
+    y: Double,
+    isCollapsed: Bool
+  ) {
+    let nextDocument = taskPoolOrganization.updatingCanvasNode(
+      nodeID: nodeID,
+      nodeKind: nodeKind,
+      x: x,
+      y: y,
+      isCollapsed: isCollapsed,
+      updatedAt: Date()
+    )
+    saveTaskPoolOrganization(nextDocument)
+  }
+
   private func reloadLocalState() {
     do {
       tasks = try loadTasksUseCase.execute()
@@ -323,6 +389,15 @@ final class NornAppStore {
     }
     return nil
   }
+
+  private func saveTaskPoolOrganization(_ document: TaskPoolOrganizationDocument) {
+    do {
+      taskPoolOrganization = try saveTaskPoolOrganizationUseCase.execute(document: document)
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
+  }
 }
 
 extension NornAppStore {
@@ -340,6 +415,7 @@ extension NornAppStore {
       syncStatus: .notConfigured,
       loadTasksUseCase: LoadTasksUseCase(repository: taskRepository),
       loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase(repository: taskPoolOrganizationRepository),
+      saveTaskPoolOrganizationUseCase: SaveTaskPoolOrganizationUseCase(repository: taskPoolOrganizationRepository),
       quickAddTaskUseCase: QuickAddTaskUseCase(repository: taskRepository),
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: taskRepository),
       saveTaskSequenceUseCase: SaveTaskSequenceUseCase(repository: taskRepository),

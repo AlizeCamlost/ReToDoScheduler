@@ -20,6 +20,7 @@ struct NornApp: App {
         _store = State(initialValue: NornAppStore(
             loadTasksUseCase: LoadTasksUseCase(repository: taskRepository),
             loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase(repository: taskPoolOrganizationRepository),
+            saveTaskPoolOrganizationUseCase: SaveTaskPoolOrganizationUseCase(repository: taskPoolOrganizationRepository),
             quickAddTaskUseCase: QuickAddTaskUseCase(repository: taskRepository),
             saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: taskRepository),
             saveTaskSequenceUseCase: SaveTaskSequenceUseCase(repository: taskRepository),

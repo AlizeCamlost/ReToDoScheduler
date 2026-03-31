@@ -213,6 +213,52 @@ final class NornAppStoreTests: XCTestCase {
     XCTAssertEqual(TaskOrdering.sequenceRank(for: store.tasks[2]), 2)
   }
 
+  func testCreateTaskPoolDirectoryPersistsOrganizationState() throws {
+    let repository = InMemoryTaskRepository()
+    let settingsRepository = InMemorySyncSettingsRepository()
+    let taskPoolOrganizationRepository = InMemoryTaskPoolOrganizationRepository()
+    let store = makeStore(
+      repository: repository,
+      settingsRepository: settingsRepository,
+      taskPoolOrganizationRepository: taskPoolOrganizationRepository
+    )
+
+    store.createTaskPoolDirectory(name: "版本发布", parentDirectoryID: TaskPoolOrganizationDocument.defaultRootDirectoryID)
+
+    let createdDirectory = try XCTUnwrap(
+      store.taskPoolOrganization.directories.first { $0.name == "版本发布" }
+    )
+    XCTAssertEqual(createdDirectory.parentDirectoryID, TaskPoolOrganizationDocument.defaultRootDirectoryID)
+    XCTAssertEqual(try taskPoolOrganizationRepository.load().directories.map(\.name).contains("版本发布"), true)
+  }
+
+  func testPlaceTaskInTaskPoolMovesTaskToSelectedDirectory() throws {
+    let task = makeTask(id: "task-1", title: "Task")
+    let repository = InMemoryTaskRepository(tasks: [task])
+    let settingsRepository = InMemorySyncSettingsRepository()
+    let organization = TaskPoolOrganizationDocument(
+      directories: [
+        TaskPoolDirectory(id: "root", name: "根目录", sortOrder: 0),
+        TaskPoolDirectory(id: "inbox", name: "待整理", parentDirectoryID: "root", sortOrder: 0),
+        TaskPoolDirectory(id: "dir-release", name: "版本发布", parentDirectoryID: "root", sortOrder: 1)
+      ]
+    ).normalized()
+    let taskPoolOrganizationRepository = InMemoryTaskPoolOrganizationRepository(document: organization)
+    let store = makeStore(
+      repository: repository,
+      settingsRepository: settingsRepository,
+      taskPoolOrganizationRepository: taskPoolOrganizationRepository,
+      tasks: [task]
+    )
+
+    store.placeTaskInTaskPool(taskID: "task-1", parentDirectoryID: "dir-release")
+
+    XCTAssertEqual(
+      store.taskPoolOrganization.taskPlacement(for: "task-1")?.parentDirectoryID,
+      "dir-release"
+    )
+  }
+
   private func makeStore(
     repository: InMemoryTaskRepository,
     settingsRepository: InMemorySyncSettingsRepository,
@@ -226,6 +272,7 @@ final class NornAppStoreTests: XCTestCase {
       syncStatus: .notConfigured,
       loadTasksUseCase: LoadTasksUseCase(repository: repository),
       loadTaskPoolOrganizationUseCase: LoadTaskPoolOrganizationUseCase(repository: taskPoolOrganizationRepository),
+      saveTaskPoolOrganizationUseCase: SaveTaskPoolOrganizationUseCase(repository: taskPoolOrganizationRepository),
       quickAddTaskUseCase: QuickAddTaskUseCase(repository: repository),
       saveTaskDraftUseCase: SaveTaskDraftUseCase(repository: repository),
       saveTaskSequenceUseCase: SaveTaskSequenceUseCase(repository: repository),
