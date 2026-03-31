@@ -28,12 +28,6 @@ struct ContentView: View {
           .onTapGesture(perform: dismissDockFocus)
           .tag(AppTab.sequence)
 
-        ScheduleTab()
-          .safeAreaPadding(pageContentAvoidanceEdges)
-          .contentShape(Rectangle())
-          .onTapGesture(perform: dismissDockFocus)
-          .tag(AppTab.schedule)
-
         TaskPoolTab(
           tasks: store.visibleTasks,
           syncStatus: store.syncStatus,
@@ -51,6 +45,12 @@ struct ContentView: View {
           .contentShape(Rectangle())
           .onTapGesture(perform: dismissDockFocus)
           .tag(AppTab.taskPool)
+
+        ScheduleTab()
+          .safeAreaPadding(pageContentAvoidanceEdges)
+          .contentShape(Rectangle())
+          .onTapGesture(perform: dismissDockFocus)
+          .tag(AppTab.schedule)
       }
       .tabViewStyle(.page(indexDisplayMode: .never))
       .background(Color.clear)

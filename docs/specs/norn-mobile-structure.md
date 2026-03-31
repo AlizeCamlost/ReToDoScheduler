@@ -238,7 +238,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `App/NornApp.swift` 已承担 live 依赖组装，`UI/Root/ContentView.swift` 已承担共享背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset 和 sheet 挂载点
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环，并在激活态同时提供“详情”和“序列”入口：前者把 Quick Add 草稿提升到详细新建 sheet，后者进入任务序列批量录入 sheet
 - `TaskSequenceDraft`、`TaskBundleMetadata` 与 `SaveTaskSequenceUseCase` 已接住“连续录入多条任务并共享 bundle 标识”的能力；任务仍以多条 `Task` 落库，只通过共享元数据和顺序位维持成组展示
-- `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过方向感知的 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让：竖屏主避让 top/bottom；横屏细化仍属后续低优先级收敛项，当前只保留不破坏竖屏和 dock 编排的保守实现
+- `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过方向感知的 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让：竖屏主避让 top/bottom；横屏细化仍属后续低优先级收敛项，当前只保留不破坏竖屏和 dock 编排的保守实现；当前横向分页顺序为 `Sequence -> Task Pool -> Schedule`
 - `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片右上角把手直接拖拽重排并通过现有 sync 同步顺序
 - `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已进一步收敛为更接近手绘参考的纯色圆点 + 分段点划轨：节点与上下虚线段留出间隔，末端继续保留渐隐渐细的射线尾迹
@@ -442,13 +442,13 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前主要复用于 `TaskPool` 的 list 模式 |
 | `UI/Sequence/Components/TaskStepPreview.swift` | `TaskStepPreview` | 串行子任务当前步骤预览 | 共用于 Focus / Sequence / TaskPool 卡片 |
-| `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 本轮只做 `list` 模式 |
+| `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 当前位于第二个顶层分页入口，本轮只做 `list` 模式 |
 | `UI/TaskPool/TaskDependencyPickerSheet.swift` | `TaskDependencyPickerSheet` | 任务依赖二层选择器 | searchable + filter + multi-select |
 | `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情半模态 | 外层可切进行中、追加子任务、推进当前步骤、完成/归档 |
 | `UI/TaskPool/TaskEditorSheet.swift` | `TaskEditorSheet` | 新建与编辑任务表单 | 基于 `TaskDraft`，依赖选择器改为二层 picker |
 | `UI/TaskPool/TaskSequenceEditorSheet.swift` | `TaskSequenceEditorSheet` | 任务序列批量录入表单 | 支持连续输入多条任务并一次保存 |
 | `UI/Settings/SyncSettingsSheet.swift` | `SyncSettingsSheet` | 同步配置页 | 基于 `SyncSettings` |
-| `UI/Schedule/ScheduleTab.swift` | `ScheduleTab` | 调度页外壳 | 本轮不扩展调度实现 |
+| `UI/Schedule/ScheduleTab.swift` | `ScheduleTab` | 调度页外壳 | 当前位于第三个顶层分页入口，本轮不扩展调度实现 |
 
 ## 6. 调用关系与数据流
 
