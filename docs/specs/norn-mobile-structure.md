@@ -64,7 +64,7 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - 编辑器与任务保存流已接通
 - 同步设置与手动同步已接通
 - 任务池目录树浏览器已接通真实任务数据、目录 CRUD、目录移动和任务归属调整入口
-- 任务池第二页已接通 `目录树 / 画布` 模式切换；顶部提供本地显示配置，可在两个视图里统一隐藏已完成任务；画布已收敛为带父子连线的思维导图视图，目录展开时展示整棵可见子树，收拢时退回单节点；默认布局改为算法驱动的稳定树布局，目录拖拽表现为整棵子树的锚点偏移，避免历史绝对坐标把结构拖散
+- 任务池第二页已接通 `目录树 / 画布` 模式切换；顶部提供本地显示配置，可在两个视图里统一隐藏已完成任务；画布已收敛为带父子连线的思维导图视图，目录展开时展示整棵可见子树，收拢时退回单节点；默认布局改为算法驱动的稳定树布局，目录拖拽表现为整棵子树的锚点偏移，避免历史绝对坐标把结构拖散；当前画布还支持双指缩放和右上角缩放控件，并保持拖拽坐标在缩放后仍回写到稳定的内容坐标系
 - `Norn.xcodeproj` 已补 `NornTests` / `NornUITests` target 和基础覆盖代码
 - 当前已完成 `packages/core` / `services/api` 的类型检查与 `Norn` iOS build；更完整的 Simulator 测试仍需在可用 CoreSimulator 环境复检
 
@@ -473,6 +473,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Sequence/Components/TaskStepPreview.swift` | `TaskStepPreview` | 串行子任务当前步骤预览 | 共用于 Focus / Sequence / TaskPool 卡片 |
 | `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 当前位于第二个顶层分页入口，已挂 `目录树 / 画布` 模式切换 |
 | `UI/TaskPool/TaskPoolVisibleTasks.swift` | `TaskPoolVisibleTasks` | 任务池可见任务过滤 helper | 统一处理归档任务与“隐藏已完成任务”配置 |
+| `UI/TaskPool/Canvas/TaskPoolCanvasZoom.swift` | `TaskPoolCanvasZoom` | 画布缩放 helper | 统一处理缩放边界、步进、拖拽位移归一化和缩放后的画布尺寸 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasView.swift` | `TaskPoolCanvasView` | 任务池画布浏览器 | 负责思维导图式节点拖拽、父子连线、子树展开收拢，以及稳定树布局的渲染 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasNodeCard.swift` | `TaskPoolCanvasNodeCard` | 画布节点卡片 | 目录 / 任务节点共用视觉组件，并承载目录的收拢入口 |
 | `UI/TaskPool/Tree/TaskPoolTreeBrowser.swift` | `TaskPoolTreeBrowser` | 目录树主浏览器 | 浏览目录树、目录内容和任务归属 |
@@ -628,6 +629,7 @@ flowchart LR
 | `F17` | 把任务池画布收敛为带父子连线的可折叠思维导图 | `UI/TaskPool/Canvas/*` `NornTests` `docs/specs/norn-mobile-structure.md` | `feat(norn): make task pool canvas a collapsible mind map` |
 | `F18` | 用稳定树布局算法收敛任务池思维导图的节点组织 | `UI/TaskPool/Canvas/*` `NornTests` `docs/specs/norn-mobile-structure.md` | `feat(norn): stabilize task pool canvas tree layout` |
 | `F19` | 给任务池加可配置的“隐藏已完成任务”开关 | `UI/TaskPool/*` `NornTests` `docs/specs/norn-mobile-structure.md` `docs/runbooks/ios.md` | `feat(norn): add task pool completed-task visibility toggle` |
+| `F20` | 给任务池画布补双指缩放和显式缩放控件 | `UI/TaskPool/Canvas/*` `UI/TaskPool/TaskPoolTab.swift` `NornTests` `docs/specs/norn-mobile-structure.md` `docs/runbooks/ios.md` | `feat(norn): add task pool canvas zoom controls` |
 
 ## 9. 每步 review 的关注点
 

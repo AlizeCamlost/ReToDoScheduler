@@ -208,8 +208,8 @@ struct TaskPoolTab: View {
       Text("画布视图")
         .font(.headline.weight(.semibold))
       Text(hideCompletedTasks
-        ? "拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留。已完成任务当前会从画布隐藏。"
-        : "拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留。")
+        ? "拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留。已完成任务当前会从画布隐藏；同时支持双指缩放和右上角缩放控件。"
+        : "拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留；同时支持双指缩放和右上角缩放控件。")
         .font(.caption)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
