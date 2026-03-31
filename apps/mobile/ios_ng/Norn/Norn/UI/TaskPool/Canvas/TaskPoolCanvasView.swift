@@ -5,6 +5,7 @@ struct TaskPoolCanvasView: View {
   let organization: TaskPoolOrganizationDocument
   let onTaskTap: (Task) -> Void
   let onUpdateNode: (String, TaskPoolCanvasNodeLayout.NodeKind, Double, Double, Bool) -> Void
+  let onResetLayout: () -> Void
 
   @AppStorage("norn.taskPool.canvasZoomScale") private var storedZoomScale = Double(TaskPoolCanvasZoom.defaultScale)
   @State private var dragTranslations: [String: CGSize] = [:]
@@ -71,15 +72,34 @@ struct TaskPoolCanvasView: View {
         .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
     .overlay(alignment: .topTrailing) {
-      TaskPoolCanvasZoomControls(
-        zoomLabel: TaskPoolCanvasZoom.percentLabel(for: effectiveZoomScale),
-        canZoomOut: effectiveZoomScale > TaskPoolCanvasZoom.minScale + 0.001,
-        canZoomIn: effectiveZoomScale < TaskPoolCanvasZoom.maxScale - 0.001,
-        canReset: abs(effectiveZoomScale - TaskPoolCanvasZoom.defaultScale) > 0.001,
-        onZoomOut: { stepZoom(by: -TaskPoolCanvasZoom.step) },
-        onReset: resetZoom,
-        onZoomIn: { stepZoom(by: TaskPoolCanvasZoom.step) }
-      )
+      HStack(spacing: 8) {
+        Button(action: onResetLayout) {
+          Image(systemName: "arrow.triangle.2.circlepath")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+              Capsule(style: .continuous)
+                .fill(NornTheme.cardSurface.opacity(0.94))
+            )
+            .overlay(
+              Capsule(style: .continuous)
+                .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+
+        TaskPoolCanvasZoomControls(
+          zoomLabel: TaskPoolCanvasZoom.percentLabel(for: effectiveZoomScale),
+          canZoomOut: effectiveZoomScale > TaskPoolCanvasZoom.minScale + 0.001,
+          canZoomIn: effectiveZoomScale < TaskPoolCanvasZoom.maxScale - 0.001,
+          canReset: abs(effectiveZoomScale - TaskPoolCanvasZoom.defaultScale) > 0.001,
+          onZoomOut: { stepZoom(by: -TaskPoolCanvasZoom.step) },
+          onReset: resetZoom,
+          onZoomIn: { stepZoom(by: TaskPoolCanvasZoom.step) }
+        )
+      }
       .padding(16)
     }
   }
@@ -115,7 +135,7 @@ struct TaskPoolCanvasView: View {
             style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
           )
           context.fill(
-            Path(ellipseIn: CGRect(x: end.x - 3.5, y: end.y - 3.5, width: 7, height: 7)),
+            Path(ellipseIn: CGRect(x: end.x - 4, y: end.y - 4, width: 8, height: 8)),
             with: .color(color.opacity(0.85))
           )
         }
@@ -166,11 +186,9 @@ struct TaskPoolCanvasView: View {
       .onEnded { value in
         dragTranslations[node.id] = nil
         let translation = normalizedTranslation(value.translation)
-        let nextPosition = clampedPosition(
-          CGPoint(
-            x: node.position.x + translation.width,
-            y: node.position.y + translation.height
-          )
+        let nextPosition = CGPoint(
+          x: node.position.x + translation.width,
+          y: node.position.y + translation.height
         )
         onUpdateNode(
           node.nodeID,
@@ -184,11 +202,9 @@ struct TaskPoolCanvasView: View {
 
   private func position(for node: TaskPoolCanvasNodePresentation) -> CGPoint {
     let translation = accumulatedDragTranslation(for: node)
-    return clampedPosition(
-      CGPoint(
-        x: node.position.x + translation.width,
-        y: node.position.y + translation.height
-      )
+    return CGPoint(
+      x: node.position.x + translation.width,
+      y: node.position.y + translation.height
     )
   }
 
@@ -213,10 +229,11 @@ struct TaskPoolCanvasView: View {
   }
 
   private func connectorControlPoint(from start: CGPoint, to end: CGPoint, direction: CGFloat) -> CGPoint {
-    let offset = max(48, abs(end.x - start.x) * 0.35)
+    let horizontalOffset = max(60, abs(end.x - start.x) * 0.4)
+    let verticalBlend = (end.y - start.y) * 0.15 * direction
     return CGPoint(
-      x: start.x + offset * direction,
-      y: start.y
+      x: start.x + horizontalOffset * direction,
+      y: start.y + verticalBlend
     )
   }
 
@@ -267,13 +284,6 @@ struct TaskPoolCanvasView: View {
   private func resetZoom() {
     storedZoomScale = Double(TaskPoolCanvasZoom.defaultScale)
     pinchZoomScale = 1
-  }
-
-  private func clampedPosition(_ point: CGPoint) -> CGPoint {
-    CGPoint(
-      x: min(max(point.x, 120), canvasSize.width - 120),
-      y: min(max(point.y, 90), canvasSize.height - 90)
-    )
   }
 }
 
@@ -351,7 +361,8 @@ private struct TaskPoolCanvasZoomControls: View {
     tasks: NornPreviewFixtures.tasks,
     organization: NornPreviewFixtures.taskPoolOrganization,
     onTaskTap: { _ in },
-    onUpdateNode: { _, _, _, _, _ in }
+    onUpdateNode: { _, _, _, _, _ in },
+    onResetLayout: {}
   )
   .padding()
   .background(NornScreenBackground())

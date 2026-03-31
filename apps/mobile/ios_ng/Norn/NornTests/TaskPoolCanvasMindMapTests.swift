@@ -97,7 +97,7 @@ final class TaskPoolCanvasMindMapTests: XCTestCase {
     XCTAssertEqual(movedChildTask.position.y - baseChildTask.position.y, dy, accuracy: 0.001)
   }
 
-  func testStoredTaskPositionIsClampedToKeepTreeOrderly() throws {
+  func testStoredTaskPositionAppliesOffsetWithoutClamping() throws {
     let baseGraph = TaskPoolCanvasMindMap(
       tasks: [
         makeTask(id: "task-a", title: "Alpha")
@@ -118,8 +118,32 @@ final class TaskPoolCanvasMindMapTests: XCTestCase {
     let baseTask = try unwrapNode(taskKey("task-a"), in: baseGraph)
     let movedTask = try unwrapNode(taskKey("task-a"), in: movedGraph)
 
-    XCTAssertLessThanOrEqual(movedTask.position.x - baseTask.position.x, 56.001)
-    XCTAssertLessThanOrEqual(movedTask.position.y - baseTask.position.y, 48.001)
+    XCTAssertEqual(movedTask.position.x, 2_000, accuracy: 0.001)
+    XCTAssertEqual(movedTask.position.y, 2_000, accuracy: 0.001)
+    XCTAssertTrue(movedTask.position.x - baseTask.position.x > 56)
+    XCTAssertTrue(movedTask.position.y - baseTask.position.y > 48)
+  }
+
+  func testAutoLayoutPositionsIgnoresStoredOffsets() throws {
+    let org = organizationWithSiblingLeaves(
+      canvasNodes: [
+        TaskPoolCanvasNodeLayout(nodeID: "task-a", nodeKind: .task, x: 2_000, y: 2_000)
+      ]
+    )
+    let graph = TaskPoolCanvasMindMap(
+      tasks: [makeTask(id: "task-a", title: "Alpha")],
+      organization: org
+    )
+    let autoPositions = TaskPoolCanvasMindMap.autoLayoutPositions(
+      tasks: [makeTask(id: "task-a", title: "Alpha")],
+      organization: org
+    )
+
+    let autoPositionedTask = try XCTUnwrap(autoPositions[taskKey("task-a")])
+    let storedOffsetTask = try unwrapNode(taskKey("task-a"), in: graph)
+
+    XCTAssertTrue(abs(autoPositionedTask.x - storedOffsetTask.position.x) > 1)
+    XCTAssertTrue(autoPositionedTask.x < 600)
   }
 
   private func organization(canvasNodes: [TaskPoolCanvasNodeLayout] = []) -> TaskPoolOrganizationDocument {

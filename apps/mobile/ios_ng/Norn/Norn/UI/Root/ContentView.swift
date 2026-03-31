@@ -64,6 +64,9 @@ struct ContentView: View {
               y: y,
               isCollapsed: isCollapsed
             )
+          },
+          onResetCanvasLayout: {
+            store.resetTaskPoolCanvasLayout()
           }
         )
           .safeAreaPadding(pageContentAvoidanceEdges)

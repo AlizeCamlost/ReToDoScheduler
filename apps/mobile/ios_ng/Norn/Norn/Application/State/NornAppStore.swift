@@ -344,6 +344,21 @@ final class NornAppStore {
     saveTaskPoolOrganization(nextDocument)
   }
 
+  func resetTaskPoolCanvasLayout() {
+    let autoPositions = TaskPoolCanvasMindMap.autoLayoutPositions(
+      tasks: tasks,
+      organization: taskPoolOrganization
+    )
+    let mapping = Dictionary(
+      uniqueKeysWithValues: autoPositions.map { ($0.key.stableID, $0.value) }
+    )
+    let nextDocument = taskPoolOrganization.resettingCanvasPositions(
+      autoLayoutPositions: mapping,
+      updatedAt: Date()
+    )
+    saveTaskPoolOrganization(nextDocument)
+  }
+
   private func reloadLocalState() {
     do {
       tasks = try loadTasksUseCase.execute()

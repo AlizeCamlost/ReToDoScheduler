@@ -316,6 +316,23 @@ struct TaskPoolOrganizationDocument: Hashable, Codable {
     return next.normalized()
   }
 
+  func resettingCanvasPositions(
+    autoLayoutPositions: [String: CGPoint],
+    updatedAt: Date
+  ) -> TaskPoolOrganizationDocument {
+    var next = normalized()
+    for index in next.canvasNodes.indices {
+      let node = next.canvasNodes[index]
+      let stableID = "\(node.nodeKind.rawValue):\(node.nodeID)"
+      if let position = autoLayoutPositions[stableID] {
+        next.canvasNodes[index].x = position.x
+        next.canvasNodes[index].y = position.y
+      }
+    }
+    next.updatedAt = updatedAt
+    return next
+  }
+
   private var uniqueDirectories: [TaskPoolDirectory] {
     var seen = Set<String>()
     return directories.filter { directory in

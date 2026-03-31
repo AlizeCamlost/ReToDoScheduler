@@ -32,6 +32,7 @@ struct TaskPoolTab: View {
   let onMoveDirectory: (String, String?) -> Void
   let onMoveTask: (String, String?) -> Void
   let onUpdateCanvasNode: (String, TaskPoolCanvasNodeLayout.NodeKind, Double, Double, Bool) -> Void
+  let onResetCanvasLayout: () -> Void
 
   init(
     tasks: [Task] = [],
@@ -45,7 +46,8 @@ struct TaskPoolTab: View {
     onDeleteDirectory: @escaping (String) -> Void = { _ in },
     onMoveDirectory: @escaping (String, String?) -> Void = { _, _ in },
     onMoveTask: @escaping (String, String?) -> Void = { _, _ in },
-    onUpdateCanvasNode: @escaping (String, TaskPoolCanvasNodeLayout.NodeKind, Double, Double, Bool) -> Void = { _, _, _, _, _ in }
+    onUpdateCanvasNode: @escaping (String, TaskPoolCanvasNodeLayout.NodeKind, Double, Double, Bool) -> Void = { _, _, _, _, _ in },
+    onResetCanvasLayout: @escaping () -> Void = {}
   ) {
     self.tasks = tasks
     self.organization = organization
@@ -59,6 +61,7 @@ struct TaskPoolTab: View {
     self.onMoveDirectory = onMoveDirectory
     self.onMoveTask = onMoveTask
     self.onUpdateCanvasNode = onUpdateCanvasNode
+    self.onResetCanvasLayout = onResetCanvasLayout
   }
 
   var body: some View {
@@ -162,7 +165,8 @@ struct TaskPoolTab: View {
             tasks: filteredTasks,
             organization: organization,
             onTaskTap: onTaskTap,
-            onUpdateNode: onUpdateCanvasNode
+            onUpdateNode: onUpdateCanvasNode,
+            onResetLayout: onResetCanvasLayout
           )
           .frame(minHeight: 720)
         }

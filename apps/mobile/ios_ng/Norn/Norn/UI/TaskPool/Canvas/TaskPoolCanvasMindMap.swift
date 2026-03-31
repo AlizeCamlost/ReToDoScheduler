@@ -51,6 +51,12 @@ struct TaskPoolCanvasMindMap {
     nodes = result.nodes
     edges = result.edges
   }
+
+  static func autoLayoutPositions(tasks: [Task], organization: TaskPoolOrganizationDocument) -> [NodeKey: CGPoint] {
+    let builder = Builder(tasks: tasks, organization: organization, ignoreStoredPositions: true)
+    let result = builder.build()
+    return Dictionary(uniqueKeysWithValues: result.nodes.map { ($0.key, $0.position) })
+  }
 }
 
 private extension TaskPoolCanvasMindMap {
@@ -90,8 +96,9 @@ private extension TaskPoolCanvasMindMap {
     private let childDirectoriesByParentID: [String: [TaskPoolDirectory]]
     private let tasksByDirectoryID: [String: [Task]]
     private let storedLayouts: [NodeKey: TaskPoolCanvasNodeLayout]
+    private let ignoreStoredPositions: Bool
 
-    init(tasks: [Task], organization: TaskPoolOrganizationDocument) {
+    init(tasks: [Task], organization: TaskPoolOrganizationDocument, ignoreStoredPositions: Bool = false) {
       let normalizedOrganization = organization.normalized()
       let visibleTasks = tasks.filter { $0.status != .archived }
       let taskPlacements = Dictionary(
@@ -99,6 +106,7 @@ private extension TaskPoolCanvasMindMap {
       )
 
       self.normalizedOrganization = normalizedOrganization
+      self.ignoreStoredPositions = ignoreStoredPositions
       childDirectoriesByParentID = Dictionary(grouping: normalizedOrganization.directories.filter {
         $0.id != normalizedOrganization.rootDirectoryID
       }) { directory in
@@ -258,36 +266,13 @@ private extension TaskPoolCanvasMindMap {
       basePosition: CGPoint,
       inheritedDirectoryOffset: CGSize
     ) -> CGSize {
-      guard let storedLayout = storedLayouts[node.key] else {
+      guard !ignoreStoredPositions, let storedLayout = storedLayouts[node.key] else {
         return .zero
       }
 
-      let rawOffset = CGSize(
+      return CGSize(
         width: storedLayout.x - basePosition.x - inheritedDirectoryOffset.width,
         height: storedLayout.y - basePosition.y - inheritedDirectoryOffset.height
-      )
-
-      switch node.key.nodeKind {
-      case .directory:
-        return clampedDirectoryOffset(rawOffset, depth: depth)
-      case .task:
-        return clampedTaskOffset(rawOffset)
-      }
-    }
-
-    private func clampedDirectoryOffset(_ offset: CGSize, depth: Int) -> CGSize {
-      let horizontalLimit: CGFloat = depth == 0 ? 220 : 120
-      let verticalLimit: CGFloat = depth == 0 ? 240 : 140
-      return CGSize(
-        width: min(max(offset.width, -horizontalLimit), horizontalLimit),
-        height: min(max(offset.height, -verticalLimit), verticalLimit)
-      )
-    }
-
-    private func clampedTaskOffset(_ offset: CGSize) -> CGSize {
-      CGSize(
-        width: min(max(offset.width, -56), 56),
-        height: min(max(offset.height, -48), 48)
       )
     }
 
