@@ -18,8 +18,17 @@ struct TaskPoolCanvasNodePresentation: Identifiable {
   let detail: String?
   let position: CGPoint
   let isCollapsed: Bool
+  let hasChildren: Bool
   let accent: Accent
   let task: Task?
+
+  var isCollapsible: Bool {
+    nodeKind == .directory && hasChildren
+  }
+
+  var cardWidth: CGFloat {
+    nodeKind == .directory && isCollapsed ? 220 : 260
+  }
 }
 
 struct TaskPoolCanvasNodeCard: View {
@@ -74,14 +83,16 @@ struct TaskPoolCanvasNodeCard: View {
 
         Spacer(minLength: 8)
 
-        Button {
-          onToggleCollapse()
-        } label: {
-          Image(systemName: node.isCollapsed ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
+        if node.isCollapsible {
+          Button {
+            onToggleCollapse()
+          } label: {
+            Image(systemName: node.isCollapsed ? "chevron.right.circle.fill" : "chevron.down.circle.fill")
+              .font(.footnote.weight(.semibold))
+              .foregroundStyle(accentColor.opacity(0.92))
+          }
+          .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
       }
 
       if !node.isCollapsed {
@@ -122,7 +133,7 @@ struct TaskPoolCanvasNodeCard: View {
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 14)
-    .frame(width: node.isCollapsed ? 220 : 260, alignment: .leading)
+    .frame(width: node.cardWidth, alignment: .leading)
     .background(
       RoundedRectangle(cornerRadius: 20, style: .continuous)
         .fill(NornTheme.cardSurface)
