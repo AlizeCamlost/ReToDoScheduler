@@ -1,6 +1,24 @@
 import SwiftUI
 
+enum PoolViewMode: String, CaseIterable, Identifiable {
+  case tree
+  case canvas
+
+  var id: String { rawValue }
+
+  var label: String {
+    switch self {
+    case .tree:
+      return "目录树"
+    case .canvas:
+      return "画布"
+    }
+  }
+}
+
 struct TaskPoolTab: View {
+  @State private var viewMode: PoolViewMode = .tree
+
   let tasks: [Task]
   let organization: TaskPoolOrganizationDocument
   let syncStatus: SyncStatus
@@ -12,6 +30,7 @@ struct TaskPoolTab: View {
   let onDeleteDirectory: (String) -> Void
   let onMoveDirectory: (String, String?) -> Void
   let onMoveTask: (String, String?) -> Void
+  let onUpdateCanvasNode: (String, TaskPoolCanvasNodeLayout.NodeKind, Double, Double, Bool) -> Void
 
   init(
     tasks: [Task] = [],
@@ -24,7 +43,8 @@ struct TaskPoolTab: View {
     onRenameDirectory: @escaping (String, String) -> Void = { _, _ in },
     onDeleteDirectory: @escaping (String) -> Void = { _ in },
     onMoveDirectory: @escaping (String, String?) -> Void = { _, _ in },
-    onMoveTask: @escaping (String, String?) -> Void = { _, _ in }
+    onMoveTask: @escaping (String, String?) -> Void = { _, _ in },
+    onUpdateCanvasNode: @escaping (String, TaskPoolCanvasNodeLayout.NodeKind, Double, Double, Bool) -> Void = { _, _, _, _, _ in }
   ) {
     self.tasks = tasks
     self.organization = organization
@@ -37,6 +57,7 @@ struct TaskPoolTab: View {
     self.onDeleteDirectory = onDeleteDirectory
     self.onMoveDirectory = onMoveDirectory
     self.onMoveTask = onMoveTask
+    self.onUpdateCanvasNode = onUpdateCanvasNode
   }
 
   var body: some View {
@@ -79,23 +100,51 @@ struct TaskPoolTab: View {
           .foregroundStyle(.primary)
         }
       }
+
+      Picker("", selection: $viewMode) {
+        ForEach(PoolViewMode.allCases) { mode in
+          Text(mode.label).tag(mode)
+        }
+      }
+      .pickerStyle(.segmented)
     }
     .padding(.horizontal, 20)
     .padding(.top, 12)
     .padding(.bottom, 16)
   }
 
+  @ViewBuilder
   private var placeholder: some View {
-    TaskPoolTreeBrowser(
-      tasks: tasks,
-      organization: organization,
-      onTaskTap: onTaskTap,
-      onCreateDirectory: onCreateDirectory,
-      onRenameDirectory: onRenameDirectory,
-      onDeleteDirectory: onDeleteDirectory,
-      onMoveDirectory: onMoveDirectory,
-      onMoveTask: onMoveTask
-    )
+    switch viewMode {
+    case .tree:
+      TaskPoolTreeBrowser(
+        tasks: tasks,
+        organization: organization,
+        onTaskTap: onTaskTap,
+        onCreateDirectory: onCreateDirectory,
+        onRenameDirectory: onRenameDirectory,
+        onDeleteDirectory: onDeleteDirectory,
+        onMoveDirectory: onMoveDirectory,
+        onMoveTask: onMoveTask
+      )
+    case .canvas:
+      ScrollView {
+        VStack(alignment: .leading, spacing: 16) {
+          canvasIntroCard
+          TaskPoolCanvasView(
+            tasks: tasks,
+            organization: organization,
+            onTaskTap: onTaskTap,
+            onUpdateNode: onUpdateCanvasNode
+          )
+          .frame(minHeight: 720)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 32)
+        .frame(maxWidth: .infinity)
+      }
+    }
   }
 
   private var syncStatusText: String {
@@ -125,6 +174,27 @@ struct TaskPoolTab: View {
     case .idle:
       return .secondary
     }
+  }
+
+  private var canvasIntroCard: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("画布视图")
+        .font(.headline.weight(.semibold))
+      Text("拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留。")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    .padding(18)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .background(
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
+        .fill(NornTheme.cardSurface)
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
+        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
+    )
   }
 }
 

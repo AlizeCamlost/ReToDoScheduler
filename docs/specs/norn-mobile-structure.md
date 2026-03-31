@@ -64,7 +64,7 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - 编辑器与任务保存流已接通
 - 同步设置与手动同步已接通
 - 任务池目录树浏览器已接通真实任务数据、目录 CRUD、目录移动和任务归属调整入口
-- 任务池画布模块已落为独立 SwiftUI 组件，支持节点拖拽与折叠持久化，待下一步接入 `TaskPoolTab`
+- 任务池第二页已接通 `目录树 / 画布` 模式切换；画布节点拖拽与折叠会直接写回同步文档
 - `Norn.xcodeproj` 已补 `NornTests` / `NornUITests` target 和基础覆盖代码
 - 当前已完成 `packages/core` / `services/api` 的类型检查与 `Norn` iOS build；更完整的 Simulator 测试仍需在可用 CoreSimulator 环境复检
 
@@ -471,7 +471,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前复用于 `TaskPool` 的目录树内容区 |
 | `UI/Sequence/Components/TaskStepPreview.swift` | `TaskStepPreview` | 串行子任务当前步骤预览 | 共用于 Focus / Sequence / TaskPool 卡片 |
-| `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 当前位于第二个顶层分页入口，已挂目录树浏览器 |
+| `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 当前位于第二个顶层分页入口，已挂 `目录树 / 画布` 模式切换 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasView.swift` | `TaskPoolCanvasView` | 任务池画布浏览器 | 负责节点拖拽、折叠和布局持久化 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasNodeCard.swift` | `TaskPoolCanvasNodeCard` | 画布节点卡片 | 目录 / 任务节点共用视觉组件 |
 | `UI/TaskPool/Tree/TaskPoolTreeBrowser.swift` | `TaskPoolTreeBrowser` | 目录树主浏览器 | 浏览目录树、目录内容和任务归属 |
@@ -623,6 +623,7 @@ flowchart LR
 | `F13` | 加上数据流和 UI smoke tests | `NornTests` `NornUITests` | `test(norn): add data flow and smoke coverage` |
 | `F14` | 把 TaskPool 切到目录树浏览器并接通组织操作 | `Application/UseCases/SaveTaskPoolOrganizationUseCase.swift` `Application/State/NornAppStore.swift` `UI/TaskPool/TaskPoolTab.swift` `UI/TaskPool/Tree/*` | `feat(norn): add task pool tree browser` |
 | `F15` | 加入任务池画布模块与节点布局持久化 | `UI/TaskPool/Canvas/*` `NornTests` | `feat(norn): add persistent synced task pool canvas` |
+| `F16` | 集成任务池 `目录树 / 画布` 模式切换并接通画布回写 | `UI/TaskPool/TaskPoolTab.swift` `UI/Root/ContentView.swift` `docs/*` | `feat(norn): integrate task pool tree and canvas modes` |
 
 ## 9. 每步 review 的关注点
 

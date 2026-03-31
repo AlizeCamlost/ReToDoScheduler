@@ -55,6 +55,15 @@ struct ContentView: View {
           },
           onMoveTask: { taskID, parentDirectoryID in
             store.placeTaskInTaskPool(taskID: taskID, parentDirectoryID: parentDirectoryID)
+          },
+          onUpdateCanvasNode: { nodeID, nodeKind, x, y, isCollapsed in
+            store.updateTaskPoolCanvasNode(
+              nodeID: nodeID,
+              nodeKind: nodeKind,
+              x: x,
+              y: y,
+              isCollapsed: isCollapsed
+            )
           }
         )
           .safeAreaPadding(pageContentAvoidanceEdges)
