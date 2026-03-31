@@ -259,6 +259,34 @@ final class NornAppStoreTests: XCTestCase {
     )
   }
 
+  func testUpdateTaskPoolCanvasNodePersistsLayout() throws {
+    let repository = InMemoryTaskRepository()
+    let settingsRepository = InMemorySyncSettingsRepository()
+    let taskPoolOrganizationRepository = InMemoryTaskPoolOrganizationRepository()
+    let store = makeStore(
+      repository: repository,
+      settingsRepository: settingsRepository,
+      taskPoolOrganizationRepository: taskPoolOrganizationRepository
+    )
+
+    store.updateTaskPoolCanvasNode(
+      nodeID: TaskPoolOrganizationDocument.defaultInboxDirectoryID,
+      nodeKind: .directory,
+      x: 420,
+      y: 280,
+      isCollapsed: true
+    )
+
+    let savedNode = try XCTUnwrap(
+      taskPoolOrganizationRepository.load().canvasNodes.first {
+        $0.nodeID == TaskPoolOrganizationDocument.defaultInboxDirectoryID && $0.nodeKind == .directory
+      }
+    )
+    XCTAssertEqual(savedNode.x, 420)
+    XCTAssertEqual(savedNode.y, 280)
+    XCTAssertTrue(savedNode.isCollapsed)
+  }
+
   private func makeStore(
     repository: InMemoryTaskRepository,
     settingsRepository: InMemorySyncSettingsRepository,
