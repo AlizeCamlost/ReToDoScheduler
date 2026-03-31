@@ -13,7 +13,7 @@
 ## specs
 
 - [specs/architecture.md](specs/architecture.md): 当前系统架构真相源。定义运行时分层、仓库职责、数据流、最小 Task sync contract，以及并行同步 `TaskPoolOrganizationDocument` 的双端对齐约束。最后更新：2026-03-31
-- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑，并同步记录根容器背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset、固定化的 dock reserve、高开销 halo 改为轻量静态外环后的 Sequence chrome、右上角把手触发且仅在拖拽期启用落位命中的主序列交互、Quick Add 拉起任务序列编辑器的批量录入路径，以及任务 bundle 标识的单卡展示边界，并补充顶层分页顺序已调整为 `Sequence -> Task Pool -> Schedule`、任务池组织文档同步承载层，以及已集成的 `目录树 / 画布` 双模式任务池，其中画布已收敛为带父子连线、可展开/收拢目录子树、并由稳定树布局算法驱动的思维导图视图。当前实施状态：F18 已完成。最后更新：2026-04-01
+- [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑，并同步记录根容器背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset、固定化的 dock reserve、高开销 halo 改为轻量静态外环后的 Sequence chrome、右上角把手触发且仅在拖拽期启用落位命中的主序列交互、Quick Add 拉起任务序列编辑器的批量录入路径，以及任务 bundle 标识的单卡展示边界，并补充顶层分页顺序已调整为 `Sequence -> Task Pool -> Schedule`、任务池组织文档同步承载层，以及已集成的 `目录树 / 画布` 双模式任务池，其中画布已收敛为带父子连线、可展开/收拢目录子树、并由稳定树布局算法驱动的思维导图视图；任务池顶部还提供了可同时作用于两个视图的“隐藏已完成任务”开关。当前实施状态：F19 已完成。最后更新：2026-04-01
 - [specs/product-model.md](specs/product-model.md): 当前产品语义真相源。定义 Norn / Kairos 边界、任务池核心抽象、价值语义和输入契约，并补充目录树 / 画布共用的 `TaskPoolOrganizationDocument` 语义。最后更新：2026-03-31
 - [specs/scheduling-model.md](specs/scheduling-model.md): 当前调度模型真相源。把 Kairos 明确为“硬约束 + 价值最大化”的滚动装箱问题，并说明比较器接口与实现边界。最后更新：2026-03-22
 - [specs/web-app-structure.md](specs/web-app-structure.md): Web 端当前对齐 Norn 移动端后的主壳、三 tab 信息架构、详情流、Sequence 交互和 feature 边界真相源。最后更新：2026-03-25
@@ -21,7 +21,7 @@
 ## runbooks
 
 - [runbooks/client-sync.md](runbooks/client-sync.md): Web、iPhone、API 的最小 Task 模型与 `taskPoolOrganization` 文档同步配置、联调验证和排障步骤。最后更新：2026-03-31
-- [runbooks/ios.md](runbooks/ios.md): iOS 原生工程打开、真机安装、日常运行和最小同步配置，并补充 `任务池` 现位于第二个顶层分页入口，默认展示目录树并可切换到画布。最后更新：2026-03-31
+- [runbooks/ios.md](runbooks/ios.md): iOS 原生工程打开、真机安装、日常运行和最小同步配置，并补充 `任务池` 现位于第二个顶层分页入口，默认展示目录树并可切换到画布，顶部还可配置隐藏已完成任务。最后更新：2026-04-01
 - [runbooks/server-deploy.md](runbooks/server-deploy.md): API + PostgreSQL 的首轮部署、校验、日常运维、备份和 GitHub Actions 部署说明。最后更新：2026-03-22
 - [runbooks/recovery.md](runbooks/recovery.md): 本地和远端恢复的停写、恢复、校验、复盘流程。最后更新：2026-03-22
 

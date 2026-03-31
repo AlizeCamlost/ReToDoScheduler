@@ -18,6 +18,7 @@ enum PoolViewMode: String, CaseIterable, Identifiable {
 
 struct TaskPoolTab: View {
   @State private var viewMode: PoolViewMode = .tree
+  @AppStorage("norn.taskPool.hideCompletedTasks") private var hideCompletedTasks = false
 
   let tasks: [Task]
   let organization: TaskPoolOrganizationDocument
@@ -70,6 +71,14 @@ struct TaskPoolTab: View {
     .background(Color.clear)
   }
 
+  private var filteredTasks: [Task] {
+    TaskPoolVisibleTasks.filtered(tasks, hideCompleted: hideCompletedTasks)
+  }
+
+  private var hiddenCompletedTaskCount: Int {
+    TaskPoolVisibleTasks.filtered(tasks, hideCompleted: false).count - filteredTasks.count
+  }
+
   private var header: some View {
     VStack(alignment: .leading, spacing: 14) {
       HStack(alignment: .top) {
@@ -107,6 +116,24 @@ struct TaskPoolTab: View {
         }
       }
       .pickerStyle(.segmented)
+
+      Toggle(isOn: $hideCompletedTasks) {
+        VStack(alignment: .leading, spacing: 2) {
+          Text("隐藏已完成任务")
+            .font(.caption.weight(.semibold))
+
+          if hideCompletedTasks, hiddenCompletedTaskCount > 0 {
+            Text("当前已从任务池隐藏 \(hiddenCompletedTaskCount) 个已完成任务。")
+              .font(.caption2)
+              .foregroundStyle(.secondary)
+          } else {
+            Text(hideCompletedTasks ? "任务池当前只显示未归档且未完成的任务。" : "任务池当前显示全部未归档任务。")
+              .font(.caption2)
+              .foregroundStyle(.secondary)
+          }
+        }
+      }
+      .toggleStyle(.switch)
     }
     .padding(.horizontal, 20)
     .padding(.top, 12)
@@ -118,7 +145,7 @@ struct TaskPoolTab: View {
     switch viewMode {
     case .tree:
       TaskPoolTreeBrowser(
-        tasks: tasks,
+        tasks: filteredTasks,
         organization: organization,
         onTaskTap: onTaskTap,
         onCreateDirectory: onCreateDirectory,
@@ -132,7 +159,7 @@ struct TaskPoolTab: View {
         VStack(alignment: .leading, spacing: 16) {
           canvasIntroCard
           TaskPoolCanvasView(
-            tasks: tasks,
+            tasks: filteredTasks,
             organization: organization,
             onTaskTap: onTaskTap,
             onUpdateNode: onUpdateCanvasNode
@@ -180,7 +207,9 @@ struct TaskPoolTab: View {
     VStack(alignment: .leading, spacing: 8) {
       Text("画布视图")
         .font(.headline.weight(.semibold))
-      Text("拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留。")
+      Text(hideCompletedTasks
+        ? "拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留。已完成任务当前会从画布隐藏。"
+        : "拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留。")
         .font(.caption)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
