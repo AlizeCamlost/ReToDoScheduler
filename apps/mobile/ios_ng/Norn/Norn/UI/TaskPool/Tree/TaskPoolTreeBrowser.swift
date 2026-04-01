@@ -49,6 +49,13 @@ struct TaskPoolTreeBrowser: View {
     childDirectories(of: selectedDirectory.id)
   }
 
+  private var selectedParentDirectory: TaskPoolDirectory? {
+    guard let parentDirectoryID = selectedDirectory.parentDirectoryID else {
+      return nil
+    }
+    return normalizedOrganization.directory(for: parentDirectoryID)
+  }
+
   private var selectedDirectoryTasks: [Task] {
     tasks(in: selectedDirectory.id)
   }
@@ -206,7 +213,7 @@ struct TaskPoolTreeBrowser: View {
         .buttonStyle(.plain)
       }
 
-      if !selectedDirectoryChildren.isEmpty {
+      if selectedParentDirectory != nil || !selectedDirectoryChildren.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
           Button {
             withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
@@ -224,6 +231,36 @@ struct TaskPoolTreeBrowser: View {
           .buttonStyle(.plain)
 
           if isDestinationChildrenExpanded {
+            if let parentDirectory = selectedParentDirectory {
+              Button {
+                selectDirectory(parentDirectory.id)
+              } label: {
+                HStack(spacing: 4) {
+                  Image(systemName: "arrow.turn.up.left")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                  VStack(alignment: .leading, spacing: 1) {
+                    Text("..")
+                      .font(.callout.weight(.semibold))
+                      .foregroundStyle(.primary)
+                      .lineLimit(1)
+                    Text(displayName(for: parentDirectory))
+                      .font(.caption2)
+                      .foregroundStyle(.secondary)
+                      .lineLimit(1)
+                  }
+
+                  Spacer(minLength: 6)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .contentShape(Rectangle())
+              }
+              .buttonStyle(.plain)
+            }
+
             ForEach(selectedDirectoryChildren) { directory in
               Button {
                 selectDirectory(directory.id)
