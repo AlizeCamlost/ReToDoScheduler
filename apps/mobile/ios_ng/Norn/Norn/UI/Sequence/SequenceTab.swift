@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct SequenceTab: View {
   let tasks: [Task]
@@ -7,7 +6,10 @@ struct SequenceTab: View {
   let onPrimarySequenceReorder: ([String]) -> Void
 
   @State private var primarySequenceOrder: [String] = []
+  @State private var isPrimarySequenceEditing = false
   @State private var draggedPrimaryTaskID: String?
+  @State private var draggedPrimaryTaskOffset: CGSize = .zero
+  @State private var primarySequenceFrames: [String: CGRect] = [:]
   @State private var hasPendingPrimaryReorder = false
 
   init(
@@ -21,6 +23,8 @@ struct SequenceTab: View {
   }
 
   private let nearHorizon = 7 // days
+  private let primarySequenceLimit = 7
+  private let primarySequenceCoordinateSpace = "sequence.primary.reorder"
 
   private var focusedTask: Task? {
     tasks.first { $0.status == .doing }
@@ -32,7 +36,7 @@ struct SequenceTab: View {
     }
   }
 
-  private var displayedPrimarySequenceTasks: [Task] {
+  private var orderedPrimarySequenceTasks: [Task] {
     let byID = Dictionary(uniqueKeysWithValues: canonicalPrimarySequenceTasks.map { ($0.id, $0) })
     let orderedIDs = primarySequenceOrder.filter { byID[$0] != nil }
     let orderedIDSet = Set(orderedIDs)
@@ -40,10 +44,17 @@ struct SequenceTab: View {
     return (orderedIDs + remainingIDs).compactMap { byID[$0] }
   }
 
+  private var displayedPrimarySequenceTasks: [Task] {
+    Array(orderedPrimarySequenceTasks.prefix(primarySequenceLimit))
+  }
+
   private var nextTasks: [Task] {
-    tasks.filter { task in
-      task.status == .todo && !isWithinPrimaryHorizon(task)
+    let overflowTasks = Array(orderedPrimarySequenceTasks.dropFirst(primarySequenceLimit))
+    let canonicalPrimaryTaskIDs = Set(canonicalPrimarySequenceTasks.map(\.id))
+    let deferredTasks = tasks.filter { task in
+      task.status == .todo && !canonicalPrimaryTaskIDs.contains(task.id)
     }
+    return overflowTasks + deferredTasks
   }
 
   private var primarySequenceSignature: [String] {
@@ -54,16 +65,16 @@ struct SequenceTab: View {
     ScrollView(showsIndicators: false) {
       LazyVStack(alignment: .leading, spacing: 0) {
         focusRow
-          .padding(.top, 12)
-          .padding(.bottom, 18)
+          .padding(.top, 8)
+          .padding(.bottom, 14)
 
         primarySequenceSection
-          .padding(.bottom, 24)
+          .padding(.bottom, 20)
 
         nextTasksSection
-          .padding(.bottom, 24)
+          .padding(.bottom, 20)
       }
-      .padding(.horizontal, 20)
+      .padding(.horizontal, 18)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .scrollDismissesKeyboard(.interactively)
@@ -97,7 +108,10 @@ struct SequenceTab: View {
     }
 
     primarySequenceOrder = primarySequenceSignature
+    isPrimarySequenceEditing = false
     draggedPrimaryTaskID = nil
+    draggedPrimaryTaskOffset = .zero
+    primarySequenceFrames = [:]
     hasPendingPrimaryReorder = false
   }
 
@@ -121,10 +135,11 @@ struct SequenceTab: View {
   }
 
   private var primarySequenceSection: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: 10) {
       SequenceSectionHeader(
-        title: "主序列",
-        detail: displayedPrimarySequenceTasks.count > 1 ? "长按右上角把手并拖动调整顺序" : nil
+        title: "当前序列",
+        actionTitle: isPrimarySequenceEditing ? "完成" : nil,
+        onAction: isPrimarySequenceEditing ? { exitPrimarySequenceEditing() } : nil
       )
 
       if displayedPrimarySequenceTasks.isEmpty {
@@ -135,24 +150,37 @@ struct SequenceTab: View {
             SequenceTimelineRow(
               task: task,
               position: timelinePosition(for: index, count: displayedPrimarySequenceTasks.count),
-              dropEnabled: draggedPrimaryTaskID != nil,
-              onDragStart: {
-                draggedPrimaryTaskID = task.id
-                hasPendingPrimaryReorder = false
-                return NSItemProvider(object: task.id as NSString)
+              coordinateSpaceName: primarySequenceCoordinateSpace,
+              isEditing: isPrimarySequenceEditing,
+              isDragging: draggedPrimaryTaskID == task.id,
+              dragOffset: draggedPrimaryTaskID == task.id ? draggedPrimaryTaskOffset : .zero,
+              onActivateEditing: beginPrimarySequenceEditing,
+              onActivationDragChanged: { translation, location in
+                updatePrimarySequenceDrag(for: task.id, translation: translation, location: location)
               },
-              dropDelegate: PrimarySequenceDropDelegate(
-                destinationTaskID: task.id,
-                orderedTaskIDs: $primarySequenceOrder,
-                draggedTaskID: $draggedPrimaryTaskID,
-                hasPendingReorder: $hasPendingPrimaryReorder,
-                onCommit: commitPrimarySequenceOrder
-              ),
+              onActivationDragEnded: { translation, location in
+                updatePrimarySequenceDrag(for: task.id, translation: translation, location: location)
+                finishPrimarySequenceDrag()
+              },
+              onDirectDragChanged: { translation, location in
+                updatePrimarySequenceDrag(for: task.id, translation: translation, location: location)
+              },
+              onDirectDragEnded: { translation, location in
+                updatePrimarySequenceDrag(for: task.id, translation: translation, location: location)
+                finishPrimarySequenceDrag()
+              },
               onTap: {
+                guard !isPrimarySequenceEditing else { return }
                 onTaskTap(task)
               }
             )
+            .background(primarySequenceFrameReader(taskID: task.id))
+            .zIndex(draggedPrimaryTaskID == task.id ? 1 : 0)
           }
+        }
+        .coordinateSpace(name: primarySequenceCoordinateSpace)
+        .onPreferenceChange(PrimarySequenceRowFramePreferenceKey.self) { frames in
+          primarySequenceFrames = frames
         }
         .animation(.snappy(duration: 0.18, extraBounce: 0), value: primarySequenceOrder)
       }
@@ -160,20 +188,100 @@ struct SequenceTab: View {
   }
 
   private var nextTasksSection: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: 10) {
       SequenceSectionHeader(title: "接下来")
       NextTasksSummaryCard(tasks: nextTasks, onTaskTap: onTaskTap)
     }
   }
 
-  private func commitPrimarySequenceOrder() {
-    defer {
-      draggedPrimaryTaskID = nil
-      hasPendingPrimaryReorder = false
+  @ViewBuilder
+  private func primarySequenceFrameReader(taskID: String) -> some View {
+    GeometryReader { proxy in
+      Color.clear.preference(
+        key: PrimarySequenceRowFramePreferenceKey.self,
+        value: [taskID: proxy.frame(in: .named(primarySequenceCoordinateSpace))]
+      )
+    }
+  }
+
+  private func beginPrimarySequenceEditing() {
+    guard displayedPrimarySequenceTasks.count > 1 else {
+      return
+    }
+    isPrimarySequenceEditing = true
+  }
+
+  private func exitPrimarySequenceEditing() {
+    isPrimarySequenceEditing = false
+    endPrimarySequenceDrag()
+  }
+
+  private func updatePrimarySequenceDrag(for taskID: String, translation: CGSize, location: CGPoint) {
+    guard isPrimarySequenceEditing, displayedPrimarySequenceTasks.contains(where: { $0.id == taskID }) else {
+      return
     }
 
+    draggedPrimaryTaskID = taskID
+    draggedPrimaryTaskOffset = translation
+    reorderDisplayedPrimarySequence(draggedTaskID: taskID, locationY: location.y)
+  }
+
+  private func reorderDisplayedPrimarySequence(draggedTaskID: String, locationY: CGFloat) {
+    let visibleTaskIDs = displayedPrimarySequenceTasks.map(\.id)
+    guard
+      visibleTaskIDs.count > 1,
+      visibleTaskIDs.contains(draggedTaskID),
+      visibleTaskIDs.allSatisfy({ primarySequenceFrames[$0] != nil })
+    else {
+      return
+    }
+
+    let sortedVisibleTaskIDs = visibleTaskIDs.sorted {
+      (primarySequenceFrames[$0]?.midY ?? 0) < (primarySequenceFrames[$1]?.midY ?? 0)
+    }
+    let insertionIndex = sortedVisibleTaskIDs
+      .filter { $0 != draggedTaskID }
+      .filter { (primarySequenceFrames[$0]?.midY ?? 0) < locationY }
+      .count
+
+    var reorderedVisibleTaskIDs = sortedVisibleTaskIDs.filter { $0 != draggedTaskID }
+    reorderedVisibleTaskIDs.insert(draggedTaskID, at: min(insertionIndex, reorderedVisibleTaskIDs.count))
+
+    guard reorderedVisibleTaskIDs != sortedVisibleTaskIDs else {
+      return
+    }
+
+    let visibleTaskIDSet = Set(sortedVisibleTaskIDs)
+    var reorderedTaskIDsIterator = reorderedVisibleTaskIDs.makeIterator()
+    let mergedTaskIDs = primarySequenceOrder.map { taskID -> String in
+      guard visibleTaskIDSet.contains(taskID) else {
+        return taskID
+      }
+      return reorderedTaskIDsIterator.next() ?? taskID
+    }
+
+    guard mergedTaskIDs != primarySequenceOrder else {
+      return
+    }
+
+    primarySequenceOrder = mergedTaskIDs
+    hasPendingPrimaryReorder = true
+  }
+
+  private func finishPrimarySequenceDrag() {
+    commitPrimarySequenceOrder()
+    endPrimarySequenceDrag()
+  }
+
+  private func endPrimarySequenceDrag() {
+    draggedPrimaryTaskID = nil
+    draggedPrimaryTaskOffset = .zero
+  }
+
+  private func commitPrimarySequenceOrder() {
     guard hasPendingPrimaryReorder else { return }
     onPrimarySequenceReorder(primarySequenceOrder)
+    hasPendingPrimaryReorder = false
   }
 }
 
@@ -222,9 +330,15 @@ private enum TimelinePosition: Equatable {
 private struct SequenceTimelineRow: View {
   let task: Task
   let position: TimelinePosition
-  let dropEnabled: Bool
-  let onDragStart: () -> NSItemProvider
-  let dropDelegate: PrimarySequenceDropDelegate
+  let coordinateSpaceName: String
+  let isEditing: Bool
+  let isDragging: Bool
+  let dragOffset: CGSize
+  let onActivateEditing: () -> Void
+  let onActivationDragChanged: (CGSize, CGPoint) -> Void
+  let onActivationDragEnded: (CGSize, CGPoint) -> Void
+  let onDirectDragChanged: (CGSize, CGPoint) -> Void
+  let onDirectDragEnded: (CGSize, CGPoint) -> Void
   let onTap: () -> Void
 
   private var statusColor: Color {
@@ -232,49 +346,59 @@ private struct SequenceTimelineRow: View {
   }
 
   var body: some View {
-    HStack(alignment: .top, spacing: 14) {
+    HStack(alignment: .top, spacing: 10) {
       SequenceTimelineMarker(color: statusColor, position: position)
-
-      ZStack(alignment: .topTrailing) {
-        interactiveCard
-
-        dragHandle
-          .padding(.top, 20)
-          .padding(.trailing, 16)
-      }
+      interactiveCard
     }
+    .contentShape(Rectangle())
+    .offset(dragOffset)
   }
 
   @ViewBuilder
   private var interactiveCard: some View {
-    if dropEnabled {
-      SequencePrimaryCard(task: task)
-        .padding(.vertical, 8)
+    if isEditing {
+      SequencePrimaryCard(task: task, isEditing: true, isLifted: isDragging)
+        .padding(.vertical, 6)
         .onTapGesture(perform: onTap)
-        .onDrop(of: [UTType.plainText.identifier], delegate: dropDelegate)
+        .highPriorityGesture(
+          DragGesture(minimumDistance: 0, coordinateSpace: .named(coordinateSpaceName))
+            .onChanged { value in
+              onDirectDragChanged(value.translation, value.location)
+            }
+            .onEnded { value in
+              onDirectDragEnded(value.translation, value.location)
+            }
+        )
     } else {
-      SequencePrimaryCard(task: task)
-        .padding(.vertical, 8)
+      SequencePrimaryCard(task: task, isEditing: false, isLifted: false)
+        .padding(.vertical, 6)
         .onTapGesture(perform: onTap)
+        .highPriorityGesture(
+          LongPressGesture(minimumDuration: 0.28)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named(coordinateSpaceName)))
+            .onChanged { value in
+              switch value {
+              case .first(true):
+                onActivateEditing()
+              case .second(true, let drag?):
+                onActivateEditing()
+                onActivationDragChanged(drag.translation, drag.location)
+              default:
+                break
+              }
+            }
+            .onEnded { value in
+              switch value {
+              case .second(true, let drag?):
+                onActivationDragEnded(drag.translation, drag.location)
+              case .first(true):
+                onActivateEditing()
+              default:
+                break
+              }
+            }
+        )
     }
-  }
-
-  private var dragHandle: some View {
-    Image(systemName: "line.3.horizontal")
-      .font(.caption.weight(.bold))
-      .foregroundStyle(.secondary)
-      .padding(.horizontal, 8)
-      .padding(.vertical, 6)
-      .background(NornTheme.pillSurface, in: Capsule())
-      .overlay(
-        Capsule()
-          .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
-      )
-      .contentShape(Capsule())
-      .contentShape(.dragPreview, Capsule())
-      .onDrag(onDragStart) {
-        SequencePrimaryCard(task: task, isLifted: true)
-      }
   }
 }
 
@@ -282,10 +406,10 @@ private struct SequenceTimelineMarker: View {
   let color: Color
   let position: TimelinePosition
 
-  private let railWidth: CGFloat = 2.5
-  private let nodeDiameter: CGFloat = 14
-  private let nodeCenterY: CGFloat = 24
-  private let nodeLineGap: CGFloat = 5
+  private let railWidth: CGFloat = 2
+  private let nodeDiameter: CGFloat = 11
+  private let nodeCenterY: CGFloat = 18
+  private let nodeLineGap: CGFloat = 4
 
   private var nodeTopOffset: CGFloat {
     nodeCenterY - nodeDiameter / 2
@@ -299,7 +423,7 @@ private struct SequenceTimelineMarker: View {
     ZStack(alignment: .top) {
       if position.showsTopLine {
         Capsule(style: .continuous)
-          .fill(color.opacity(0.9))
+          .fill(color.opacity(0.88))
           .frame(width: railWidth, height: max(0, nodeTopOffset - nodeLineGap))
       }
 
@@ -309,7 +433,7 @@ private struct SequenceTimelineMarker: View {
             .frame(height: nodeBottomOffset + nodeLineGap)
 
           Capsule(style: .continuous)
-            .fill(color.opacity(0.78))
+            .fill(color.opacity(0.72))
             .frame(width: railWidth)
             .frame(maxHeight: .infinity)
         }
@@ -334,7 +458,7 @@ private struct SequenceTimelineMarker: View {
         )
         .padding(.top, nodeCenterY - nodeDiameter / 2)
     }
-    .frame(width: 18)
+    .frame(width: 12)
     .frame(maxHeight: .infinity)
     .allowsHitTesting(false)
   }
@@ -347,8 +471,8 @@ private struct SequenceTimelineTail: View {
   var body: some View {
     LinearGradient(
       stops: [
-        .init(color: color.opacity(0.95), location: 0),
-        .init(color: color.opacity(0.38), location: 0.62),
+        .init(color: color.opacity(0.94), location: 0),
+        .init(color: color.opacity(0.32), location: 0.62),
         .init(color: color.opacity(0), location: 1)
       ],
       startPoint: .top,
@@ -360,9 +484,10 @@ private struct SequenceTimelineTail: View {
 
 private struct SequencePrimaryCard: View {
   let task: Task
+  var isEditing: Bool = false
   var isLifted: Bool = false
 
-  private let cardShape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+  private let cardShape = RoundedRectangle(cornerRadius: 16, style: .continuous)
 
   private var bundleMetadata: TaskBundleMetadata? {
     TaskBundleMetadata.metadata(for: task)
@@ -377,14 +502,14 @@ private struct SequencePrimaryCard: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
+    VStack(alignment: .leading, spacing: 6) {
       Text(task.title)
-        .font(.headline.weight(.semibold))
+        .font(.subheadline.weight(.semibold))
         .foregroundStyle(.primary)
         .lineLimit(2)
 
       Text(metaSummary)
-        .font(.caption.weight(.medium))
+        .font(.caption)
         .foregroundStyle(.secondary)
         .lineLimit(1)
 
@@ -397,10 +522,10 @@ private struct SequencePrimaryCard: View {
         style: .compact,
         accentColor: TaskDisplayFormatter.statusColor(for: task.status)
       )
-      .padding(.top, task.steps.isEmpty ? 0 : 2)
+      .padding(.top, task.steps.isEmpty ? 0 : 1)
     }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 14)
+    .padding(.horizontal, 14)
+    .padding(.vertical, 12)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
       cardShape
@@ -408,7 +533,7 @@ private struct SequencePrimaryCard: View {
     )
     .overlay(
       cardShape
-        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
+        .strokeBorder(isEditing ? NornTheme.borderStrong : NornTheme.border, lineWidth: 1)
     )
     .shadow(
       color: NornTheme.shadow.opacity(isLifted ? 1 : 0.72),
@@ -416,27 +541,39 @@ private struct SequencePrimaryCard: View {
       y: isLifted ? 8 : 2
     )
     .contentShape(cardShape)
-    .contentShape(.dragPreview, cardShape)
   }
 }
 
 private struct SequenceSectionHeader: View {
   let title: String
   var detail: String? = nil
+  var actionTitle: String? = nil
+  var onAction: (() -> Void)? = nil
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(title)
-        .font(.footnote.weight(.semibold))
-        .foregroundStyle(.secondary)
+    HStack(alignment: .top, spacing: 12) {
+      VStack(alignment: .leading, spacing: 3) {
+        Text(title)
+          .font(.footnote.weight(.semibold))
+          .foregroundStyle(.secondary)
 
-      if let detail {
-        Text(detail)
-          .font(.caption)
-          .foregroundStyle(.tertiary)
+        if let detail {
+          Text(detail)
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+        }
+      }
+
+      Spacer(minLength: 8)
+
+      if let actionTitle, let onAction {
+        Button(actionTitle, action: onAction)
+          .buttonStyle(.plain)
+          .font(.caption.weight(.semibold))
+          .foregroundStyle(.secondary)
       }
     }
-    .padding(.leading, 30)
+    .padding(.leading, 20)
   }
 }
 
@@ -445,28 +582,28 @@ private struct NextTasksSummaryCard: View {
   let onTaskTap: (Task) -> Void
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: 10) {
       if tasks.isEmpty {
-        Text("暂无中远期任务")
+        Text("暂无更多任务")
           .font(.subheadline.weight(.semibold))
           .foregroundStyle(.secondary)
 
-        Text("更远的待办会在这里简略出现，不打断当前主序列。")
-          .font(.caption)
+        Text("更后的待办会在这里简略出现，不打断当前序列。")
+          .font(.caption2)
           .foregroundStyle(.tertiary)
           .fixedSize(horizontal: false, vertical: true)
       } else {
-        ForEach(Array(tasks.prefix(4).enumerated()), id: \.element.id) { index, task in
+        ForEach(Array(tasks.prefix(5).enumerated()), id: \.element.id) { index, task in
           Button {
             onTaskTap(task)
           } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
               Circle()
                 .fill(TaskDisplayFormatter.statusColor(for: task.status).opacity(0.8))
-                .frame(width: 8, height: 8)
+                .frame(width: 7, height: 7)
 
               Text(task.title)
-                .font(.subheadline)
+                .font(.caption.weight(.medium))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
 
@@ -474,36 +611,36 @@ private struct NextTasksSummaryCard: View {
 
               if let dueLabel = RelativeDueDateFormatter.label(for: task.dueAt) {
                 Text(dueLabel)
-                  .font(.caption)
+                  .font(.caption2)
                   .foregroundStyle(.secondary)
               }
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, 1)
           }
           .buttonStyle(.plain)
 
-          if index < min(tasks.count, 4) - 1 {
+          if index < min(tasks.count, 5) - 1 {
             Divider()
               .overlay(NornTheme.divider)
           }
         }
 
-        if tasks.count > 4 {
-          Text("还有 \(tasks.count - 4) 项等待进入主序列")
-            .font(.caption)
+        if tasks.count > 5 {
+          Text("还有 \(tasks.count - 5) 项等待进入当前序列")
+            .font(.caption2)
             .foregroundStyle(.tertiary)
-            .padding(.top, 4)
+            .padding(.top, 2)
         }
       }
     }
-    .padding(18)
+    .padding(16)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
-      RoundedRectangle(cornerRadius: 24, style: .continuous)
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
         .fill(NornTheme.cardSurfaceMuted)
     )
     .overlay(
-      RoundedRectangle(cornerRadius: 24, style: .continuous)
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
         .strokeBorder(style: StrokeStyle(lineWidth: 1.2, dash: [4, 8]))
         .foregroundStyle(NornTheme.borderStrong)
     )
@@ -512,25 +649,25 @@ private struct NextTasksSummaryCard: View {
 
 private struct EmptyFocusCard: View {
   var body: some View {
-    VStack(alignment: .leading, spacing: 14) {
+    VStack(alignment: .leading, spacing: 12) {
       HStack(alignment: .top) {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
           Text("当前聚焦")
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
           Text("暂无正在进行的任务")
-            .font(.title3.weight(.bold))
+            .font(.headline.weight(.bold))
             .foregroundStyle(.primary)
         }
         Spacer()
         Circle()
           .fill(NornTheme.borderStrong)
-          .frame(width: 10, height: 10)
-          .padding(.top, 4)
+          .frame(width: 8, height: 8)
+          .padding(.top, 3)
       }
 
       Text("开始一个任务后，这里会显示你当前最值得投入的事项。")
-        .font(.subheadline)
+        .font(.footnote)
         .foregroundStyle(.secondary)
 
       HStack(spacing: 8) {
@@ -538,19 +675,19 @@ private struct EmptyFocusCard: View {
         EmptyFocusPill(text: "等待新建或开始")
       }
 
-      VStack(alignment: .leading, spacing: 6) {
+      VStack(alignment: .leading, spacing: 5) {
         EmptyFocusHint(text: "从底部输入框快速添加")
         EmptyFocusHint(text: "或从任务池挑一个开始")
       }
     }
-    .padding(20)
+    .padding(18)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
-      RoundedRectangle(cornerRadius: 28, style: .continuous)
+      RoundedRectangle(cornerRadius: 24, style: .continuous)
         .fill(NornTheme.cardSurface)
     )
     .overlay(
-      RoundedRectangle(cornerRadius: 28, style: .continuous)
+      RoundedRectangle(cornerRadius: 24, style: .continuous)
         .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
     .shadow(color: NornTheme.shadow.opacity(0.7), radius: 10, y: 4)
@@ -559,29 +696,24 @@ private struct EmptyFocusCard: View {
 
 private struct EmptyPrimarySequenceCard: View {
   var body: some View {
-    VStack(alignment: .leading, spacing: 10) {
-      Text("主序列暂时为空")
-        .font(.headline.weight(.semibold))
+    VStack(alignment: .leading, spacing: 8) {
+      Text("当前序列暂时为空")
+        .font(.subheadline.weight(.semibold))
         .foregroundStyle(.primary)
 
       Text("执行中的任务和近期待启动的任务会集中排列在这里。")
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-
-      Text("需要重排时，长按卡片右上角把手即可拖动。")
-        .font(.subheadline)
+        .font(.footnote)
         .foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
     }
-    .padding(20)
+    .padding(16)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
-      RoundedRectangle(cornerRadius: 24, style: .continuous)
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
         .fill(NornTheme.cardSurfaceMuted)
     )
     .overlay(
-      RoundedRectangle(cornerRadius: 24, style: .continuous)
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
         .strokeBorder(NornTheme.border, lineWidth: 1)
     )
   }
@@ -604,54 +736,21 @@ private struct EmptyFocusHint: View {
   let text: String
 
   var body: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: 6) {
       Circle()
         .fill(NornTheme.borderStrong)
-        .frame(width: 6, height: 6)
+        .frame(width: 5, height: 5)
       Text(text)
-        .font(.caption)
+        .font(.caption2)
         .foregroundStyle(.secondary)
     }
   }
 }
 
-private struct PrimarySequenceDropDelegate: DropDelegate {
-  let destinationTaskID: String
-  @Binding var orderedTaskIDs: [String]
-  @Binding var draggedTaskID: String?
-  @Binding var hasPendingReorder: Bool
-  let onCommit: () -> Void
+private struct PrimarySequenceRowFramePreferenceKey: PreferenceKey {
+  static var defaultValue: [String: CGRect] = [:]
 
-  func dropEntered(info: DropInfo) {}
-
-  private func reorderedTaskIDs() -> [String]? {
-    guard
-      let draggedTaskID,
-      draggedTaskID != destinationTaskID,
-      let fromIndex = orderedTaskIDs.firstIndex(of: draggedTaskID),
-      let toIndex = orderedTaskIDs.firstIndex(of: destinationTaskID)
-    else {
-      return nil
-    }
-
-    var reorderedIDs = orderedTaskIDs
-    reorderedIDs.move(
-      fromOffsets: IndexSet(integer: fromIndex),
-      toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
-    )
-    return reorderedIDs == orderedTaskIDs ? nil : reorderedIDs
-  }
-
-  func dropUpdated(info: DropInfo) -> DropProposal? {
-    DropProposal(operation: .move)
-  }
-
-  func performDrop(info: DropInfo) -> Bool {
-    if let reorderedTaskIDs = reorderedTaskIDs() {
-      orderedTaskIDs = reorderedTaskIDs
-      hasPendingReorder = true
-    }
-    onCommit()
-    return true
+  static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+    value.merge(nextValue(), uniquingKeysWith: { _, next in next })
   }
 }
