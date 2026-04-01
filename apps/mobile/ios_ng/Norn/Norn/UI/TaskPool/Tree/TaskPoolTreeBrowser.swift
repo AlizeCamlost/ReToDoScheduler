@@ -61,7 +61,7 @@ struct TaskPoolTreeBrowser: View {
 
         destinationSection
       }
-      .padding(.horizontal, 0)
+      .padding(.horizontal, 16)
       .padding(.top, 12)
       .padding(.bottom, 24)
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -113,12 +113,10 @@ struct TaskPoolTreeBrowser: View {
         }
         .buttonStyle(.plain)
       }
-      .padding(.horizontal, 16)
 
       Text("\(normalizedOrganization.directories.count - 1) 个目录 · \(normalizedTasks.count) 个任务")
         .font(.caption2)
         .foregroundStyle(.secondary)
-        .padding(.horizontal, 16)
 
       VStack(alignment: .leading, spacing: 2) {
         DirectoryOutlineNode(
@@ -189,12 +187,10 @@ struct TaskPoolTreeBrowser: View {
         }
         .buttonStyle(.plain)
       }
-      .padding(.horizontal, 16)
 
       if !selectedDirectoryChildren.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
           sectionLabel("子目录")
-            .padding(.horizontal, 16)
 
           ForEach(selectedDirectoryChildren) { directory in
             Button {
@@ -222,7 +218,7 @@ struct TaskPoolTreeBrowser: View {
                   .foregroundStyle(.tertiary)
               }
               .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.horizontal, 12 + CGFloat(max(0, directoryDepth(of: directory.id))) * 20)
+              .padding(.leading, CGFloat(max(0, directoryDepth(of: directory.id))) * 20)
               .padding(.vertical, 7)
               .background(
                 selectedDirectoryID == directory.id
@@ -261,14 +257,12 @@ struct TaskPoolTreeBrowser: View {
 
       VStack(alignment: .leading, spacing: 8) {
         sectionLabel("任务")
-          .padding(.horizontal, 16)
 
         if selectedDirectoryTasks.isEmpty {
           Text("这个目录下还没有任务。你可以从任务卡片的长按菜单把任务移到这里。")
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, 16)
         } else {
           VStack(alignment: .leading, spacing: 2) {
             ForEach(selectedDirectoryTasks) { task in
@@ -286,7 +280,6 @@ struct TaskPoolTreeBrowser: View {
               }
             }
           }
-          .padding(.horizontal, 6)
         }
       }
     }
@@ -528,50 +521,36 @@ private struct DirectoryOutlineNode: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 2) {
-      HStack(alignment: .center, spacing: 3) {
-        if childDirectories.isEmpty {
-          Color.clear
-            .frame(width: 10, height: 10)
-        } else {
-          Button {
-            toggleExpanded()
-          } label: {
-            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-              .font(.caption2.weight(.semibold))
-              .foregroundStyle(.secondary)
-              .frame(width: 10, height: 10)
-          }
-          .buttonStyle(.plain)
+      HStack(alignment: .center, spacing: 2) {
+        disclosureControl
+
+        HStack(spacing: 2) {
+          Image(systemName: selectedDirectoryID == directory.id ? "folder.fill" : "folder")
+            .font(.caption2)
+            .foregroundStyle(directory.id == organization.inboxDirectoryID ? .blue : .orange)
+
+          Text(displayNameProvider(directory))
+            .font(.callout.weight(selectedDirectoryID == directory.id ? .semibold : .regular))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+
+          Spacer(minLength: 6)
+
+          Text("\(taskCountProvider(directory.id))")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .frame(minWidth: 20, alignment: .trailing)
         }
-
-        Button {
-          onSelect(directory.id)
-        } label: {
-          HStack(spacing: 3) {
-            Image(systemName: selectedDirectoryID == directory.id ? "folder.fill" : "folder")
-              .font(.caption2)
-              .foregroundStyle(directory.id == organization.inboxDirectoryID ? .blue : .orange)
-
-            Text(displayNameProvider(directory))
-              .font(.callout.weight(selectedDirectoryID == directory.id ? .semibold : .regular))
-              .foregroundStyle(.primary)
-              .lineLimit(1)
-
-            Spacer(minLength: 6)
-
-            Text("\(taskCountProvider(directory.id))")
-              .font(.caption2.weight(.semibold))
-              .foregroundStyle(.secondary)
-          }
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .padding(.horizontal, 12 + CGFloat(depth) * 20)
-          .padding(.vertical, 6)
-          .background(
-            selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong.opacity(0.45) : Color.clear
-          )
-          .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .padding(.leading, CGFloat(depth) * 20)
+      .padding(.vertical, 6)
+      .background(
+        selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong.opacity(0.45) : Color.clear
+      )
+      .contentShape(Rectangle())
+      .onTapGesture {
+        onSelect(directory.id)
       }
       .contextMenu {
         Button {
@@ -627,6 +606,24 @@ private struct DirectoryOutlineNode: View {
         }
         .padding(.leading, 2)
       }
+    }
+  }
+
+  @ViewBuilder
+  private var disclosureControl: some View {
+    if childDirectories.isEmpty {
+      Color.clear
+        .frame(width: 10, height: 10)
+    } else {
+      Button {
+        toggleExpanded()
+      } label: {
+        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.secondary)
+          .frame(width: 10, height: 10)
+      }
+      .buttonStyle(.plain)
     }
   }
 
