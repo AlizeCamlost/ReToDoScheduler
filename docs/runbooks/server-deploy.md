@@ -60,6 +60,14 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up 
 
 之所以改成显式 `docker build` + `up --no-build`，是因为某些服务器上 Docker Compose 即使设置了 `COMPOSE_BAKE=false`，仍会被本机默认 builder 配置强制委托给 Bake，并在构建结束前后触发内部解析错误。这里直接绕过 `docker compose build`，并用 `DOCKER_BUILDKIT=0` 强制回退到 legacy builder。
 
+当前这套做法按“过渡性部署修复”对待，而不是长期目标架构。考虑到业务形态和仓库结构仍在演进，现阶段先以稳定部署为优先，不主动收敛这套 workaround。等后续业务边界、目录结构和镜像输入范围相对稳定，并且需要重新审视部署技术债时，再集中评估是否要：
+
+- 为仓库根目录补充真正生效的 `.dockerignore`
+- 收窄 `api` / `web` 的 build context
+- 取消 `DOCKER_BUILDKIT=0 docker build` workaround，回到更干净的生产构建路径
+
+在那之前，默认保留当前方案；只有在用户主动询问或明确安排部署收敛时，才重新推进这项改造。
+
 ### 3.4 执行初始 migration
 
 ```bash
