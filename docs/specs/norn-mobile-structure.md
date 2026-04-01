@@ -62,9 +62,9 @@ Norn 负责维护可用于调度的任务池输入，不在这里重述调度算
 - Quick Add 本地新增与已配置时的保守同步已接通
 - 任务详情页与完成/归档动作已接通
 - 编辑器与任务保存流已接通
-- 同步设置与手动同步已接通
-- 任务池目录树浏览器已接通真实任务数据、目录 CRUD、目录移动和任务归属调整入口
-- 任务池第二页已接通 `目录树 / 画布` 模式切换；顶部提供本地显示配置，可在两个视图里统一隐藏已完成任务；画布已收敛为带父子连线的思维导图视图，目录展开时展示整棵可见子树，收拢时退回单节点；默认布局改为算法驱动的稳定树布局，目录拖拽表现为整棵子树的锚点偏移，避免历史绝对坐标把结构拖散；当前画布还支持双指缩放和右上角缩放控件，并保持拖拽坐标在缩放后仍回写到稳定的内容坐标系
+- 设置页与手动同步已接通
+- 任务池目录浏览器已接通真实任务数据、目录 CRUD、目录移动和任务归属调整入口
+- 任务池第二页已接通 `目录 / 脑图` 模式切换；顶层只保留标题、刷新和设置入口，本地显示配置改收进设置页并继续在两个视图里统一隐藏已完成任务；脑图已收敛为带父子连线的思维导图视图，目录展开时展示整棵可见子树，收拢时退回单节点；默认布局改为算法驱动的稳定树布局，目录拖拽表现为整棵子树的锚点偏移，避免历史绝对坐标把结构拖散；当前脑图还支持双指缩放和右上角缩放控件，并保持拖拽坐标在缩放后仍回写到稳定的内容坐标系
 - `Norn.xcodeproj` 已补 `NornTests` / `NornUITests` target 和基础覆盖代码
 - 当前已完成 `packages/core` / `services/api` 的类型检查与 `Norn` iOS build；更完整的 Simulator 测试仍需在可用 CoreSimulator 环境复检
 
@@ -247,7 +247,7 @@ apps/mobile/ios_ng/Norn/Norn/
 当前快照说明：
 
 - `Application/State` 已落 `NornAppStore`，作为当前唯一 UI 状态入口
-- `Application/UseCases` 已落读取、快速新增、保存草稿、任务序列批量保存、主序列重排、显式任务状态切换、详情内追加子任务、串行子任务推进、完成/归档、同步设置和同步用例
+- `Application/UseCases` 已落读取、快速新增、保存草稿、任务序列批量保存、当前序列重排、显式任务状态切换、详情内追加子任务、串行子任务推进、完成/归档、同步设置和同步用例
 - `Infrastructure/Persistence`、`Infrastructure/Mapping` 已落本地任务仓库、设置仓库和记录映射
 - `Infrastructure/Sync` 已落 HTTP client、sync request 和 sync response DTO
 - `Utilities/Formatting` 已接住从 Legacy 迁出的展示辅助能力
@@ -258,21 +258,23 @@ apps/mobile/ios_ng/Norn/Norn/
 - `QuickAddDock` 已通过 store 和 use case 形成本地创建闭环，并在激活态同时提供“详情”和“序列”入口：前者把 Quick Add 草稿提升到详细新建 sheet，后者进入任务序列批量录入 sheet
 - `TaskSequenceDraft`、`TaskBundleMetadata` 与 `SaveTaskSequenceUseCase` 已接住“连续录入多条任务并共享 bundle 标识”的能力；任务仍以多条 `Task` 落库，只通过共享元数据和顺序位维持成组展示
 - `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过方向感知的 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让：竖屏主避让 top/bottom；横屏细化仍属后续低优先级收敛项，当前只保留不破坏竖屏和 dock 编排的保守实现；当前横向分页顺序为 `Sequence -> Task Pool -> Schedule`
-- `Sequence` 已收敛为“当前聚焦 + 主序列 + 接下来摘要”，主序列改为长按卡片右上角把手直接拖拽重排并通过现有 sync 同步顺序
-- `Sequence` 主序列标题已恢复，卡片层级改为细长主卡并直接点击打开 `TaskDetailSheet`
+- `Sequence` 已收敛为“当前聚焦 + 当前序列 + 接下来摘要”，当前序列默认只保留最优先的 7 项；超出的近 horizon 任务与更远期待办统一下沉到“接下来”
+- `Sequence` 当前序列改为长按任一卡片进入页面级编辑态，随后可直接拖拽整卡重排，并通过现有 sync 同步顺序；普通滚动期不再挂系统 drag/drop 交互
+- `Sequence` 卡片与时间线装饰已整体收紧：字体、边距和装饰占位更小，单屏可承载更多信息，同时继续直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已进一步收敛为更接近手绘参考的纯色圆点 + 分段点划轨：节点与上下虚线段留出间隔，末端继续保留渐隐渐细的射线尾迹
 - `Sequence` 底部输入 dock 重新由 root scoped `safeAreaInset` 编排，并继续通过固定 `reservedDockHeight` 驱动内容 safe-area 让位，避免横向切 tab 或滚动期间出现滚动偏移跳变与实时测量带来的重复重布局
 - `Sequence` 顶部状态栏区域与底部 dock 区域已补齐更柔和的原生风格渐变 safe-area chrome：顶部渐变抬高并减轻不透明度，底部渐变改为挂在 dock 背后做过渡；dock 本体也进一步放大高度、把圆角收敛到更接近屏幕圆角同心的几何，并在外缘补上一圈更轻量的静态柔边外环
 - `Sequence` 的滚动裁剪范围重新由 root page shell 的全屏 edge-to-edge 延伸承担，不与 dock 的 safe-area 语义混用
 - `Sequence` 在竖屏主要只补 top safe-area，bottom 继续由 dock reserve 承担；横屏安全区、岛区、圆角和左右对称的进一步细化暂记为低优先级遗留 feature
-- `Sequence` 主序列拖拽已收回到卡片右上角把手，普通滚动期不再常驻挂整卡 drop 命中层；时间线装饰留在原位，卡片呼吸感通过行内留白放松，并为拖拽预览补齐圆角形状语义，活体卡片本身不再进入额外灰化态
+- `Sequence` 当前序列编辑态通过 section header 的“完成”动作退出，拖拽提交后会立即回写顺序；空状态和“接下来”文案也已同步去除旧的“主序列 / 右上角把手 / 中远期任务”表述
 - `TaskSequenceEditorSheet` 已支持连续输入多条任务描述、设置可选序列标签并一次保存；现阶段 bundle 仅作为卡片标识与顺序保持语义，不在 `Sequence` 中折叠成组卡
 - `TaskDetailSheet` 已改为真正的半模态轻编辑面板：toolbar 仍保留完整编辑入口，但外层已支持直接切到进行中、直接追加子任务、点击当前步骤推进串行进度，以及完成/归档操作
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环，并把任务依赖改为二层 searchable picker，避免在主表单里平铺全量依赖 toggle
 - `TaskStepPreview` 已成为 Sequence / Focus / TaskPool 卡片共用的串行子任务预览组件，统一在卡片上展示当前步骤和步进位置
 - `TaskStepProgress`、`TaskRecord` 和 `TaskSyncRequest` 已把步骤 `startedAt/completedAt` 进度接入本地持久化与同步载荷；已完成步骤不再进入共享调度输入
-- `TaskPool` header 已接入同步状态、手动刷新和 `SyncSettingsSheet`
-- `TaskPool` 已改成目录树主浏览面，并通过 `NornAppStore` 的任务池组织操作入口直接落本地仓库与保守同步
+- `TaskPool` header 已收敛为标题、手动刷新和 `设置` 入口；同步状态与任务可见性配置统一收进 `SyncSettingsSheet`
+- `TaskPool` 已改成目录主浏览面，并通过 `NornAppStore` 的任务池组织操作入口直接落本地仓库与保守同步
+- `TaskPool` 顶层模式文案已从内部实现名收敛为对客的 `目录 / 脑图`；目录浏览器也已合并摘要与导航卡片、压缩层级间距，并把新建目录默认挂到当前选中目录下
 - `apps/mobile/ios_ng/Norn/NornTests` 与 `apps/mobile/ios_ng/Norn/NornUITests` 已落基础数据流和 smoke 测试代码
 - `UI/` 已经按页面和共享组件分层
 - `Resources/Assets.xcassets` 已从工程根平移到资源目录
@@ -409,7 +411,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Domain/Task/TaskScheduleValue.swift` | `TaskScheduleValue` | 任务价值输入 | 与调度价值语义对齐 |
 | `Domain/Task/TaskDraft.swift` | `TaskDraft` | 详细编辑使用的草稿模型 | 服务于 editor，不直接落盘 |
 | `Domain/Task/QuickAddDraft.swift` | `QuickAddDraft` | Quick Add 解析后的最小草稿 | 服务于快速新增入口 |
-| `Domain/Task/TaskOrdering.swift` | `TaskOrdering` | 任务排序与主序列顺序元数据 | 负责 `extJSON.norn.sequenceRank` 读写与排序比较 |
+| `Domain/Task/TaskOrdering.swift` | `TaskOrdering` | 任务排序与当前序列顺序元数据 | 负责 `extJSON.norn.sequenceRank` 读写与排序比较 |
 | `Domain/Sync/SyncSettings.swift` | `SyncSettings` | 同步配置语义模型 | 只表达 URL、token 等配置概念 |
 | `Domain/Sync/SyncStatus.swift` | `SyncStatus` | 同步状态模型 | 表达未配置、空闲、同步中、失败等状态 |
 | `Domain/Sync/TaskSyncSnapshot.swift` | `TaskSyncSnapshot` | 同步返回快照 | 同时承载任务集合与任务池组织文档 |
@@ -427,7 +429,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `Application/UseCases/UpdateTaskStatusUseCase.swift` | `UpdateTaskStatusUseCase` | 显式切换任务状态 | `execute(taskID:status:)` |
 | `Application/UseCases/AppendTaskStepUseCase.swift` | `AppendTaskStepUseCase` | 在详情半模态里快速追加串行子任务 | `execute(taskID:title:)` |
 | `Application/UseCases/CompleteTaskStepUseCase.swift` | `CompleteTaskStepUseCase` | 推进当前串行子任务 | `execute(taskID:stepID:)` |
-| `Application/UseCases/ReorderSequenceTasksUseCase.swift` | `ReorderSequenceTasksUseCase` | 主序列拖拽后的顺序持久化 | `execute(primaryTaskIDs:)` |
+| `Application/UseCases/ReorderSequenceTasksUseCase.swift` | `ReorderSequenceTasksUseCase` | 当前序列拖拽后的顺序持久化 | `execute(primaryTaskIDs:)` |
 | `Application/UseCases/ToggleTaskCompletionUseCase.swift` | `ToggleTaskCompletionUseCase` | 切换完成/恢复待办 | `execute(taskID:)` |
 | `Application/UseCases/ArchiveTaskUseCase.swift` | `ArchiveTaskUseCase` | 归档任务 | `execute(taskID:)` |
 | `Application/UseCases/SaveSyncSettingsUseCase.swift` | `SaveSyncSettingsUseCase` | 保存同步设置 | `execute(settings:)` |
@@ -467,22 +469,22 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 激活态提供“详情 / 序列”入口 |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
 | `UI/Shared/TaskBundleBadge.swift` | `TaskBundleBadge` | 任务 bundle 标识 | 共用于 Focus / Sequence / TaskPool 卡片 |
-| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 主序列 + 接下来摘要，主序列通过长按右上角把手重排，落位时单次更新顺序 |
+| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 当前序列 + 接下来摘要；长按卡片进入编辑态后可直接拖拽整卡重排，当前序列默认只保留最优先的 7 项 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前复用于 `TaskPool` 的目录树内容区 |
 | `UI/Sequence/Components/TaskStepPreview.swift` | `TaskStepPreview` | 串行子任务当前步骤预览 | 共用于 Focus / Sequence / TaskPool 卡片 |
-| `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 当前位于第二个顶层分页入口，已挂 `目录树 / 画布` 模式切换 |
+| `UI/TaskPool/TaskPoolTab.swift` | `TaskPoolTab` | 任务池管理页 | 当前位于第二个顶层分页入口，已挂 `目录 / 脑图` 模式切换；顶层只保留标题、刷新和设置入口 |
 | `UI/TaskPool/TaskPoolVisibleTasks.swift` | `TaskPoolVisibleTasks` | 任务池可见任务过滤 helper | 统一处理归档任务与“隐藏已完成任务”配置 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasZoom.swift` | `TaskPoolCanvasZoom` | 画布缩放 helper | 统一处理缩放边界、步进、拖拽位移归一化和缩放后的画布尺寸 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasView.swift` | `TaskPoolCanvasView` | 任务池画布浏览器 | 负责思维导图式节点拖拽、父子连线、子树展开收拢，以及稳定树布局的渲染 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasNodeCard.swift` | `TaskPoolCanvasNodeCard` | 画布节点卡片 | 目录 / 任务节点共用视觉组件，并承载目录的收拢入口 |
-| `UI/TaskPool/Tree/TaskPoolTreeBrowser.swift` | `TaskPoolTreeBrowser` | 目录树主浏览器 | 浏览目录树、目录内容和任务归属 |
+| `UI/TaskPool/Tree/TaskPoolTreeBrowser.swift` | `TaskPoolTreeBrowser` | 目录主浏览器 | 浏览目录层级、目录内容和任务归属 |
 | `UI/TaskPool/Tree/TaskPoolDirectoryEditorSheet.swift` | `TaskPoolDirectoryEditorSheet` | 目录名称编辑 sheet | 新建 / 重命名目录共用 |
 | `UI/TaskPool/TaskDependencyPickerSheet.swift` | `TaskDependencyPickerSheet` | 任务依赖二层选择器 | searchable + filter + multi-select |
 | `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情半模态 | 外层可切进行中、追加子任务、推进当前步骤、完成/归档 |
 | `UI/TaskPool/TaskEditorSheet.swift` | `TaskEditorSheet` | 新建与编辑任务表单 | 基于 `TaskDraft`，依赖选择器改为二层 picker |
 | `UI/TaskPool/TaskSequenceEditorSheet.swift` | `TaskSequenceEditorSheet` | 任务序列批量录入表单 | 支持连续输入多条任务并一次保存 |
-| `UI/Settings/SyncSettingsSheet.swift` | `SyncSettingsSheet` | 同步配置页 | 基于 `SyncSettings` |
+| `UI/Settings/SyncSettingsSheet.swift` | `SyncSettingsSheet` | 设置页 | 基于 `SyncSettings`，并承载任务池的同步状态与“隐藏已完成任务”配置 |
 | `UI/Schedule/ScheduleTab.swift` | `ScheduleTab` | 调度页外壳 | 当前位于第三个顶层分页入口，本轮不扩展调度实现 |
 
 ## 6. 调用关系与数据流
@@ -526,10 +528,10 @@ SequenceTab / FocusCard / TaskPool list item
   -> SyncTasksUseCase.execute(settings:) [保守触发]
 ```
 
-### 6.3 主序列重排
+### 6.3 当前序列重排
 
 ```text
-SequenceTab main sequence handle drag
+SequenceTab current sequence long press -> page edit drag
   -> NornAppStore.reorderPrimarySequence(taskIDs:)
   -> ReorderSequenceTasksUseCase.execute(primaryTaskIDs:)
   -> TaskOrdering.applyingSequenceRank(...)
@@ -552,7 +554,7 @@ TaskDetailSheet completion/progress/archive action
   -> SyncTasksUseCase.execute(settings:) [保守触发]
 ```
 
-### 6.5 同步设置与手动同步
+### 6.5 设置与手动同步
 
 ```text
 SyncSettingsSheet
@@ -678,4 +680,4 @@ flowchart LR
 - 若后续发现 `TaskDraft` 或 `SyncStatus` 需要进一步拆分，应优先新增语义化文件，而不是回退到巨型共享模型。
 - 如果未来 Kairos 的 Swift 侧实现单独恢复，应另开文档定义其目录与类型，而不是继续堆进这份 Norn 文档。
 - 横屏场景下的安全区细化仍未收敛：当前先保证不破坏竖屏质量、dock 下沉编排和滚动裁剪延伸；后续应把“岛区/圆角避让、header 不被裁切、左右占位对称”作为一个低优先级独立 feature 再处理。
-- 任务序列当前只共享 bundle 标识并保持单卡展示；如果未来需要在 `Sequence` 中折叠成组卡或组块，应作为独立 feature 设计，避免和现有主序列重排语义混用。
+- 任务序列当前只共享 bundle 标识并保持单卡展示；如果未来需要在 `Sequence` 中折叠成组卡或组块，应作为独立 feature 设计，避免和现有当前序列重排语义混用。
