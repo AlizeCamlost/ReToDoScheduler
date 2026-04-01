@@ -41,6 +41,10 @@ final class InMemoryTaskRepository: TaskRepositoryProtocol {
     let nextStatus: TaskStatus = tasks[index].status == .done ? .todo : .done
     tasks[index] = tasks[index].settingStatus(nextStatus, updatedAt: Date())
   }
+
+  func delete(taskID: String) throws {
+    tasks.removeAll { $0.id == taskID }
+  }
 }
 
 final class InMemoryTaskPoolOrganizationRepository: TaskPoolOrganizationRepositoryProtocol {

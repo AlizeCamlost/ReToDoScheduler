@@ -98,6 +98,23 @@ final class NornAppStoreTests: XCTestCase {
     XCTAssertNil(store.selectedTask)
   }
 
+  func testDeleteTaskRemovesTaskAndClosesDraft() throws {
+    let task = makeTask(id: "task-1", title: "Task", updatedAt: Date(timeIntervalSince1970: 100))
+    let repository = InMemoryTaskRepository(tasks: [task])
+    let settingsRepository = InMemorySyncSettingsRepository()
+    let store = makeStore(
+      repository: repository,
+      settingsRepository: settingsRepository,
+      tasks: [task]
+    )
+
+    store.openTaskEditor(taskID: "task-1")
+    store.deleteTask(taskID: "task-1")
+
+    XCTAssertTrue(store.tasks.isEmpty)
+    XCTAssertNil(store.taskDraft)
+  }
+
   func testUpdateTaskStatusAndCompleteStepsAdvanceSerialProgress() throws {
     let task = makeTask(
       id: "task-1",
@@ -310,6 +327,7 @@ final class NornAppStoreTests: XCTestCase {
       appendTaskStepUseCase: AppendTaskStepUseCase(repository: repository),
       completeTaskStepUseCase: CompleteTaskStepUseCase(repository: repository),
       archiveTaskUseCase: ArchiveTaskUseCase(repository: repository),
+      deleteTaskUseCase: DeleteTaskUseCase(repository: repository),
       saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: settingsRepository),
       syncTasksUseCase: SyncTasksUseCase(
         taskRepository: repository,

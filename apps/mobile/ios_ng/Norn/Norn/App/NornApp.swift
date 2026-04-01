@@ -30,6 +30,7 @@ struct NornApp: App {
             appendTaskStepUseCase: AppendTaskStepUseCase(repository: taskRepository),
             completeTaskStepUseCase: CompleteTaskStepUseCase(repository: taskRepository),
             archiveTaskUseCase: ArchiveTaskUseCase(repository: taskRepository),
+            deleteTaskUseCase: DeleteTaskUseCase(repository: taskRepository),
             saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: syncSettingsRepository),
             syncTasksUseCase: SyncTasksUseCase(
                 taskRepository: taskRepository,

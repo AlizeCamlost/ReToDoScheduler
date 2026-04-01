@@ -6,4 +6,5 @@ protocol TaskRepositoryProtocol {
   func upsert(_ tasks: [Task]) throws
   func archive(taskID: String) throws
   func toggleCompletion(taskID: String) throws
+  func delete(taskID: String) throws
 }

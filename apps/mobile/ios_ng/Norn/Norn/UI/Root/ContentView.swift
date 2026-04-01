@@ -15,8 +15,21 @@ struct ContentView: View {
       TabView(selection: $store.currentTab) {
         SequenceTab(
           tasks: store.visibleTasks,
+          isActive: store.currentTab == .sequence,
           onTaskTap: { task in
             store.openTaskDetail(taskID: task.id)
+          },
+          onTaskComplete: { task in
+            store.toggleTaskCompletion(taskID: task.id)
+          },
+          onTaskEdit: { task in
+            store.openTaskEditor(taskID: task.id)
+          },
+          onTaskArchive: { task in
+            store.archiveTask(taskID: task.id)
+          },
+          onTaskDelete: { task in
+            store.deleteTask(taskID: task.id)
           },
           onPrimarySequenceReorder: { reorderedTaskIDs in
             store.reorderPrimarySequence(taskIDs: reorderedTaskIDs)

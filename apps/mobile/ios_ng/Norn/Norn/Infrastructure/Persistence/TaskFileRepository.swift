@@ -67,6 +67,14 @@ struct TaskFileRepository: TaskRepositoryProtocol {
     try save(tasks)
   }
 
+  func delete(taskID: String) throws {
+    var tasks = try loadAll()
+    let initialCount = tasks.count
+    tasks.removeAll { $0.id == taskID }
+    guard tasks.count != initialCount else { return }
+    try save(tasks)
+  }
+
   private var storageDirectory: URL {
     baseDirectory.appendingPathComponent("Norn", isDirectory: true)
   }

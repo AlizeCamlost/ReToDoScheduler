@@ -27,6 +27,7 @@ final class NornAppStore {
   @ObservationIgnored private let appendTaskStepUseCase: AppendTaskStepUseCase
   @ObservationIgnored private let completeTaskStepUseCase: CompleteTaskStepUseCase
   @ObservationIgnored private let archiveTaskUseCase: ArchiveTaskUseCase
+  @ObservationIgnored private let deleteTaskUseCase: DeleteTaskUseCase
   @ObservationIgnored private let saveSyncSettingsUseCase: SaveSyncSettingsUseCase
   @ObservationIgnored private let syncTasksUseCase: SyncTasksUseCase
   @ObservationIgnored private let syncSettingsRepository: any SyncSettingsRepositoryProtocol
@@ -55,6 +56,7 @@ final class NornAppStore {
     appendTaskStepUseCase: AppendTaskStepUseCase,
     completeTaskStepUseCase: CompleteTaskStepUseCase,
     archiveTaskUseCase: ArchiveTaskUseCase,
+    deleteTaskUseCase: DeleteTaskUseCase,
     saveSyncSettingsUseCase: SaveSyncSettingsUseCase,
     syncTasksUseCase: SyncTasksUseCase,
     syncSettingsRepository: any SyncSettingsRepositoryProtocol
@@ -81,6 +83,7 @@ final class NornAppStore {
     self.appendTaskStepUseCase = appendTaskStepUseCase
     self.completeTaskStepUseCase = completeTaskStepUseCase
     self.archiveTaskUseCase = archiveTaskUseCase
+    self.deleteTaskUseCase = deleteTaskUseCase
     self.saveSyncSettingsUseCase = saveSyncSettingsUseCase
     self.syncTasksUseCase = syncTasksUseCase
     self.syncSettingsRepository = syncSettingsRepository
@@ -252,6 +255,21 @@ final class NornAppStore {
     do {
       tasks = try archiveTaskUseCase.execute(taskID: taskID)
       closeTaskDetail()
+      scheduleConservativeSyncIfNeeded()
+    } catch {
+      syncStatus = .failed(message: error.localizedDescription)
+    }
+  }
+
+  func deleteTask(taskID: String) {
+    do {
+      tasks = try deleteTaskUseCase.execute(taskID: taskID)
+      if selectedTaskID == taskID {
+        closeTaskDetail()
+      }
+      if taskDraft?.id == taskID {
+        closeTaskEditor()
+      }
       scheduleConservativeSyncIfNeeded()
     } catch {
       syncStatus = .failed(message: error.localizedDescription)
@@ -440,6 +458,7 @@ extension NornAppStore {
       appendTaskStepUseCase: AppendTaskStepUseCase(repository: taskRepository),
       completeTaskStepUseCase: CompleteTaskStepUseCase(repository: taskRepository),
       archiveTaskUseCase: ArchiveTaskUseCase(repository: taskRepository),
+      deleteTaskUseCase: DeleteTaskUseCase(repository: taskRepository),
       saveSyncSettingsUseCase: SaveSyncSettingsUseCase(repository: syncSettingsRepository),
       syncTasksUseCase: SyncTasksUseCase(
         taskRepository: taskRepository,
@@ -488,6 +507,10 @@ private final class PreviewTaskRepository: TaskRepositoryProtocol {
     guard let index = storedTasks.firstIndex(where: { $0.id == taskID }) else { return }
     let nextStatus: TaskStatus = storedTasks[index].status == .done ? .todo : .done
     storedTasks[index] = storedTasks[index].settingStatus(nextStatus, updatedAt: Date())
+  }
+
+  func delete(taskID: String) throws {
+    storedTasks.removeAll { $0.id == taskID }
   }
 }
 
