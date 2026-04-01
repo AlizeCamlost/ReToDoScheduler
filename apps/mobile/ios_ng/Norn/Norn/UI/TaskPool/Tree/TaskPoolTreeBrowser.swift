@@ -15,6 +15,8 @@ struct TaskPoolTreeBrowser: View {
     TaskPoolOrganizationDocument.defaultRootDirectoryID,
     TaskPoolOrganizationDocument.defaultInboxDirectoryID
   ]
+  @State private var isNavigationExpanded = true
+  @State private var isDestinationChildrenExpanded = true
   @State private var directoryEditor: DirectoryEditorContext?
 
   private var normalizedOrganization: TaskPoolOrganizationDocument {
@@ -91,54 +93,70 @@ struct TaskPoolTreeBrowser: View {
   private var navigationSection: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(alignment: .top, spacing: 10) {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 5) {
           Text("目录")
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
 
-          Text("已选 \(displayName(for: selectedDirectory))")
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.primary)
-            .lineLimit(1)
+          HStack(spacing: 8) {
+            Text("已选")
+              .font(.caption2.weight(.semibold))
+              .foregroundStyle(.secondary)
+
+            Text(displayName(for: selectedDirectory))
+              .font(.subheadline.weight(.semibold))
+              .foregroundStyle(.primary)
+              .lineLimit(1)
+              .padding(.horizontal, 10)
+              .padding(.vertical, 5)
+              .background(
+                Capsule(style: .continuous)
+                  .fill(NornTheme.pillSurface)
+              )
+          }
         }
 
         Spacer()
 
         Button {
-          directoryEditor = .create(parentDirectoryID: selectedDirectory.id)
+          withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
+            isNavigationExpanded.toggle()
+          }
         } label: {
-          Label("新建目录", systemImage: "folder.badge.plus")
-            .font(.caption.weight(.semibold))
-            .labelStyle(.titleAndIcon)
+          Image(systemName: isNavigationExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+            .font(.title3)
+            .foregroundStyle(.secondary)
         }
         .buttonStyle(.plain)
       }
 
-      Text("\(normalizedOrganization.directories.count - 1) 个目录 · \(normalizedTasks.count) 个任务")
-        .font(.caption2)
-        .foregroundStyle(.secondary)
+      if isNavigationExpanded {
+        Text("\(normalizedOrganization.directories.count - 1) 个目录 · \(normalizedTasks.count) 个任务")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
 
-      VStack(alignment: .leading, spacing: 2) {
-        DirectoryOutlineNode(
-          directory: rootDirectory,
-          organization: normalizedOrganization,
-          selectedDirectoryID: selectedDirectoryID,
-          expandedDirectoryIDs: $expandedDirectoryIDs,
-          taskCountProvider: taskCount(in:),
-          displayNameProvider: displayName(for:),
-          onSelect: selectDirectory,
-          onCreateChild: { parentDirectoryID in
-            directoryEditor = .create(parentDirectoryID: parentDirectoryID)
-          },
-          onRename: { directory in
-            directoryEditor = .rename(directoryID: directory.id, currentName: directory.name)
-          },
-          onMove: onMoveDirectory,
-          onDelete: onDeleteDirectory,
-          depth: 0
-        )
+        VStack(alignment: .leading, spacing: 2) {
+          DirectoryOutlineNode(
+            directory: rootDirectory,
+            organization: normalizedOrganization,
+            selectedDirectoryID: selectedDirectoryID,
+            expandedDirectoryIDs: $expandedDirectoryIDs,
+            taskCountProvider: taskCount(in:),
+            displayNameProvider: displayName(for:),
+            onSelect: selectDirectory,
+            onCreateChild: { parentDirectoryID in
+              directoryEditor = .create(parentDirectoryID: parentDirectoryID)
+            },
+            onRename: { directory in
+              directoryEditor = .rename(directoryID: directory.id, currentName: directory.name)
+            },
+            onMove: onMoveDirectory,
+            onDelete: onDeleteDirectory,
+            depth: 0
+          )
+        }
+        .padding(.top, 2)
       }
-      .padding(.top, 2)
     }
   }
 
@@ -190,64 +208,85 @@ struct TaskPoolTreeBrowser: View {
 
       if !selectedDirectoryChildren.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
-          sectionLabel("子目录")
-
-          ForEach(selectedDirectoryChildren) { directory in
-            Button {
-              selectDirectory(directory.id)
-            } label: {
-              HStack(spacing: 4) {
-                Image(systemName: "folder.fill")
-                  .font(.caption2)
-                  .foregroundStyle(.orange)
-
-                VStack(alignment: .leading, spacing: 1) {
-                  Text(displayName(for: directory))
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                  Text("\(childDirectories(of: directory.id).count) 个子目录 · \(taskCount(in: directory.id)) 个任务")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 6)
-
-                Image(systemName: "chevron.right")
-                  .font(.caption2.weight(.semibold))
-                  .foregroundStyle(.tertiary)
-              }
-              .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.leading, CGFloat(max(0, directoryDepth(of: directory.id))) * 20)
-              .padding(.vertical, 7)
-              .background(
-                selectedDirectoryID == directory.id
-                  ? NornTheme.pillSurfaceStrong.opacity(0.45)
-                  : Color.clear
-              )
-              .contentShape(Rectangle())
+          Button {
+            withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
+              isDestinationChildrenExpanded.toggle()
             }
-            .buttonStyle(.plain)
-            .contextMenu {
-              Button {
-                directoryEditor = .create(parentDirectoryID: directory.id)
-              } label: {
-                Label("新建子目录", systemImage: "folder.badge.plus")
-              }
+          } label: {
+            HStack(spacing: 8) {
+              sectionLabel("子目录")
+              Spacer(minLength: 8)
+              Image(systemName: isDestinationChildrenExpanded ? "chevron.up" : "chevron.down")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            }
+          }
+          .buttonStyle(.plain)
 
-              if canEdit(directory: directory) {
+          if isDestinationChildrenExpanded {
+            ForEach(selectedDirectoryChildren) { directory in
+              Button {
+                selectDirectory(directory.id)
+              } label: {
+                HStack(spacing: 4) {
+                  Image(systemName: "folder.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+
+                  VStack(alignment: .leading, spacing: 1) {
+                    Text(displayName(for: directory))
+                      .font(.callout.weight(.semibold))
+                      .foregroundStyle(.primary)
+                      .lineLimit(1)
+                    Text("\(childDirectories(of: directory.id).count) 个子目录 · \(taskCount(in: directory.id)) 个任务")
+                      .font(.caption2)
+                      .foregroundStyle(.secondary)
+                  }
+
+                  Spacer(minLength: 6)
+
+                  Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                  RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong.opacity(0.52) : Color.clear)
+                )
+                .overlay(
+                  RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(
+                      selectedDirectoryID == directory.id ? NornTheme.borderStrong.opacity(0.7) : Color.clear,
+                      lineWidth: 1
+                    )
+                )
+                .contentShape(Rectangle())
+              }
+              .buttonStyle(.plain)
+              .contextMenu {
                 Button {
-                  directoryEditor = .rename(directoryID: directory.id, currentName: directory.name)
+                  directoryEditor = .create(parentDirectoryID: directory.id)
                 } label: {
-                  Label("重命名", systemImage: "pencil")
+                  Label("新建子目录", systemImage: "folder.badge.plus")
                 }
 
-                directoryMoveMenu(for: directory)
+                if canEdit(directory: directory) {
+                  Button {
+                    directoryEditor = .rename(directoryID: directory.id, currentName: directory.name)
+                  } label: {
+                    Label("重命名", systemImage: "pencil")
+                  }
 
-                Button(role: .destructive) {
-                  onDeleteDirectory(directory.id)
-                } label: {
-                  Label("删除目录", systemImage: "trash")
+                  directoryMoveMenu(for: directory)
+
+                  Button(role: .destructive) {
+                    onDeleteDirectory(directory.id)
+                  } label: {
+                    Label("删除目录", systemImage: "trash")
+                  }
                 }
               }
             }
@@ -543,12 +582,21 @@ private struct DirectoryOutlineNode: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
-      .padding(.leading, CGFloat(depth) * 20)
+      .padding(.horizontal, 8)
       .padding(.vertical, 6)
       .background(
-        selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong.opacity(0.45) : Color.clear
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .fill(selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong.opacity(0.52) : Color.clear)
+      )
+      .overlay(
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+          .strokeBorder(
+            selectedDirectoryID == directory.id ? NornTheme.borderStrong.opacity(0.7) : Color.clear,
+            lineWidth: 1
+          )
       )
       .contentShape(Rectangle())
+      .padding(.leading, CGFloat(depth) * 18)
       .onTapGesture {
         onSelect(directory.id)
       }
