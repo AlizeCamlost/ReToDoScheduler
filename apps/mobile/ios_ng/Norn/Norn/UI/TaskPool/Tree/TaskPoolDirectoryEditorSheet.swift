@@ -30,30 +30,32 @@ struct TaskPoolDirectoryEditorSheet: View {
       ZStack {
         NornScreenBackground()
 
-        VStack(alignment: .leading, spacing: 18) {
-          Text(message)
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 14) {
+          if !message.isEmpty {
+            Text(message)
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+          }
 
           TextField("目录名称", text: $name)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .background(
-              RoundedRectangle(cornerRadius: 18, style: .continuous)
+              RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(NornTheme.cardSurface)
             )
             .overlay(
-              RoundedRectangle(cornerRadius: 18, style: .continuous)
+              RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
             )
 
           Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 24)
-        .padding(.bottom, 20)
+        .padding(.horizontal, 18)
+        .padding(.top, 20)
+        .padding(.bottom, 16)
       }
       .navigationTitle(title)
       .navigationBarTitleDisplayMode(.inline)

@@ -53,15 +53,14 @@ struct TaskPoolTreeBrowser: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 18) {
-        summaryCard
-        directoryOutlineCard
+      VStack(alignment: .leading, spacing: 14) {
+        browserCard
         directoryDetailCard
       }
-      .padding(.horizontal, 20)
-      .padding(.top, 16)
-      .padding(.bottom, 32)
-      .frame(maxWidth: .infinity)
+      .padding(.horizontal, 16)
+      .padding(.top, 12)
+      .padding(.bottom, 24)
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
     .onAppear(perform: syncLocalSelectionState)
     .onChange(of: organization) { _, _ in
@@ -85,73 +84,34 @@ struct TaskPoolTreeBrowser: View {
     }
   }
 
-  private var summaryCard: some View {
+  private var browserCard: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text("目录树")
-        .font(.headline.weight(.semibold))
-
-      Text("任务池现在以目录树浏览全量任务。目录组织会和画布共享同一份同步文档。")
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-
-      HStack(spacing: 10) {
-        summaryPill(title: "目录", value: "\(normalizedOrganization.directories.count - 1)")
-        summaryPill(title: "任务", value: "\(normalizedTasks.count)")
-        summaryPill(title: "当前", value: displayName(for: selectedDirectory))
-      }
-    }
-    .padding(18)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .background(
-      RoundedRectangle(cornerRadius: 22, style: .continuous)
-        .fill(NornTheme.cardSurface)
-    )
-    .overlay(
-      RoundedRectangle(cornerRadius: 22, style: .continuous)
-        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
-    )
-  }
-
-  private func summaryPill(title: String, value: String) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(title)
-        .font(.caption2)
-        .foregroundStyle(.secondary)
-      Text(value)
-        .font(.subheadline.weight(.semibold))
-        .lineLimit(1)
-    }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 10)
-    .background(
-      RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .fill(NornTheme.pillSurface)
-    )
-  }
-
-  private var directoryOutlineCard: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      HStack(alignment: .top) {
+      HStack(alignment: .top, spacing: 12) {
         VStack(alignment: .leading, spacing: 4) {
-          Text("目录导航")
-            .font(.headline.weight(.semibold))
-          Text("点击目录查看内容，长按目录行可新建子目录、重命名、移动或删除。")
-            .font(.caption)
+          Text("当前目录")
+            .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+
+          Text(displayName(for: selectedDirectory))
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
         }
 
         Spacer()
 
         Button {
-          directoryEditor = .create(parentDirectoryID: normalizedOrganization.rootDirectoryID)
+          directoryEditor = .create(parentDirectoryID: selectedDirectory.id)
         } label: {
           Label("新建目录", systemImage: "folder.badge.plus")
             .font(.caption.weight(.semibold))
         }
         .buttonStyle(.plain)
       }
+
+      Text("\(normalizedOrganization.directories.count - 1) 个目录 · \(normalizedTasks.count) 个任务")
+        .font(.caption2)
+        .foregroundStyle(.secondary)
 
       DirectoryOutlineNode(
         directory: rootDirectory,
@@ -168,30 +128,31 @@ struct TaskPoolTreeBrowser: View {
           directoryEditor = .rename(directoryID: directory.id, currentName: directory.name)
         },
         onMove: onMoveDirectory,
-        onDelete: onDeleteDirectory
+        onDelete: onDeleteDirectory,
+        depth: 0
       )
     }
-    .padding(18)
+    .padding(14)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
-      RoundedRectangle(cornerRadius: 22, style: .continuous)
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
         .fill(NornTheme.cardSurface)
     )
     .overlay(
-      RoundedRectangle(cornerRadius: 22, style: .continuous)
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
         .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
   }
 
   private var directoryDetailCard: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: 14) {
       HStack(alignment: .top) {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
           Text(displayName(for: selectedDirectory))
-            .font(.title3.weight(.bold))
+            .font(.headline.weight(.semibold))
 
           Text(selectedDirectoryPath.map(displayName(for:)).joined(separator: " / "))
-            .font(.caption)
+            .font(.caption2)
             .foregroundStyle(.secondary)
             .lineLimit(2)
         }
@@ -229,38 +190,42 @@ struct TaskPoolTreeBrowser: View {
       }
 
       if !selectedDirectoryChildren.isEmpty {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
           sectionLabel("子目录")
 
           ForEach(selectedDirectoryChildren) { directory in
             Button {
               selectDirectory(directory.id)
             } label: {
-              HStack(spacing: 12) {
+              HStack(spacing: 10) {
                 Image(systemName: "folder.fill")
+                  .font(.caption)
                   .foregroundStyle(.orange)
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                   Text(displayName(for: directory))
-                    .font(.subheadline.weight(.semibold))
+                    .font(.callout.weight(.semibold))
                     .foregroundStyle(.primary)
+                    .lineLimit(1)
                   Text("\(childDirectories(of: directory.id).count) 个子目录 · \(taskCount(in: directory.id)) 个任务")
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 Image(systemName: "chevron.right")
-                  .font(.caption.weight(.semibold))
+                  .font(.caption2.weight(.semibold))
                   .foregroundStyle(.tertiary)
               }
-              .padding(.horizontal, 14)
-              .padding(.vertical, 12)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .padding(.horizontal, 12)
+              .padding(.vertical, 9)
               .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                   .fill(NornTheme.cardSurfaceMuted)
               )
+              .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
             .contextMenu {
@@ -290,12 +255,12 @@ struct TaskPoolTreeBrowser: View {
         }
       }
 
-      VStack(alignment: .leading, spacing: 10) {
+      VStack(alignment: .leading, spacing: 8) {
         sectionLabel("任务")
 
         if selectedDirectoryTasks.isEmpty {
           Text("这个目录下还没有任务。你可以从任务卡片的长按菜单把任务移到这里。")
-            .font(.caption)
+            .font(.caption2)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 2)
@@ -317,21 +282,21 @@ struct TaskPoolTreeBrowser: View {
         }
       }
     }
-    .padding(18)
+    .padding(14)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(
-      RoundedRectangle(cornerRadius: 22, style: .continuous)
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
         .fill(NornTheme.cardSurface)
     )
     .overlay(
-      RoundedRectangle(cornerRadius: 22, style: .continuous)
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
         .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
   }
 
   private func sectionLabel(_ title: String) -> some View {
     Text(title)
-      .font(.caption.weight(.semibold))
+      .font(.caption2.weight(.semibold))
       .foregroundStyle(.secondary)
   }
 
@@ -506,7 +471,7 @@ private extension TaskPoolTreeBrowser {
     var message: String {
       switch mode {
       case .create:
-        return "新目录会立即写入任务池组织文档，并参与多端同步。"
+        return ""
       case .rename:
         return "目录名称修改后，树视图和画布会共享同一份新名称。"
       }
@@ -543,6 +508,7 @@ private struct DirectoryOutlineNode: View {
   let onRename: (TaskPoolDirectory) -> Void
   let onMove: (String, String?) -> Void
   let onDelete: (String) -> Void
+  let depth: Int
 
   private var childDirectories: [TaskPoolDirectory] {
     organization.directories
@@ -564,19 +530,19 @@ private struct DirectoryOutlineNode: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      HStack(spacing: 10) {
+    VStack(alignment: .leading, spacing: 4) {
+      HStack(alignment: .center, spacing: 8) {
         if childDirectories.isEmpty {
           Color.clear
-            .frame(width: 18, height: 18)
+            .frame(width: 14, height: 14)
         } else {
           Button {
             toggleExpanded()
           } label: {
             Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-              .font(.caption.weight(.semibold))
+              .font(.caption2.weight(.semibold))
               .foregroundStyle(.secondary)
-              .frame(width: 18, height: 18)
+              .frame(width: 14, height: 14)
           }
           .buttonStyle(.plain)
         }
@@ -586,10 +552,11 @@ private struct DirectoryOutlineNode: View {
         } label: {
           HStack(spacing: 10) {
             Image(systemName: selectedDirectoryID == directory.id ? "folder.fill" : "folder")
+              .font(.caption)
               .foregroundStyle(directory.id == organization.inboxDirectoryID ? .blue : .orange)
 
             Text(displayNameProvider(directory))
-              .font(.subheadline.weight(selectedDirectoryID == directory.id ? .semibold : .regular))
+              .font(.callout.weight(selectedDirectoryID == directory.id ? .semibold : .regular))
               .foregroundStyle(.primary)
               .lineLimit(1)
 
@@ -598,22 +565,25 @@ private struct DirectoryOutlineNode: View {
             Text("\(taskCountProvider(directory.id))")
               .font(.caption2.weight(.semibold))
               .foregroundStyle(.secondary)
-              .padding(.horizontal, 8)
-              .padding(.vertical, 4)
+              .padding(.horizontal, 7)
+              .padding(.vertical, 3)
               .background(
                 Capsule(style: .continuous)
                   .fill(NornTheme.pillSurface)
               )
           }
-          .padding(.horizontal, 12)
-          .padding(.vertical, 10)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, 11)
+          .padding(.vertical, 8)
           .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
               .fill(selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong : Color.clear)
           )
+          .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
         }
         .buttonStyle(.plain)
       }
+      .padding(.leading, depth == 0 ? 0 : 12)
       .contextMenu {
         Button {
           onCreateChild(directory.id)
@@ -648,7 +618,7 @@ private struct DirectoryOutlineNode: View {
       }
 
       if isExpanded {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
           ForEach(childDirectories) { childDirectory in
             DirectoryOutlineNode(
               directory: childDirectory,
@@ -661,11 +631,12 @@ private struct DirectoryOutlineNode: View {
               onCreateChild: onCreateChild,
               onRename: onRename,
               onMove: onMove,
-              onDelete: onDelete
+              onDelete: onDelete,
+              depth: depth + 1
             )
           }
         }
-        .padding(.leading, 18)
+        .padding(.leading, 6)
       }
     }
   }
