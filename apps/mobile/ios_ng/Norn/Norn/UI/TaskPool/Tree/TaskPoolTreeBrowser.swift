@@ -53,11 +53,15 @@ struct TaskPoolTreeBrowser: View {
 
   var body: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 14) {
-        browserCard
-        directoryDetailCard
+      VStack(alignment: .leading, spacing: 18) {
+        navigationSection
+
+        Divider()
+          .overlay(NornTheme.divider)
+
+        destinationSection
       }
-      .padding(.horizontal, 16)
+      .padding(.horizontal, 0)
       .padding(.top, 12)
       .padding(.bottom, 24)
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -84,16 +88,16 @@ struct TaskPoolTreeBrowser: View {
     }
   }
 
-  private var browserCard: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      HStack(alignment: .top, spacing: 12) {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("当前目录")
+  private var navigationSection: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .top, spacing: 10) {
+        VStack(alignment: .leading, spacing: 3) {
+          Text("目录")
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
 
-          Text(displayName(for: selectedDirectory))
-            .font(.headline.weight(.semibold))
+          Text("已选 \(displayName(for: selectedDirectory))")
+            .font(.subheadline.weight(.semibold))
             .foregroundStyle(.primary)
             .lineLimit(1)
         }
@@ -105,54 +109,51 @@ struct TaskPoolTreeBrowser: View {
         } label: {
           Label("新建目录", systemImage: "folder.badge.plus")
             .font(.caption.weight(.semibold))
+            .labelStyle(.titleAndIcon)
         }
         .buttonStyle(.plain)
       }
+      .padding(.horizontal, 16)
 
       Text("\(normalizedOrganization.directories.count - 1) 个目录 · \(normalizedTasks.count) 个任务")
         .font(.caption2)
         .foregroundStyle(.secondary)
+        .padding(.horizontal, 16)
 
-      DirectoryOutlineNode(
-        directory: rootDirectory,
-        organization: normalizedOrganization,
-        selectedDirectoryID: selectedDirectoryID,
-        expandedDirectoryIDs: $expandedDirectoryIDs,
-        taskCountProvider: taskCount(in:),
-        displayNameProvider: displayName(for:),
-        onSelect: selectDirectory,
-        onCreateChild: { parentDirectoryID in
-          directoryEditor = .create(parentDirectoryID: parentDirectoryID)
-        },
-        onRename: { directory in
-          directoryEditor = .rename(directoryID: directory.id, currentName: directory.name)
-        },
-        onMove: onMoveDirectory,
-        onDelete: onDeleteDirectory,
-        depth: 0
-      )
+      VStack(alignment: .leading, spacing: 2) {
+        DirectoryOutlineNode(
+          directory: rootDirectory,
+          organization: normalizedOrganization,
+          selectedDirectoryID: selectedDirectoryID,
+          expandedDirectoryIDs: $expandedDirectoryIDs,
+          taskCountProvider: taskCount(in:),
+          displayNameProvider: displayName(for:),
+          onSelect: selectDirectory,
+          onCreateChild: { parentDirectoryID in
+            directoryEditor = .create(parentDirectoryID: parentDirectoryID)
+          },
+          onRename: { directory in
+            directoryEditor = .rename(directoryID: directory.id, currentName: directory.name)
+          },
+          onMove: onMoveDirectory,
+          onDelete: onDeleteDirectory,
+          depth: 0
+        )
+      }
+      .padding(.top, 2)
     }
-    .padding(14)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .background(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .fill(NornTheme.cardSurface)
-    )
-    .overlay(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
-    )
   }
 
-  private var directoryDetailCard: some View {
+  private var destinationSection: some View {
     VStack(alignment: .leading, spacing: 14) {
       HStack(alignment: .top) {
         VStack(alignment: .leading, spacing: 4) {
           Text(displayName(for: selectedDirectory))
-            .font(.headline.weight(.semibold))
+            .font(.title3.weight(.bold))
+            .foregroundStyle(.primary)
 
           Text(selectedDirectoryPath.map(displayName(for:)).joined(separator: " / "))
-            .font(.caption2)
+            .font(.caption)
             .foregroundStyle(.secondary)
             .lineLimit(2)
         }
@@ -188,21 +189,23 @@ struct TaskPoolTreeBrowser: View {
         }
         .buttonStyle(.plain)
       }
+      .padding(.horizontal, 16)
 
       if !selectedDirectoryChildren.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
           sectionLabel("子目录")
+            .padding(.horizontal, 16)
 
           ForEach(selectedDirectoryChildren) { directory in
             Button {
               selectDirectory(directory.id)
             } label: {
-              HStack(spacing: 10) {
+              HStack(spacing: 4) {
                 Image(systemName: "folder.fill")
-                  .font(.caption)
+                  .font(.caption2)
                   .foregroundStyle(.orange)
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                   Text(displayName(for: directory))
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(.primary)
@@ -212,20 +215,21 @@ struct TaskPoolTreeBrowser: View {
                     .foregroundStyle(.secondary)
                 }
 
-                Spacer(minLength: 8)
+                Spacer(minLength: 6)
 
                 Image(systemName: "chevron.right")
                   .font(.caption2.weight(.semibold))
                   .foregroundStyle(.tertiary)
               }
               .frame(maxWidth: .infinity, alignment: .leading)
-              .padding(.horizontal, 12)
-              .padding(.vertical, 9)
+              .padding(.horizontal, 12 + CGFloat(max(0, directoryDepth(of: directory.id))) * 20)
+              .padding(.vertical, 7)
               .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                  .fill(NornTheme.cardSurfaceMuted)
+                selectedDirectoryID == directory.id
+                  ? NornTheme.pillSurfaceStrong.opacity(0.45)
+                  : Color.clear
               )
-              .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+              .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .contextMenu {
@@ -257,41 +261,35 @@ struct TaskPoolTreeBrowser: View {
 
       VStack(alignment: .leading, spacing: 8) {
         sectionLabel("任务")
+          .padding(.horizontal, 16)
 
         if selectedDirectoryTasks.isEmpty {
           Text("这个目录下还没有任务。你可以从任务卡片的长按菜单把任务移到这里。")
-            .font(.caption2)
+            .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            .padding(.horizontal, 2)
+            .padding(.horizontal, 16)
         } else {
-          ForEach(selectedDirectoryTasks) { task in
-            TaskCard(task: task, dimmed: task.status == .done) {
-              onTaskTap(task)
-            }
-            .contextMenu {
-              Menu("移动到目录") {
-                ForEach(moveTargets(forMovingTaskID: task.id), id: \.id) { directory in
-                  Button(displayName(for: directory)) {
-                    onMoveTask(task.id, directory.id)
+          VStack(alignment: .leading, spacing: 2) {
+            ForEach(selectedDirectoryTasks) { task in
+              DirectoryTaskRow(task: task, onTap: {
+                onTaskTap(task)
+              })
+              .contextMenu {
+                Menu("移动到目录") {
+                  ForEach(moveTargets(forMovingTaskID: task.id), id: \.id) { directory in
+                    Button(displayName(for: directory)) {
+                      onMoveTask(task.id, directory.id)
+                    }
                   }
                 }
               }
             }
           }
+          .padding(.horizontal, 6)
         }
       }
     }
-    .padding(14)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .background(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .fill(NornTheme.cardSurface)
-    )
-    .overlay(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
-    )
   }
 
   private func sectionLabel(_ title: String) -> some View {
@@ -399,6 +397,10 @@ struct TaskPoolTreeBrowser: View {
     return descendants
   }
 
+  private func directoryDepth(of directoryID: String) -> Int {
+    directoryPath(for: directoryID).count - 1
+  }
+
   private func displayName(for directory: TaskPoolDirectory) -> String {
     switch directory.id {
     case normalizedOrganization.rootDirectoryID:
@@ -469,12 +471,7 @@ private extension TaskPoolTreeBrowser {
     }
 
     var message: String {
-      switch mode {
-      case .create:
-        return ""
-      case .rename:
-        return "目录名称修改后，树视图和画布会共享同一份新名称。"
-      }
+      ""
     }
 
     var submitLabel: String {
@@ -530,11 +527,11 @@ private struct DirectoryOutlineNode: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
-      HStack(alignment: .center, spacing: 8) {
+    VStack(alignment: .leading, spacing: 2) {
+      HStack(alignment: .center, spacing: 3) {
         if childDirectories.isEmpty {
           Color.clear
-            .frame(width: 14, height: 14)
+            .frame(width: 10, height: 10)
         } else {
           Button {
             toggleExpanded()
@@ -542,7 +539,7 @@ private struct DirectoryOutlineNode: View {
             Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
               .font(.caption2.weight(.semibold))
               .foregroundStyle(.secondary)
-              .frame(width: 14, height: 14)
+              .frame(width: 10, height: 10)
           }
           .buttonStyle(.plain)
         }
@@ -550,9 +547,9 @@ private struct DirectoryOutlineNode: View {
         Button {
           onSelect(directory.id)
         } label: {
-          HStack(spacing: 10) {
+          HStack(spacing: 3) {
             Image(systemName: selectedDirectoryID == directory.id ? "folder.fill" : "folder")
-              .font(.caption)
+              .font(.caption2)
               .foregroundStyle(directory.id == organization.inboxDirectoryID ? .blue : .orange)
 
             Text(displayNameProvider(directory))
@@ -560,30 +557,22 @@ private struct DirectoryOutlineNode: View {
               .foregroundStyle(.primary)
               .lineLimit(1)
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 6)
 
             Text("\(taskCountProvider(directory.id))")
               .font(.caption2.weight(.semibold))
               .foregroundStyle(.secondary)
-              .padding(.horizontal, 7)
-              .padding(.vertical, 3)
-              .background(
-                Capsule(style: .continuous)
-                  .fill(NornTheme.pillSurface)
-              )
           }
           .frame(maxWidth: .infinity, alignment: .leading)
-          .padding(.horizontal, 11)
-          .padding(.vertical, 8)
+          .padding(.horizontal, 12 + CGFloat(depth) * 20)
+          .padding(.vertical, 6)
           .background(
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
-              .fill(selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong : Color.clear)
+            selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong.opacity(0.45) : Color.clear
           )
-          .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+          .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
       }
-      .padding(.leading, depth == 0 ? 0 : 12)
       .contextMenu {
         Button {
           onCreateChild(directory.id)
@@ -618,7 +607,7 @@ private struct DirectoryOutlineNode: View {
       }
 
       if isExpanded {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
           ForEach(childDirectories) { childDirectory in
             DirectoryOutlineNode(
               directory: childDirectory,
@@ -636,7 +625,7 @@ private struct DirectoryOutlineNode: View {
             )
           }
         }
-        .padding(.leading, 6)
+        .padding(.leading, 2)
       }
     }
   }
@@ -680,5 +669,52 @@ private struct DirectoryOutlineNode: View {
       descendants.formUnion(descendantDirectoryIDs(of: childID))
     }
     return descendants
+  }
+}
+
+private struct DirectoryTaskRow: View {
+  let task: Task
+  let onTap: () -> Void
+
+  private var bundleMetadata: TaskBundleMetadata? {
+    TaskBundleMetadata.metadata(for: task)
+  }
+
+  var body: some View {
+    Button(action: onTap) {
+      HStack(alignment: .top, spacing: 7) {
+        Circle()
+          .fill(TaskDisplayFormatter.statusColor(for: task.status).opacity(task.status == .done ? 0.45 : 0.85))
+          .frame(width: 7, height: 7)
+          .padding(.top, 6)
+
+        VStack(alignment: .leading, spacing: 4) {
+          HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(task.title)
+              .font(.subheadline.weight(.semibold))
+              .foregroundStyle(.primary)
+              .lineLimit(2)
+
+            Spacer(minLength: 4)
+
+            if let label = RelativeDueDateFormatter.label(for: task.dueAt) {
+              Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+          }
+
+          if let bundleMetadata {
+            TaskBundleBadge(metadata: bundleMetadata)
+          }
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(.horizontal, 14)
+      .padding(.vertical, 7)
+      .background(Color.clear)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
   }
 }
