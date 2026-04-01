@@ -83,14 +83,6 @@ struct SequenceTab: View {
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .background(Color.clear)
-    .gesture(
-      TapGesture().onEnded {
-        if isPrimarySequenceEditing {
-          completePrimarySequenceEditing()
-        }
-      },
-      including: isPrimarySequenceEditing ? .gesture : .none
-    )
     .onAppear(perform: syncPrimarySequenceOrder)
     .onChange(of: primarySequenceSignature) { _, _ in
       syncPrimarySequenceOrder()
