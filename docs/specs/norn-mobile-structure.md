@@ -260,8 +260,8 @@ apps/mobile/ios_ng/Norn/Norn/
 - `TaskSequenceDraft`、`TaskBundleMetadata` 与 `SaveTaskSequenceUseCase` 已接住“连续录入多条任务并共享 bundle 标识”的能力；任务仍以多条 `Task` 落库，只通过共享元数据和顺序位维持成组展示
 - `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过方向感知的 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让：竖屏主避让 top/bottom；横屏细化仍属后续低优先级收敛项，当前只保留不破坏竖屏和 dock 编排的保守实现；当前横向分页顺序为 `Sequence -> Task Pool -> Schedule`
 - `Sequence` 已收敛为“当前聚焦 + 当前序列 + 接下来摘要”，当前序列默认只保留最优先的 7 项；超出的近 horizon 任务与更远期待办统一下沉到“接下来”
-- `Sequence` 当前序列改为足够长的长按任一卡片进入页面级编辑态，随后才启用整卡上下拖拽重排与左滑完成/编辑/归档/删除；普通滚动期不再挂拖拽交互
-- `Sequence` 编辑态里的失焦完成继续保留，但只落在列表自身，不再与卡片的拖拽重排和左滑动作互相抢手势
+- `Sequence` 当前序列改为足够长的长按任一卡片进入页面级编辑态；进入后只有卡片本身才接管手势，卡片外区域继续保留原来的横向翻页与纵向滚动，卡片内则可长按拖拽重排并左滑完成/编辑/归档/删除
+- `Sequence` 编辑态里的自动完成继续只落在真正的失焦事件上，例如切走 tab 或离开页面；不再通过整页手势去模拟“点空白处完成”，避免和卡片拖拽、左滑或页面翻页互相抢手势
 - `Sequence` 卡片与时间线装饰已整体收紧：字体、边距和装饰占位更小，单屏可承载更多信息，同时继续直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已进一步收敛为更接近手绘参考的纯色圆点 + 分段点划轨：节点与上下虚线段留出间隔，末端继续保留渐隐渐细的射线尾迹
 - `Sequence` 底部输入 dock 重新由 root scoped `safeAreaInset` 编排，并继续通过固定 `reservedDockHeight` 驱动内容 safe-area 让位，避免横向切 tab 或滚动期间出现滚动偏移跳变与实时测量带来的重复重布局
@@ -276,7 +276,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `TaskStepProgress`、`TaskRecord` 和 `TaskSyncRequest` 已把步骤 `startedAt/completedAt` 进度接入本地持久化与同步载荷；已完成步骤不再进入共享调度输入
 - `TaskPool` header 已收敛为标题、手动刷新和 `设置` 入口；同步状态与任务可见性配置统一收进 `SyncSettingsSheet`
 - `TaskPool` 已改成目录主浏览面，并通过 `NornAppStore` 的任务池组织操作入口直接落本地仓库与保守同步
-- `TaskPool` 顶层模式文案已从内部实现名收敛为对客的 `目录 / 脑图`；目录浏览器继续收敛为上半屏导航树、下半屏当前目录目的地的无边框沉浸式布局，恢复与屏幕边缘的必要横向留白，父子缩进进一步拉开，展开箭头贴近文件夹图标、数量右对齐，并把新建目录默认挂到当前选中目录下
+- `TaskPool` 顶层模式文案已从内部实现名收敛为对客的 `目录 / 脑图`；目录浏览器继续收敛为上半屏导航树、下半屏当前目录目的地的无边框沉浸式布局，恢复与屏幕边缘的必要横向留白，并显式表达垂直的 `nav / navdestination` 关系：导航树与目的地下的子目录都可单独折叠，导航树维持更明显的父子缩进，展开箭头贴近文件夹图标、数量右对齐，而目的地下的子目录保持不缩进的平铺列表；新建目录默认挂到当前选中目录下
 - `apps/mobile/ios_ng/Norn/NornTests` 与 `apps/mobile/ios_ng/Norn/NornUITests` 已落基础数据流和 smoke 测试代码
 - `UI/` 已经按页面和共享组件分层
 - `Resources/Assets.xcassets` 已从工程根平移到资源目录
@@ -472,7 +472,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 激活态提供“详情 / 序列”入口 |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
 | `UI/Shared/TaskBundleBadge.swift` | `TaskBundleBadge` | 任务 bundle 标识 | 共用于 Focus / Sequence / TaskPool 卡片 |
-| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 当前序列 + 接下来摘要；浏览态不挂拖拽，长按进入编辑态后才启用整卡拖拽与左滑动作，失焦会自动完成编辑，当前序列默认只保留最优先的 7 项 |
+| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 当前序列 + 接下来摘要；浏览态不挂拖拽，长按进入编辑态后只让卡片接管拖拽与左滑动作，卡片外区域继续保留页面滚动与翻页，真正失焦时会自动完成编辑，当前序列默认只保留最优先的 7 项 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前复用于 `TaskPool` 的目录树内容区 |
 | `UI/Sequence/Components/TaskStepPreview.swift` | `TaskStepPreview` | 串行子任务当前步骤预览 | 共用于 Focus / Sequence / TaskPool 卡片 |
@@ -481,7 +481,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/TaskPool/Canvas/TaskPoolCanvasZoom.swift` | `TaskPoolCanvasZoom` | 画布缩放 helper | 统一处理缩放边界、步进、拖拽位移归一化和缩放后的画布尺寸 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasView.swift` | `TaskPoolCanvasView` | 任务池画布浏览器 | 负责思维导图式节点拖拽、父子连线、子树展开收拢，以及稳定树布局的渲染 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasNodeCard.swift` | `TaskPoolCanvasNodeCard` | 画布节点卡片 | 目录 / 任务节点共用视觉组件，并承载目录的收拢入口 |
-| `UI/TaskPool/Tree/TaskPoolTreeBrowser.swift` | `TaskPoolTreeBrowser` | 目录主浏览器 | 上半屏目录导航树 + 下半屏当前目录目的地的沉浸式浏览器；保留横向边距、整行点按、箭头贴图标和数量右对齐 |
+| `UI/TaskPool/Tree/TaskPoolTreeBrowser.swift` | `TaskPoolTreeBrowser` | 目录主浏览器 | 上半屏目录导航树 + 下半屏当前目录目的地的沉浸式浏览器；两段都可折叠，导航树保留横向边距、整行点按、箭头贴图标、数量右对齐和更明显的父子缩进，目的地下的子目录则保持不缩进 |
 | `UI/TaskPool/Tree/TaskPoolDirectoryEditorSheet.swift` | `TaskPoolDirectoryEditorSheet` | 目录名称编辑 sheet | 新建 / 重命名目录共用 |
 | `UI/TaskPool/TaskDependencyPickerSheet.swift` | `TaskDependencyPickerSheet` | 任务依赖二层选择器 | searchable + filter + multi-select |
 | `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情半模态 | 外层可切进行中、追加子任务、推进当前步骤、完成/归档 |
@@ -534,7 +534,7 @@ SequenceTab / FocusCard / TaskPool list item
 ### 6.3 当前序列重排
 
 ```text
-SequenceTab browse mode long press -> page edit mode -> drag or swipe action
+SequenceTab browse mode long press -> page edit mode -> card long press drag or card swipe action
   -> NornAppStore.reorderPrimarySequence(taskIDs:)
   -> ReorderSequenceTasksUseCase.execute(primaryTaskIDs:)
   -> TaskOrdering.applyingSequenceRank(...)
