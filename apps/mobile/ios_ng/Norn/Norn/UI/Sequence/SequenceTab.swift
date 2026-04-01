@@ -83,12 +83,13 @@ struct SequenceTab: View {
     .listStyle(.plain)
     .scrollContentBackground(.hidden)
     .background(Color.clear)
-    .simultaneousGesture(
+    .gesture(
       TapGesture().onEnded {
         if isPrimarySequenceEditing {
           completePrimarySequenceEditing()
         }
-      }
+      },
+      including: isPrimarySequenceEditing ? .gesture : .none
     )
     .onAppear(perform: syncPrimarySequenceOrder)
     .onChange(of: primarySequenceSignature) { _, _ in
@@ -340,11 +341,44 @@ private struct SequenceTaskRow: View {
   }
 
   var body: some View {
-    HStack(alignment: .top, spacing: 10) {
+    let row = HStack(alignment: .top, spacing: 10) {
       SequenceTimelineMarker(color: statusColor, position: position)
       rowBody
     }
     .contentShape(Rectangle())
+
+    if isEditing {
+      row.swipeActions(edge: .trailing, allowsFullSwipe: false) {
+        Button {
+          onComplete()
+        } label: {
+          Label(task.status == .done ? "恢复" : "完成", systemImage: "checkmark.circle.fill")
+        }
+        .tint(.green)
+
+        Button {
+          onEdit()
+        } label: {
+          Label("编辑", systemImage: "pencil")
+        }
+        .tint(.blue)
+
+        Button {
+          onArchive()
+        } label: {
+          Label("归档", systemImage: "archivebox.fill")
+        }
+        .tint(.orange)
+
+        Button(role: .destructive) {
+          onDelete()
+        } label: {
+          Label("删除", systemImage: "trash")
+        }
+      }
+    } else {
+      row
+    }
   }
 
   @ViewBuilder
@@ -357,34 +391,6 @@ private struct SequenceTaskRow: View {
           SequencePrimaryCard(task: task, isEditing: true, isLifted: true)
         }
         .onDrop(of: [UTType.plainText.identifier], delegate: dropDelegate)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-          Button {
-            onComplete()
-          } label: {
-            Label(task.status == .done ? "恢复" : "完成", systemImage: "checkmark.circle.fill")
-          }
-          .tint(.green)
-
-          Button {
-            onEdit()
-          } label: {
-            Label("编辑", systemImage: "pencil")
-          }
-          .tint(.blue)
-
-          Button {
-            onArchive()
-          } label: {
-            Label("归档", systemImage: "archivebox.fill")
-          }
-          .tint(.orange)
-
-          Button(role: .destructive) {
-            onDelete()
-          } label: {
-            Label("删除", systemImage: "trash")
-          }
-        }
     } else {
       card
         .gesture(
