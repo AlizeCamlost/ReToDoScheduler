@@ -413,8 +413,33 @@ private struct SequenceTaskRow: View {
   let onArchive: () -> Void
   let onDelete: () -> Void
 
+  @GestureState private var swipeTranslation: CGSize = .zero
+  @State private var revealedSwipeOffset: CGFloat = 0
+
+  private let swipeActionWidth: CGFloat = 68
+  private let swipeActionSpacing: CGFloat = 1
+  private let cardCornerRadius: CGFloat = 16
+
   private var statusColor: Color {
     TaskDisplayFormatter.statusColor(for: task.status)
+  }
+
+  private var swipeTrayWidth: CGFloat {
+    swipeActionWidth * 4 + swipeActionSpacing * 3
+  }
+
+  private var swipeTranslationX: CGFloat {
+    guard abs(swipeTranslation.width) > abs(swipeTranslation.height) else {
+      return 0
+    }
+    return swipeTranslation.width
+  }
+
+  private var currentSwipeOffset: CGFloat {
+    guard isEditing, !isDragging else {
+      return 0
+    }
+    return min(0, max(-swipeTrayWidth, revealedSwipeOffset + swipeTranslationX))
   }
 
   var body: some View {
@@ -431,37 +456,24 @@ private struct SequenceTaskRow: View {
     let card = SequencePrimaryCard(task: task, isEditing: isEditing, isLifted: isDragging)
 
     if isEditing {
-      card
+      ZStack(alignment: .trailing) {
+        SequenceSwipeActionTray(
+          actionWidth: swipeActionWidth,
+          spacing: swipeActionSpacing,
+          onComplete: handleComplete,
+          onEdit: handleEdit,
+          onArchive: handleArchive,
+          onDelete: handleDelete
+        )
+        .opacity(currentSwipeOffset < 0 ? 1 : 0)
+        .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+
+        card
+          .offset(x: currentSwipeOffset)
+      }
+      .contentShape(Rectangle())
         .padding(.vertical, 4)
-        .highPriorityGesture(editingDragGesture)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-          Button {
-            onComplete()
-          } label: {
-            Label(task.status == .done ? "恢复" : "完成", systemImage: "checkmark.circle.fill")
-          }
-          .tint(.green)
-
-          Button {
-            onEdit()
-          } label: {
-            Label("编辑", systemImage: "pencil")
-          }
-          .tint(.blue)
-
-          Button {
-            onArchive()
-          } label: {
-            Label("归档", systemImage: "archivebox.fill")
-          }
-          .tint(.orange)
-
-          Button(role: .destructive) {
-            onDelete()
-          } label: {
-            Label("删除", systemImage: "trash")
-          }
-        }
+        .gesture(editingInteractionGesture)
     } else {
       card
         .padding(.vertical, 4)
@@ -481,7 +493,11 @@ private struct SequenceTaskRow: View {
             }
           }
         )
-    }
+      }
+  }
+
+  private var editingInteractionGesture: some Gesture {
+    editingDragGesture.exclusively(before: swipeGesture)
   }
 
   private var editingDragGesture: some Gesture {
@@ -491,6 +507,7 @@ private struct SequenceTaskRow: View {
         guard isEditing else { return }
         switch value {
         case .second(true, let drag?):
+          closeSwipeActions(animated: false)
           onDragChanged(drag.translation, drag.location)
         default:
           break
@@ -505,6 +522,128 @@ private struct SequenceTaskRow: View {
           break
         }
       }
+  }
+
+  private var swipeGesture: some Gesture {
+    DragGesture(minimumDistance: 12, coordinateSpace: .local)
+      .updating($swipeTranslation) { value, state, _ in
+        guard isEditing, abs(value.translation.width) > abs(value.translation.height) else {
+          return
+        }
+        state = value.translation
+      }
+      .onEnded { value in
+        guard isEditing else { return }
+        guard abs(value.translation.width) > abs(value.translation.height) else {
+          return
+        }
+
+        let projectedOffset = revealedSwipeOffset + value.predictedEndTranslation.width
+        let shouldOpen = projectedOffset < -(swipeTrayWidth * 0.42)
+        withAnimation(.snappy(duration: 0.18, extraBounce: 0)) {
+          revealedSwipeOffset = shouldOpen ? -swipeTrayWidth : 0
+        }
+      }
+  }
+
+  private func closeSwipeActions(animated: Bool = true) {
+    guard revealedSwipeOffset != 0 else {
+      return
+    }
+
+    let close = {
+      revealedSwipeOffset = 0
+    }
+
+    if animated {
+      withAnimation(.snappy(duration: 0.18, extraBounce: 0), close)
+    } else {
+      close()
+    }
+  }
+
+  private func handleComplete() {
+    closeSwipeActions(animated: false)
+    onComplete()
+  }
+
+  private func handleEdit() {
+    closeSwipeActions(animated: false)
+    onEdit()
+  }
+
+  private func handleArchive() {
+    closeSwipeActions(animated: false)
+    onArchive()
+  }
+
+  private func handleDelete() {
+    closeSwipeActions(animated: false)
+    onDelete()
+  }
+}
+
+private struct SequenceSwipeActionTray: View {
+  let actionWidth: CGFloat
+  let spacing: CGFloat
+  let onComplete: () -> Void
+  let onEdit: () -> Void
+  let onArchive: () -> Void
+  let onDelete: () -> Void
+
+  var body: some View {
+    HStack(spacing: spacing) {
+      SequenceSwipeActionButton(
+        title: "完成",
+        systemImage: "checkmark.circle.fill",
+        tint: .green,
+        action: onComplete
+      )
+      SequenceSwipeActionButton(
+        title: "编辑",
+        systemImage: "pencil",
+        tint: .blue,
+        action: onEdit
+      )
+      SequenceSwipeActionButton(
+        title: "归档",
+        systemImage: "archivebox.fill",
+        tint: .orange,
+        action: onArchive
+      )
+      SequenceSwipeActionButton(
+        title: "删除",
+        systemImage: "trash",
+        tint: .red,
+        action: onDelete
+      )
+    }
+    .frame(width: actionWidth * 4 + spacing * 3)
+  }
+}
+
+private struct SequenceSwipeActionButton: View {
+  let title: String
+  let systemImage: String
+  let tint: Color
+  let action: () -> Void
+
+  var body: some View {
+    Button(action: action) {
+      VStack(spacing: 4) {
+        Image(systemName: systemImage)
+          .font(.subheadline.weight(.semibold))
+        Text(title)
+          .font(.caption2.weight(.semibold))
+          .lineLimit(1)
+      }
+      .foregroundStyle(.white)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .padding(.vertical, 10)
+      .contentShape(Rectangle())
+      .background(tint)
+    }
+    .buttonStyle(.plain)
   }
 }
 

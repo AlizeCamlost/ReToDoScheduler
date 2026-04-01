@@ -260,7 +260,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `TaskSequenceDraft`、`TaskBundleMetadata` 与 `SaveTaskSequenceUseCase` 已接住“连续录入多条任务并共享 bundle 标识”的能力；任务仍以多条 `Task` 落库，只通过共享元数据和顺序位维持成组展示
 - `ContentView` 现由 page shell 负责全屏裁剪范围，各 tab wrapper 通过方向感知的 `safeAreaPadding` 恢复内容对圆角、灵动岛和触控条的避让：竖屏主避让 top/bottom；横屏细化仍属后续低优先级收敛项，当前只保留不破坏竖屏和 dock 编排的保守实现；当前横向分页顺序为 `Sequence -> Task Pool -> Schedule`
 - `Sequence` 已收敛为“当前聚焦 + 当前序列 + 接下来摘要”，当前序列默认只保留最优先的 7 项；超出的近 horizon 任务与更远期待办统一下沉到“接下来”
-- `Sequence` 当前序列改为足够长的长按任一卡片进入页面级编辑态；进入后只有卡片本身才接管手势，卡片外区域继续保留原来的横向翻页与纵向滚动，卡片内则可长按拖拽重排并左滑完成/编辑/归档/删除
+- `Sequence` 当前序列改为足够长的长按任一卡片进入页面级编辑态；进入后只有卡片本身才接管手势，卡片外区域继续保留原来的横向翻页与纵向滚动，卡片内则可长按后悬停拖拽重排、松手按当前位置落位，并左滑露出完成/编辑/归档/删除操作托盘
 - `Sequence` 编辑态里的自动完成继续只落在真正的失焦事件上，例如切走 tab 或离开页面；不再通过整页手势去模拟“点空白处完成”，避免和卡片拖拽、左滑或页面翻页互相抢手势
 - `Sequence` 卡片与时间线装饰已整体收紧：字体、边距和装饰占位更小，单屏可承载更多信息，同时继续直接点击打开 `TaskDetailSheet`
 - `Sequence` 时间线标记已进一步收敛为更接近手绘参考的纯色圆点 + 分段点划轨：节点与上下虚线段留出间隔，末端继续保留渐隐渐细的射线尾迹
@@ -268,7 +268,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `Sequence` 顶部状态栏区域与底部 dock 区域已补齐更柔和的原生风格渐变 safe-area chrome：顶部渐变抬高并减轻不透明度，底部渐变改为挂在 dock 背后做过渡；dock 本体也进一步放大高度、把圆角收敛到更接近屏幕圆角同心的几何，并在外缘补上一圈更轻量的静态柔边外环
 - `Sequence` 的滚动裁剪范围重新由 root page shell 的全屏 edge-to-edge 延伸承担，不与 dock 的 safe-area 语义混用
 - `Sequence` 在竖屏主要只补 top safe-area，bottom 继续由 dock reserve 承担；横屏安全区、岛区、圆角和左右对称的进一步细化暂记为低优先级遗留 feature
-- `Sequence` 当前序列编辑态通过更显式的 section header“完成编辑”动作退出；失焦、切走 tab 或离开页面时也会自动视为完成编辑，拖拽提交后会立即回写顺序；空状态和“接下来”文案也已同步去除旧的“主序列 / 右上角把手 / 中远期任务”表述
+- `Sequence` 当前序列编辑态通过更显式的 section header“完成编辑”动作退出；失焦、切走 tab 或离开页面时也会自动视为完成编辑，卡片在悬停拖拽松手后会立即按当前位置提交顺序；空状态和“接下来”文案也已同步去除旧的“主序列 / 右上角把手 / 中远期任务”表述
 - `TaskSequenceEditorSheet` 已支持连续输入多条任务描述、设置可选序列标签并一次保存；现阶段 bundle 仅作为卡片标识与顺序保持语义，不在 `Sequence` 中折叠成组卡
 - `TaskDetailSheet` 已改为真正的半模态轻编辑面板：toolbar 仍保留完整编辑入口，但外层已支持直接切到进行中、直接追加子任务、点击当前步骤推进串行进度，以及完成/归档操作
 - `TaskEditorSheet` 已通过 `TaskDraft` 和 `SaveTaskDraftUseCase` 形成编辑保存闭环，并把任务依赖改为二层 searchable picker，避免在主表单里平铺全量依赖 toggle
@@ -472,7 +472,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/Shared/QuickAddDock.swift` | `QuickAddDock` | 底部快速输入 | 激活态提供“详情 / 序列”入口 |
 | `UI/Shared/EdgeFadeDivider.swift` | `EdgeFadeDivider` | 顶部分隔线组件 | 纯视觉组件 |
 | `UI/Shared/TaskBundleBadge.swift` | `TaskBundleBadge` | 任务 bundle 标识 | 共用于 Focus / Sequence / TaskPool 卡片 |
-| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 当前序列 + 接下来摘要；浏览态不挂拖拽，长按进入编辑态后只让卡片接管拖拽与左滑动作，卡片外区域继续保留页面滚动与翻页，真正失焦时会自动完成编辑，当前序列默认只保留最优先的 7 项 |
+| `UI/Sequence/SequenceTab.swift` | `SequenceTab` | 当前序列页 | 当前聚焦 + 当前序列 + 接下来摘要；浏览态不挂拖拽，长按进入编辑态后只让卡片接管悬停拖拽与左滑托盘动作，卡片外区域继续保留页面滚动与翻页，真正失焦时会自动完成编辑，当前序列默认只保留最优先的 7 项 |
 | `UI/Sequence/Components/FocusCard.swift` | `FocusCard` | 进行中任务聚焦卡 | 纯卡片组件 |
 | `UI/Sequence/Components/TaskCard.swift` | `TaskCard` | 通用任务卡片 | 当前复用于 `TaskPool` 的目录树内容区 |
 | `UI/Sequence/Components/TaskStepPreview.swift` | `TaskStepPreview` | 串行子任务当前步骤预览 | 共用于 Focus / Sequence / TaskPool 卡片 |
