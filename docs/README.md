@@ -22,7 +22,7 @@
 
 - [runbooks/client-sync.md](runbooks/client-sync.md): Web、iPhone、API 的最小 Task 模型与 `taskPoolOrganization` 文档同步配置、联调验证和排障步骤。最后更新：2026-03-31
 - [runbooks/ios.md](runbooks/ios.md): iOS 原生工程打开、真机安装、日常运行和最小同步配置，并补充 `任务池` 现位于第二个顶层分页入口，默认展示目录树并可切换到画布，顶部还可配置隐藏已完成任务，画布支持双指缩放和显式缩放控件。最后更新：2026-04-01
-- [runbooks/server-deploy.md](runbooks/server-deploy.md): API + PostgreSQL 的首轮部署、校验、日常运维、备份和 GitHub Actions 部署说明，并补充生产部署显式关闭 Compose Bake、顺序构建镜像以规避服务器端并行构建异常的约束。最后更新：2026-04-01
+- [runbooks/server-deploy.md](runbooks/server-deploy.md): API + PostgreSQL 的首轮部署、校验、日常运维、备份和 GitHub Actions 部署说明，并补充生产部署绕过 `docker compose build`、改用 `DOCKER_BUILDKIT=0 docker build` 以规避服务器端 Bake / BuildKit 异常的约束。最后更新：2026-04-01
 - [runbooks/recovery.md](runbooks/recovery.md): 本地和远端恢复的停写、恢复、校验、复盘流程。最后更新：2026-03-22
 
 ## guides

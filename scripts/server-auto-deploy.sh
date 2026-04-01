@@ -6,6 +6,8 @@ ENV_FILE="${ROOT_DIR}/deploy/.env.prod"
 COMPOSE_FILE="${ROOT_DIR}/deploy/docker-compose.prod.yml"
 DEPLOY_BRANCH="${1:-${DEPLOY_BRANCH:-main}}"
 COMPOSE_CMD=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
+API_IMAGE="retodoscheduler-api:latest"
+WEB_IMAGE="retodoscheduler-web:latest"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing $ENV_FILE. Copy deploy/.env.prod.example and fill values first." >&2
@@ -37,11 +39,20 @@ for name in retodo-db retodo-api retodo-web; do
   fi
 done
 
-echo "[deploy] Building api image with Compose Bake disabled..."
-COMPOSE_BAKE=false "${COMPOSE_CMD[@]}" build api
+echo "[deploy] Building api image with legacy docker builder..."
+DOCKER_BUILDKIT=0 docker build \
+  --target runner \
+  -f "$ROOT_DIR/services/api/Dockerfile" \
+  -t "$API_IMAGE" \
+  "$ROOT_DIR"
 
-echo "[deploy] Building web image with Compose Bake disabled..."
-COMPOSE_BAKE=false "${COMPOSE_CMD[@]}" build web
+echo "[deploy] Building web image with legacy docker builder..."
+DOCKER_BUILDKIT=0 docker build \
+  -f "$ROOT_DIR/apps/web/Dockerfile" \
+  -t "$WEB_IMAGE" \
+  --build-arg VITE_API_BASE_URL="" \
+  --build-arg VITE_API_AUTH_TOKEN="$API_AUTH_TOKEN" \
+  "$ROOT_DIR"
 
 echo "[deploy] Starting containers..."
 "${COMPOSE_CMD[@]}" up -d --no-build --remove-orphans

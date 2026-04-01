@@ -51,12 +51,14 @@ vi deploy/.env.prod
 ### 3.3 构建并启动容器
 
 ```bash
-COMPOSE_BAKE=false docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod build api
-COMPOSE_BAKE=false docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod build web
+DOCKER_BUILDKIT=0 docker build --target runner -f services/api/Dockerfile -t retodoscheduler-api:latest .
+DOCKER_BUILDKIT=0 docker build -f apps/web/Dockerfile -t retodoscheduler-web:latest \
+  --build-arg VITE_API_BASE_URL="" \
+  --build-arg VITE_API_AUTH_TOKEN="$API_AUTH_TOKEN" .
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up -d --no-build --remove-orphans
 ```
 
-之所以拆成顺序 build + `up --no-build`，是为了规避某些服务器上 Docker Compose 被配置为默认委托给 Bake 后，在并行构建阶段触发内部解析错误的问题。
+之所以改成显式 `docker build` + `up --no-build`，是因为某些服务器上 Docker Compose 即使设置了 `COMPOSE_BAKE=false`，仍会被本机默认 builder 配置强制委托给 Bake，并在构建结束前后触发内部解析错误。这里直接绕过 `docker compose build`，并用 `DOCKER_BUILDKIT=0` 强制回退到 legacy builder。
 
 ### 3.4 执行初始 migration
 
@@ -119,11 +121,11 @@ git reset --hard origin/<branch>
 
 1. 校验工作区干净并重置到目标分支
 2. 清理旧容器名残留
-3. 用 `COMPOSE_BAKE=false` 顺序构建 `api`、`web`
+3. 用 `DOCKER_BUILDKIT=0 docker build` 直接构建 `retodoscheduler-api:latest`、`retodoscheduler-web:latest`
 4. 执行 `docker compose up -d --no-build --remove-orphans`
 5. 跑 migration 并做健康检查
 
-如果 workflow 日志里再次出现 `load local bake definitions`，说明服务器环境仍有其他入口绕过了仓库脚本，应该优先检查是否有人手工执行了 `docker compose up --build`。
+如果 workflow 日志里再次出现 `load local bake definitions`，说明服务器环境仍有其他入口绕过了仓库脚本，应该优先检查是否有人手工执行了 `docker compose build` 或 `docker compose up --build`。
 
 ## 7. 备份基线
 
