@@ -276,7 +276,7 @@ apps/mobile/ios_ng/Norn/Norn/
 - `TaskStepProgress`、`TaskRecord` 和 `TaskSyncRequest` 已把步骤 `startedAt/completedAt` 进度接入本地持久化与同步载荷；已完成步骤不再进入共享调度输入
 - `TaskPool` header 已收敛为标题、手动刷新和 `设置` 入口；同步状态与任务可见性配置统一收进 `SyncSettingsSheet`
 - `TaskPool` 已改成目录主浏览面，并通过 `NornAppStore` 的任务池组织操作入口直接落本地仓库与保守同步
-- `TaskPool` 顶层模式文案已从内部实现名收敛为对客的 `目录 / 脑图`；目录浏览器继续收敛为上半屏导航树、下半屏当前目录目的地的无边框沉浸式布局，恢复与屏幕边缘的必要横向留白，并显式表达垂直的 `nav / navdestination` 关系：导航树与目的地下的子目录都可单独折叠，导航树维持更明显的父子缩进，展开箭头贴近文件夹图标、数量右对齐，而目的地下的子目录保持不缩进的平铺列表，并在列表顶部额外提供 `..` 返回上级目录；新建目录默认挂到当前选中目录下
+- `TaskPool` 顶层模式文案已从内部实现名收敛为对客的 `目录 / 脑图`；目录浏览器继续收敛为上半屏导航树、下半屏当前目录目的地的无边框沉浸式布局，恢复与屏幕边缘的必要横向留白，并显式表达垂直的 `nav / navdestination` 关系：导航树与目的地下的子目录都可单独折叠，导航树维持更明显的父子缩进，展开箭头贴近文件夹图标、数量右对齐，而目的地下的子目录保持更紧凑、且不缩进的平铺列表，并在列表顶部额外提供 `..` 返回上级目录；新建目录默认挂到当前选中目录下
 - `apps/mobile/ios_ng/Norn/NornTests` 与 `apps/mobile/ios_ng/Norn/NornUITests` 已落基础数据流和 smoke 测试代码
 - `UI/` 已经按页面和共享组件分层
 - `Resources/Assets.xcassets` 已从工程根平移到资源目录
@@ -481,7 +481,7 @@ apps/mobile/ios_ng/Norn/Norn/
 | `UI/TaskPool/Canvas/TaskPoolCanvasZoom.swift` | `TaskPoolCanvasZoom` | 画布缩放 helper | 统一处理缩放边界、步进、拖拽位移归一化和缩放后的画布尺寸 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasView.swift` | `TaskPoolCanvasView` | 任务池画布浏览器 | 负责思维导图式节点拖拽、父子连线、子树展开收拢，以及稳定树布局的渲染 |
 | `UI/TaskPool/Canvas/TaskPoolCanvasNodeCard.swift` | `TaskPoolCanvasNodeCard` | 画布节点卡片 | 目录 / 任务节点共用视觉组件，并承载目录的收拢入口 |
-| `UI/TaskPool/Tree/TaskPoolTreeBrowser.swift` | `TaskPoolTreeBrowser` | 目录主浏览器 | 上半屏目录导航树 + 下半屏当前目录目的地的沉浸式浏览器；两段都可折叠，导航树保留横向边距、整行点按、箭头贴图标、数量右对齐和更明显的父子缩进，目的地下的子目录则保持不缩进，并在列表顶部提供 `..` 返回上级目录 |
+| `UI/TaskPool/Tree/TaskPoolTreeBrowser.swift` | `TaskPoolTreeBrowser` | 目录主浏览器 | 上半屏目录导航树 + 下半屏当前目录目的地的沉浸式浏览器；两段都可折叠，导航树保留横向边距、整行点按、箭头贴图标、数量右对齐和更明显的父子缩进，目的地下的子目录则保持更紧凑、不缩进，并在列表顶部提供 `..` 返回上级目录 |
 | `UI/TaskPool/Tree/TaskPoolDirectoryEditorSheet.swift` | `TaskPoolDirectoryEditorSheet` | 目录名称编辑 sheet | 新建 / 重命名目录共用 |
 | `UI/TaskPool/TaskDependencyPickerSheet.swift` | `TaskDependencyPickerSheet` | 任务依赖二层选择器 | searchable + filter + multi-select |
 | `UI/TaskPool/TaskDetailSheet.swift` | `TaskDetailSheet` | 任务详情半模态 | 外层可切进行中、追加子任务、推进当前步骤、完成/归档 |

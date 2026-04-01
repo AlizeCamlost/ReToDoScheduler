@@ -214,7 +214,7 @@ struct TaskPoolTreeBrowser: View {
       }
 
       if selectedParentDirectory != nil || !selectedDirectoryChildren.isEmpty {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
           Button {
             withAnimation(.snappy(duration: 0.2, extraBounce: 0)) {
               isDestinationChildrenExpanded.toggle()
@@ -231,98 +231,100 @@ struct TaskPoolTreeBrowser: View {
           .buttonStyle(.plain)
 
           if isDestinationChildrenExpanded {
-            if let parentDirectory = selectedParentDirectory {
-              Button {
-                selectDirectory(parentDirectory.id)
-              } label: {
-                HStack(spacing: 4) {
-                  Image(systemName: "arrow.turn.up.left")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                  VStack(alignment: .leading, spacing: 1) {
-                    Text("..")
-                      .font(.callout.weight(.semibold))
-                      .foregroundStyle(.primary)
-                      .lineLimit(1)
-                    Text(displayName(for: parentDirectory))
-                      .font(.caption2)
-                      .foregroundStyle(.secondary)
-                      .lineLimit(1)
-                  }
-
-                  Spacer(minLength: 6)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .contentShape(Rectangle())
-              }
-              .buttonStyle(.plain)
-            }
-
-            ForEach(selectedDirectoryChildren) { directory in
-              Button {
-                selectDirectory(directory.id)
-              } label: {
-                HStack(spacing: 4) {
-                  Image(systemName: "folder.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
-
-                  VStack(alignment: .leading, spacing: 1) {
-                    Text(displayName(for: directory))
-                      .font(.callout.weight(.semibold))
-                      .foregroundStyle(.primary)
-                      .lineLimit(1)
-                    Text("\(childDirectories(of: directory.id).count) 个子目录 · \(taskCount(in: directory.id)) 个任务")
-                      .font(.caption2)
-                      .foregroundStyle(.secondary)
-                  }
-
-                  Spacer(minLength: 6)
-
-                  Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(
-                  RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong.opacity(0.52) : Color.clear)
-                )
-                .overlay(
-                  RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(
-                      selectedDirectoryID == directory.id ? NornTheme.borderStrong.opacity(0.7) : Color.clear,
-                      lineWidth: 1
-                    )
-                )
-                .contentShape(Rectangle())
-              }
-              .buttonStyle(.plain)
-              .contextMenu {
+            VStack(alignment: .leading, spacing: 2) {
+              if let parentDirectory = selectedParentDirectory {
                 Button {
-                  directoryEditor = .create(parentDirectoryID: directory.id)
+                  selectDirectory(parentDirectory.id)
                 } label: {
-                  Label("新建子目录", systemImage: "folder.badge.plus")
-                }
+                  HStack(spacing: 4) {
+                    Image(systemName: "arrow.turn.up.left")
+                      .font(.caption2.weight(.semibold))
+                      .foregroundStyle(.secondary)
 
-                if canEdit(directory: directory) {
+                    VStack(alignment: .leading, spacing: 1) {
+                      Text("..")
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                      Text(displayName(for: parentDirectory))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 6)
+                  }
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                  .padding(.horizontal, 10)
+                  .padding(.vertical, 5)
+                  .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+              }
+
+              ForEach(selectedDirectoryChildren) { directory in
+                Button {
+                  selectDirectory(directory.id)
+                } label: {
+                  HStack(spacing: 4) {
+                    Image(systemName: "folder.fill")
+                      .font(.caption2)
+                      .foregroundStyle(.orange)
+
+                    VStack(alignment: .leading, spacing: 1) {
+                      Text(displayName(for: directory))
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                      Text("\(childDirectories(of: directory.id).count) 个子目录 · \(taskCount(in: directory.id)) 个任务")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 6)
+
+                    Image(systemName: "chevron.right")
+                      .font(.caption2.weight(.semibold))
+                      .foregroundStyle(.tertiary)
+                  }
+                  .frame(maxWidth: .infinity, alignment: .leading)
+                  .padding(.horizontal, 10)
+                  .padding(.vertical, 5)
+                  .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                      .fill(selectedDirectoryID == directory.id ? NornTheme.pillSurfaceStrong.opacity(0.52) : Color.clear)
+                  )
+                  .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                      .strokeBorder(
+                        selectedDirectoryID == directory.id ? NornTheme.borderStrong.opacity(0.7) : Color.clear,
+                        lineWidth: 1
+                      )
+                  )
+                  .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
                   Button {
-                    directoryEditor = .rename(directoryID: directory.id, currentName: directory.name)
+                    directoryEditor = .create(parentDirectoryID: directory.id)
                   } label: {
-                    Label("重命名", systemImage: "pencil")
+                    Label("新建子目录", systemImage: "folder.badge.plus")
                   }
 
-                  directoryMoveMenu(for: directory)
+                  if canEdit(directory: directory) {
+                    Button {
+                      directoryEditor = .rename(directoryID: directory.id, currentName: directory.name)
+                    } label: {
+                      Label("重命名", systemImage: "pencil")
+                    }
 
-                  Button(role: .destructive) {
-                    onDeleteDirectory(directory.id)
-                  } label: {
-                    Label("删除目录", systemImage: "trash")
+                    directoryMoveMenu(for: directory)
+
+                    Button(role: .destructive) {
+                      onDeleteDirectory(directory.id)
+                    } label: {
+                      Label("删除目录", systemImage: "trash")
+                    }
                   }
                 }
               }
