@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct SequenceTab: View {
   let tasks: [Task]
@@ -14,6 +13,9 @@ struct SequenceTab: View {
   @State private var primarySequenceOrder: [String] = []
   @State private var isPrimarySequenceEditing = false
   @State private var draggedPrimaryTaskID: String?
+  @State private var draggedPrimaryTaskOffset: CGSize = .zero
+  @State private var draggedPrimaryTaskTouchOffsetY: CGFloat?
+  @State private var primarySequenceFrames: [String: CGRect] = [:]
   @State private var hasPendingPrimaryReorder = false
 
   init(
@@ -38,6 +40,7 @@ struct SequenceTab: View {
 
   private let nearHorizon = 7 // days
   private let primarySequenceLimit = 7
+  private let primarySequenceCoordinateSpace = "sequence.primary.reorder"
 
   private var focusedTask: Task? {
     tasks.first { $0.status == .doing }
@@ -75,13 +78,22 @@ struct SequenceTab: View {
   }
 
   var body: some View {
-    List {
-      focusSection
-      currentSequenceSection
-      nextTasksSection
+    ScrollView(showsIndicators: false) {
+      LazyVStack(alignment: .leading, spacing: 0) {
+        focusSection
+          .padding(.top, 8)
+          .padding(.bottom, 14)
+
+        currentSequenceSection
+          .padding(.bottom, 20)
+
+        nextTasksSection
+          .padding(.bottom, 20)
+      }
+      .padding(.horizontal, 18)
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
+    .scrollDismissesKeyboard(.interactively)
     .background(Color.clear)
     .onAppear(perform: syncPrimarySequenceOrder)
     .onChange(of: primarySequenceSignature) { _, _ in
@@ -97,97 +109,95 @@ struct SequenceTab: View {
     }
   }
 
+  @ViewBuilder
   private var focusSection: some View {
-    Section {
-      Group {
-        if let task = focusedTask {
-          FocusCard(task: task) {
-            if isPrimarySequenceEditing {
-              completePrimarySequenceEditing()
-            } else {
-              onTaskTap(task)
-            }
+    Group {
+      if let task = focusedTask {
+        FocusCard(task: task) {
+          if isPrimarySequenceEditing {
+            completePrimarySequenceEditing()
+          } else {
+            onTaskTap(task)
           }
-        } else {
-          EmptyFocusCard()
         }
+      } else {
+        EmptyFocusCard()
       }
-      .listRowInsets(EdgeInsets(top: 8, leading: 18, bottom: 8, trailing: 18))
-      .listRowBackground(Color.clear)
-      .listRowSeparator(.hidden)
     }
   }
 
   private var currentSequenceSection: some View {
-    Section {
-      if displayedPrimarySequenceTasks.isEmpty {
-        EmptyPrimarySequenceCard()
-          .listRowInsets(EdgeInsets(top: 2, leading: 18, bottom: 10, trailing: 18))
-          .listRowBackground(Color.clear)
-          .listRowSeparator(.hidden)
-      } else {
-        ForEach(Array(displayedPrimarySequenceTasks.enumerated()), id: \.element.id) { index, task in
-          SequenceTaskRow(
-            task: task,
-            position: timelinePosition(for: index, count: displayedPrimarySequenceTasks.count),
-            isEditing: isPrimarySequenceEditing,
-            isDragging: draggedPrimaryTaskID == task.id,
-            onTap: {
-              onTaskTap(task)
-            },
-            onLongPressToEdit: {
-              beginPrimarySequenceEditing()
-            },
-            onDragStart: {
-              draggedPrimaryTaskID = task.id
-              hasPendingPrimaryReorder = false
-              return NSItemProvider(object: task.id as NSString)
-            },
-            dropDelegate: SequenceReorderDropDelegate(
-              destinationTaskID: task.id,
-              orderedTaskIDs: $primarySequenceOrder,
-              draggedTaskID: $draggedPrimaryTaskID,
-              hasPendingReorder: $hasPendingPrimaryReorder,
-              onCommit: commitPrimarySequenceOrder
-            ),
-            onComplete: {
-              onTaskComplete(task)
-              completePrimarySequenceEditing()
-            },
-            onEdit: {
-              onTaskEdit(task)
-              completePrimarySequenceEditing()
-            },
-            onArchive: {
-              onTaskArchive(task)
-              completePrimarySequenceEditing()
-            },
-            onDelete: {
-              onTaskDelete(task)
-              completePrimarySequenceEditing()
-            }
-          )
-          .listRowInsets(EdgeInsets(top: index == 0 ? 2 : 0, leading: 18, bottom: 8, trailing: 18))
-          .listRowBackground(Color.clear)
-          .listRowSeparator(.hidden)
-        }
-      }
-    } header: {
+    VStack(alignment: .leading, spacing: 10) {
       SequenceSectionHeader(
         title: "当前序列",
-        detail: isPrimarySequenceEditing ? "上下拖拽排序，左滑可完成、编辑、归档或删除" : nil,
+        detail: isPrimarySequenceEditing ? "长按卡片拖拽排序，左滑可完成、编辑、归档或删除" : nil,
         actionTitle: isPrimarySequenceEditing ? "完成编辑" : nil,
         actionTint: TaskDisplayFormatter.statusColor(for: .doing),
         onAction: isPrimarySequenceEditing ? { completePrimarySequenceEditing() } : nil
       )
-      .textCase(nil)
       .padding(.top, 4)
-      .padding(.horizontal, 18)
+
+      if displayedPrimarySequenceTasks.isEmpty {
+        EmptyPrimarySequenceCard()
+      } else {
+        VStack(spacing: 0) {
+          ForEach(Array(displayedPrimarySequenceTasks.enumerated()), id: \.element.id) { index, task in
+            SequenceTaskRow(
+              task: task,
+              position: timelinePosition(for: index, count: displayedPrimarySequenceTasks.count),
+              coordinateSpaceName: primarySequenceCoordinateSpace,
+              isEditing: isPrimarySequenceEditing,
+              isDragging: draggedPrimaryTaskID == task.id,
+              dragOffset: draggedPrimaryTaskID == task.id ? draggedPrimaryTaskOffset : .zero,
+              onTap: {
+                onTaskTap(task)
+              },
+              onLongPressToEdit: {
+                beginPrimarySequenceEditing()
+              },
+              onDragChanged: { translation, location in
+                updatePrimarySequenceDrag(for: task.id, translation: translation, location: location)
+              },
+              onDragEnded: { translation, location in
+                updatePrimarySequenceDrag(for: task.id, translation: translation, location: location)
+                finishPrimarySequenceDrag()
+              },
+              onComplete: {
+                onTaskComplete(task)
+                completePrimarySequenceEditing()
+              },
+              onEdit: {
+                onTaskEdit(task)
+                completePrimarySequenceEditing()
+              },
+              onArchive: {
+                onTaskArchive(task)
+                completePrimarySequenceEditing()
+              },
+              onDelete: {
+                onTaskDelete(task)
+                completePrimarySequenceEditing()
+              }
+            )
+            .onGeometryChange(for: CGRect.self) { proxy in
+              proxy.frame(in: .named(primarySequenceCoordinateSpace))
+            } action: { frame in
+              primarySequenceFrames[task.id] = frame
+            }
+            .zIndex(draggedPrimaryTaskID == task.id ? 1 : 0)
+          }
+        }
+        .coordinateSpace(name: primarySequenceCoordinateSpace)
+        .animation(.snappy(duration: 0.18, extraBounce: 0), value: primarySequenceOrder)
+      }
     }
   }
 
   private var nextTasksSection: some View {
-    Section {
+    VStack(alignment: .leading, spacing: 10) {
+      SequenceSectionHeader(title: "接下来")
+        .padding(.top, 6)
+
       NextTasksSummaryCard(
         tasks: nextTasks,
         onTaskTap: { task in
@@ -198,14 +208,6 @@ struct SequenceTab: View {
           }
         }
       )
-        .listRowInsets(EdgeInsets(top: 4, leading: 18, bottom: 12, trailing: 18))
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-    } header: {
-      SequenceSectionHeader(title: "接下来")
-        .textCase(nil)
-        .padding(.top, 6)
-        .padding(.horizontal, 18)
     }
   }
 
@@ -221,6 +223,9 @@ struct SequenceTab: View {
     primarySequenceOrder = primarySequenceSignature
     isPrimarySequenceEditing = false
     draggedPrimaryTaskID = nil
+    draggedPrimaryTaskOffset = .zero
+    draggedPrimaryTaskTouchOffsetY = nil
+    primarySequenceFrames = [:]
     hasPendingPrimaryReorder = false
   }
 
@@ -250,13 +255,89 @@ struct SequenceTab: View {
     isPrimarySequenceEditing = true
   }
 
+  private func updatePrimarySequenceDrag(for taskID: String, translation: CGSize, location: CGPoint) {
+    guard isPrimarySequenceEditing, displayedPrimarySequenceTasks.contains(where: { $0.id == taskID }) else {
+      return
+    }
+
+    guard let currentFrame = primarySequenceFrames[taskID] else {
+      return
+    }
+
+    let touchOffsetY: CGFloat
+    if draggedPrimaryTaskID == taskID, let existingTouchOffsetY = draggedPrimaryTaskTouchOffsetY {
+      touchOffsetY = existingTouchOffsetY
+    } else {
+      touchOffsetY = max(0, location.y - currentFrame.minY)
+      draggedPrimaryTaskTouchOffsetY = touchOffsetY
+    }
+
+    draggedPrimaryTaskID = taskID
+    let anchoredOffsetY = location.y - touchOffsetY - currentFrame.minY
+    draggedPrimaryTaskOffset = CGSize(width: translation.width, height: anchoredOffsetY)
+    reorderDisplayedPrimarySequence(draggedTaskID: taskID, locationY: location.y)
+  }
+
+  private func reorderDisplayedPrimarySequence(draggedTaskID: String, locationY: CGFloat) {
+    let visibleTaskIDs = displayedPrimarySequenceTasks.map(\.id)
+    guard
+      visibleTaskIDs.count > 1,
+      visibleTaskIDs.contains(draggedTaskID),
+      visibleTaskIDs.allSatisfy({ primarySequenceFrames[$0] != nil })
+    else {
+      return
+    }
+
+    let sortedVisibleTaskIDs = visibleTaskIDs.sorted {
+      (primarySequenceFrames[$0]?.midY ?? 0) < (primarySequenceFrames[$1]?.midY ?? 0)
+    }
+    let insertionIndex = sortedVisibleTaskIDs
+      .filter { $0 != draggedTaskID }
+      .filter { (primarySequenceFrames[$0]?.midY ?? 0) < locationY }
+      .count
+
+    var reorderedVisibleTaskIDs = sortedVisibleTaskIDs.filter { $0 != draggedTaskID }
+    reorderedVisibleTaskIDs.insert(draggedTaskID, at: min(insertionIndex, reorderedVisibleTaskIDs.count))
+
+    guard reorderedVisibleTaskIDs != sortedVisibleTaskIDs else {
+      return
+    }
+
+    let visibleTaskIDSet = Set(sortedVisibleTaskIDs)
+    var reorderedTaskIDsIterator = reorderedVisibleTaskIDs.makeIterator()
+    let mergedTaskIDs = primarySequenceOrder.map { taskID -> String in
+      guard visibleTaskIDSet.contains(taskID) else {
+        return taskID
+      }
+      return reorderedTaskIDsIterator.next() ?? taskID
+    }
+
+    guard mergedTaskIDs != primarySequenceOrder else {
+      return
+    }
+
+    primarySequenceOrder = mergedTaskIDs
+    hasPendingPrimaryReorder = true
+  }
+
+  private func finishPrimarySequenceDrag() {
+    commitPrimarySequenceOrder()
+    draggedPrimaryTaskID = nil
+    draggedPrimaryTaskOffset = .zero
+    draggedPrimaryTaskTouchOffsetY = nil
+  }
+
   private func commitPrimarySequenceOrder() {
     guard hasPendingPrimaryReorder else {
       draggedPrimaryTaskID = nil
+      draggedPrimaryTaskOffset = .zero
+      draggedPrimaryTaskTouchOffsetY = nil
       return
     }
     onPrimarySequenceReorder(primarySequenceOrder)
     draggedPrimaryTaskID = nil
+    draggedPrimaryTaskOffset = .zero
+    draggedPrimaryTaskTouchOffsetY = nil
     hasPendingPrimaryReorder = false
   }
 
@@ -264,6 +345,8 @@ struct SequenceTab: View {
     defer {
       isPrimarySequenceEditing = false
       draggedPrimaryTaskID = nil
+      draggedPrimaryTaskOffset = .zero
+      draggedPrimaryTaskTouchOffsetY = nil
       hasPendingPrimaryReorder = false
     }
 
@@ -317,12 +400,14 @@ private enum TimelinePosition: Equatable {
 private struct SequenceTaskRow: View {
   let task: Task
   let position: TimelinePosition
+  let coordinateSpaceName: String
   let isEditing: Bool
   let isDragging: Bool
+  let dragOffset: CGSize
   let onTap: () -> Void
   let onLongPressToEdit: () -> Void
-  let onDragStart: () -> NSItemProvider
-  let dropDelegate: SequenceReorderDropDelegate
+  let onDragChanged: (CGSize, CGPoint) -> Void
+  let onDragEnded: (CGSize, CGPoint) -> Void
   let onComplete: () -> Void
   let onEdit: () -> Void
   let onArchive: () -> Void
@@ -333,44 +418,12 @@ private struct SequenceTaskRow: View {
   }
 
   var body: some View {
-    let row = HStack(alignment: .top, spacing: 10) {
+    HStack(alignment: .top, spacing: 10) {
       SequenceTimelineMarker(color: statusColor, position: position)
       rowBody
     }
     .contentShape(Rectangle())
-
-    if isEditing {
-      row.swipeActions(edge: .trailing, allowsFullSwipe: false) {
-        Button {
-          onComplete()
-        } label: {
-          Label(task.status == .done ? "恢复" : "完成", systemImage: "checkmark.circle.fill")
-        }
-        .tint(.green)
-
-        Button {
-          onEdit()
-        } label: {
-          Label("编辑", systemImage: "pencil")
-        }
-        .tint(.blue)
-
-        Button {
-          onArchive()
-        } label: {
-          Label("归档", systemImage: "archivebox.fill")
-        }
-        .tint(.orange)
-
-        Button(role: .destructive) {
-          onDelete()
-        } label: {
-          Label("删除", systemImage: "trash")
-        }
-      }
-    } else {
-      row
-    }
+    .offset(y: isDragging ? dragOffset.height : 0)
   }
 
   @ViewBuilder
@@ -379,12 +432,39 @@ private struct SequenceTaskRow: View {
 
     if isEditing {
       card
-        .onDrag(onDragStart) {
-          SequencePrimaryCard(task: task, isEditing: true, isLifted: true)
+        .padding(.vertical, 4)
+        .highPriorityGesture(editingDragGesture)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+          Button {
+            onComplete()
+          } label: {
+            Label(task.status == .done ? "恢复" : "完成", systemImage: "checkmark.circle.fill")
+          }
+          .tint(.green)
+
+          Button {
+            onEdit()
+          } label: {
+            Label("编辑", systemImage: "pencil")
+          }
+          .tint(.blue)
+
+          Button {
+            onArchive()
+          } label: {
+            Label("归档", systemImage: "archivebox.fill")
+          }
+          .tint(.orange)
+
+          Button(role: .destructive) {
+            onDelete()
+          } label: {
+            Label("删除", systemImage: "trash")
+          }
         }
-        .onDrop(of: [UTType.plainText.identifier], delegate: dropDelegate)
     } else {
       card
+        .padding(.vertical, 4)
         .gesture(
           ExclusiveGesture(
             LongPressGesture(minimumDuration: 0.6),
@@ -402,6 +482,29 @@ private struct SequenceTaskRow: View {
           }
         )
     }
+  }
+
+  private var editingDragGesture: some Gesture {
+    LongPressGesture(minimumDuration: 0.28)
+      .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named(coordinateSpaceName)))
+      .onChanged { value in
+        guard isEditing else { return }
+        switch value {
+        case .second(true, let drag?):
+          onDragChanged(drag.translation, drag.location)
+        default:
+          break
+        }
+      }
+      .onEnded { value in
+        guard isEditing else { return }
+        switch value {
+        case .second(true, let drag?):
+          onDragEnded(drag.translation, drag.location)
+        default:
+          break
+        }
+      }
   }
 }
 
@@ -757,51 +860,5 @@ private struct EmptyPrimarySequenceCard: View {
       RoundedRectangle(cornerRadius: 20, style: .continuous)
         .strokeBorder(NornTheme.border, lineWidth: 1)
     )
-  }
-}
-
-private struct SequenceReorderDropDelegate: DropDelegate {
-  let destinationTaskID: String
-  @Binding var orderedTaskIDs: [String]
-  @Binding var draggedTaskID: String?
-  @Binding var hasPendingReorder: Bool
-  let onCommit: () -> Void
-
-  func dropEntered(info: DropInfo) {
-    updateOrder()
-  }
-
-  private func updateOrder() {
-    guard
-      let draggedTaskID,
-      draggedTaskID != destinationTaskID,
-      let fromIndex = orderedTaskIDs.firstIndex(of: draggedTaskID),
-      let toIndex = orderedTaskIDs.firstIndex(of: destinationTaskID)
-    else {
-      return
-    }
-
-    var reorderedIDs = orderedTaskIDs
-    reorderedIDs.move(
-      fromOffsets: IndexSet(integer: fromIndex),
-      toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex
-    )
-
-    guard reorderedIDs != orderedTaskIDs else {
-      return
-    }
-
-    orderedTaskIDs = reorderedIDs
-    hasPendingReorder = true
-  }
-
-  func dropUpdated(info: DropInfo) -> DropProposal? {
-    DropProposal(operation: .move)
-  }
-
-  func performDrop(info: DropInfo) -> Bool {
-    updateOrder()
-    onCommit()
-    return true
   }
 }
