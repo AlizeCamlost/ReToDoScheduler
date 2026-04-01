@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/deploy/.env.prod"
 COMPOSE_FILE="${ROOT_DIR}/deploy/docker-compose.prod.yml"
+COMPOSE_CMD=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing $ENV_FILE. Copy deploy/.env.prod.example first." >&2
@@ -15,9 +16,11 @@ set -a
 source "$ENV_FILE"
 set +a
 
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
+COMPOSE_BAKE=false "${COMPOSE_CMD[@]}" build api
+COMPOSE_BAKE=false "${COMPOSE_CMD[@]}" build web
+"${COMPOSE_CMD[@]}" up -d --no-build --remove-orphans
 
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" \
+"${COMPOSE_CMD[@]}" \
   exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /migrations/001_init.sql
 
 echo "Deployment done. Health check: curl http://127.0.0.1:8787/health"

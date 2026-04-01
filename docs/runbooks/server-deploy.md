@@ -51,8 +51,12 @@ vi deploy/.env.prod
 ### 3.3 构建并启动容器
 
 ```bash
-docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up -d --build
+COMPOSE_BAKE=false docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod build api
+COMPOSE_BAKE=false docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod build web
+docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up -d --no-build --remove-orphans
 ```
+
+之所以拆成顺序 build + `up --no-build`，是为了规避某些服务器上 Docker Compose 被配置为默认委托给 Bake 后，在并行构建阶段触发内部解析错误的问题。
 
 ### 3.4 执行初始 migration
 
@@ -110,6 +114,16 @@ git reset --hard origin/<branch>
 - 强推送后的分支仍可部署
 - 服务器目录不应保留人工未提交修改
 - 若服务器上有未提交改动，workflow 应拒绝覆盖并输出 `git status`
+
+当前仓库内的 `scripts/server-auto-deploy.sh` 会在远端按以下顺序执行：
+
+1. 校验工作区干净并重置到目标分支
+2. 清理旧容器名残留
+3. 用 `COMPOSE_BAKE=false` 顺序构建 `api`、`web`
+4. 执行 `docker compose up -d --no-build --remove-orphans`
+5. 跑 migration 并做健康检查
+
+如果 workflow 日志里再次出现 `load local bake definitions`，说明服务器环境仍有其他入口绕过了仓库脚本，应该优先检查是否有人手工执行了 `docker compose up --build`。
 
 ## 7. 备份基线
 

@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/deploy/.env.prod"
 COMPOSE_FILE="${ROOT_DIR}/deploy/docker-compose.prod.yml"
 DEPLOY_BRANCH="${1:-${DEPLOY_BRANCH:-main}}"
+COMPOSE_CMD=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing $ENV_FILE. Copy deploy/.env.prod.example and fill values first." >&2
@@ -36,8 +37,14 @@ for name in retodo-db retodo-api retodo-web; do
   fi
 done
 
-echo "[deploy] Rebuilding containers..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build --remove-orphans
+echo "[deploy] Building api image with Compose Bake disabled..."
+COMPOSE_BAKE=false "${COMPOSE_CMD[@]}" build api
+
+echo "[deploy] Building web image with Compose Bake disabled..."
+COMPOSE_BAKE=false "${COMPOSE_CMD[@]}" build web
+
+echo "[deploy] Starting containers..."
+"${COMPOSE_CMD[@]}" up -d --no-build --remove-orphans
 
 echo "[deploy] Running migrations..."
 COMPOSE_FILE="$COMPOSE_FILE" ENV_FILE="$ENV_FILE" \
