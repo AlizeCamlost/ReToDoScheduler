@@ -6,6 +6,7 @@ struct SyncSettingsSheet: View {
   let onCancel: () -> Void
 
   @State private var settings: SyncSettings
+  @AppStorage("norn.taskPool.hideCompletedTasks") private var hideCompletedTasks = false
 
   init(
     settings: SyncSettings,
@@ -47,8 +48,22 @@ struct SyncSettingsSheet: View {
               .foregroundStyle(.secondary)
           }
         }
+
+        Section("显示设置") {
+          Toggle("隐藏已完成任务", isOn: $hideCompletedTasks)
+
+          if hideCompletedTasks {
+            Text("目录和脑图都会统一隐藏已完成但未归档的任务。")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          } else {
+            Text("目录和脑图会显示全部未归档任务。")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
       }
-      .navigationTitle("同步设置")
+      .navigationTitle("设置")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {

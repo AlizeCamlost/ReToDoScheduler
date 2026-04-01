@@ -9,9 +9,9 @@ enum PoolViewMode: String, CaseIterable, Identifiable {
   var label: String {
     switch self {
     case .tree:
-      return "目录树"
+      return "目录"
     case .canvas:
-      return "画布"
+      return "脑图"
     }
   }
 }
@@ -78,30 +78,23 @@ struct TaskPoolTab: View {
     TaskPoolVisibleTasks.filtered(tasks, hideCompleted: hideCompletedTasks)
   }
 
-  private var hiddenCompletedTaskCount: Int {
-    TaskPoolVisibleTasks.filtered(tasks, hideCompleted: false).count - filteredTasks.count
-  }
-
   private var header: some View {
-    VStack(alignment: .leading, spacing: 14) {
+    VStack(alignment: .leading, spacing: 12) {
       HStack(alignment: .top) {
         VStack(alignment: .leading, spacing: 6) {
           Text("任务池")
-            .font(.title2.weight(.bold))
-          Text(syncStatusText)
-            .font(.caption)
-            .foregroundStyle(syncStatusColor)
+            .font(.title3.weight(.bold))
         }
 
         Spacer()
 
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
           Button(action: onRefresh) {
             Image(systemName: syncStatus == .syncing ? "arrow.trianglehead.2.clockwise.circle.fill" : "arrow.clockwise.circle")
               .font(.title3)
           }
           .buttonStyle(.plain)
-          .foregroundStyle(syncStatusColor)
+          .foregroundStyle(syncButtonColor)
           .disabled(syncStatus == .syncing)
 
           Button(action: onOpenSyncSettings) {
@@ -119,28 +112,10 @@ struct TaskPoolTab: View {
         }
       }
       .pickerStyle(.segmented)
-
-      Toggle(isOn: $hideCompletedTasks) {
-        VStack(alignment: .leading, spacing: 2) {
-          Text("隐藏已完成任务")
-            .font(.caption.weight(.semibold))
-
-          if hideCompletedTasks, hiddenCompletedTaskCount > 0 {
-            Text("当前已从任务池隐藏 \(hiddenCompletedTaskCount) 个已完成任务。")
-              .font(.caption2)
-              .foregroundStyle(.secondary)
-          } else {
-            Text(hideCompletedTasks ? "任务池当前只显示未归档且未完成的任务。" : "任务池当前显示全部未归档任务。")
-              .font(.caption2)
-              .foregroundStyle(.secondary)
-          }
-        }
-      }
-      .toggleStyle(.switch)
     }
     .padding(.horizontal, 20)
-    .padding(.top, 12)
-    .padding(.bottom, 16)
+    .padding(.top, 10)
+    .padding(.bottom, 12)
   }
 
   @ViewBuilder
@@ -159,7 +134,7 @@ struct TaskPoolTab: View {
       )
     case .canvas:
       ScrollView {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
           canvasIntroCard
           TaskPoolCanvasView(
             tasks: filteredTasks,
@@ -171,48 +146,19 @@ struct TaskPoolTab: View {
           .frame(minHeight: 720)
         }
         .padding(.horizontal, 20)
-        .padding(.top, 16)
+        .padding(.top, 14)
         .padding(.bottom, 32)
         .frame(maxWidth: .infinity)
       }
     }
   }
 
-  private var syncStatusText: String {
-    switch syncStatus {
-    case .notConfigured:
-      return "未配置同步，当前使用本地任务仓库。"
-    case .syncing:
-      return "正在同步任务池…"
-    case .failed(let message):
-      return message
-    case .idle(let lastSyncedAt):
-      guard let lastSyncedAt else {
-        return "已配置同步，可手动刷新。"
-      }
-      return "上次同步 \(lastSyncedAt.formatted(date: .abbreviated, time: .shortened))"
-    }
-  }
-
-  private var syncStatusColor: Color {
-    switch syncStatus {
-    case .failed:
-      return .red
-    case .syncing:
-      return .blue
-    case .notConfigured:
-      return .secondary
-    case .idle:
-      return .secondary
-    }
-  }
-
   private var canvasIntroCard: some View {
     VStack(alignment: .leading, spacing: 8) {
-      Text("画布视图")
+      Text("脑图视图")
         .font(.headline.weight(.semibold))
       Text(hideCompletedTasks
-        ? "拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留。已完成任务当前会从画布隐藏；同时支持双指缩放和右上角缩放控件。"
+        ? "拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留。已完成任务当前会从脑图隐藏；同时支持双指缩放和右上角缩放控件。"
         : "拖拽目录或任务节点会直接更新共享的任务池组织文档，折叠状态也会随同步保留；同时支持双指缩放和右上角缩放控件。")
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -228,6 +174,17 @@ struct TaskPoolTab: View {
       RoundedRectangle(cornerRadius: 20, style: .continuous)
         .strokeBorder(NornTheme.borderStrong, lineWidth: 1)
     )
+  }
+
+  private var syncButtonColor: Color {
+    switch syncStatus {
+    case .failed:
+      return .red
+    case .syncing:
+      return .blue
+    case .notConfigured, .idle:
+      return .primary
+    }
   }
 }
 
