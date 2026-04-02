@@ -57,14 +57,6 @@ function App() {
                 className={`sync-dot ${controller.syncState === "syncing" ? "syncing" : controller.syncState === "error" ? "error" : ""}`}
               />
               <span className="sync-text">{controller.syncMessage}</span>
-              <button
-                className="btn-icon subtle"
-                onClick={() => void controller.performSync()}
-                disabled={controller.isSyncing || !controller.isSyncConfigured}
-                title={controller.isSyncConfigured ? "立即同步" : "先在任务池设置同步"}
-              >
-                {controller.isSyncing ? "..." : "↻"}
-              </button>
             </div>
           </div>
         </header>
@@ -137,18 +129,21 @@ function App() {
           {controller.currentTab === "taskPool" && (
             <TaskPoolPanel
               tasks={controller.filteredTasks}
-              searchQuery={controller.searchQuery}
-              onSearchQueryChange={controller.setSearchQuery}
-              onToggleDone={controller.toggleDone}
-              onArchive={controller.archiveTask}
+              organization={controller.taskPoolOrganization}
               syncMessage={controller.syncMessage}
               isSyncing={controller.isSyncing}
               onRefresh={() => void controller.performSync()}
               onOpenSyncSettings={controller.openSyncSettings}
               onExport={controller.exportMarkdown}
               onImport={controller.importMarkdownFile}
-              onOpenDetail={controller.openTaskDetail}
-              onEdit={controller.openTaskEditor}
+              onOpenTask={controller.openTaskDetail}
+              onCreateDirectory={controller.createTaskPoolDirectory}
+              onRenameDirectory={controller.renameTaskPoolDirectory}
+              onDeleteDirectory={controller.deleteTaskPoolDirectory}
+              onMoveDirectory={controller.moveTaskPoolDirectory}
+              onPlaceTask={controller.placeTaskInTaskPool}
+              onUpdateCanvasNode={controller.updateTaskPoolCanvasNode}
+              onResetCanvasLayout={controller.resetTaskPoolCanvasLayout}
             />
           )}
         </section>

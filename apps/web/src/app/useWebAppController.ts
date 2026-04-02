@@ -4,16 +4,24 @@ import {
   buildQuickTask,
   buildSchedulePresentation,
   completeTaskStep as completeTaskStepOnTask,
+  createTaskPoolDirectory,
   createTasksFromSequence,
   createDefaultTaskPoolOrganizationDocument,
+  deleteTaskPoolDirectory,
+  getTaskPoolCanvasStableId,
   getCurrentTaskStep,
   makeTask,
+  moveTaskPoolDirectory,
   normalizeTaskPoolOrganizationDocument,
   nowIso,
   parseQuickInput,
+  placeTaskInTaskPool,
+  renameTaskPoolDirectory,
   reorderTasksForSequence,
+  resetTaskPoolCanvasPositions,
   setTaskStatus,
   sortNornTasks,
+  updateTaskPoolCanvasNode,
   type Task,
   type TaskPoolOrganizationDocument,
   type TimeTemplate,
@@ -82,6 +90,19 @@ export interface WebAppController {
   openSyncSettings: () => void;
   closeSyncSettings: () => void;
   saveSyncSettings: (settings: WebSyncSettings, hideCompletedTasks: boolean) => void;
+  createTaskPoolDirectory: (name: string, parentDirectoryId?: string) => void;
+  renameTaskPoolDirectory: (directoryId: string, name: string) => void;
+  deleteTaskPoolDirectory: (directoryId: string) => void;
+  moveTaskPoolDirectory: (directoryId: string, parentDirectoryId?: string) => void;
+  placeTaskInTaskPool: (taskId: string, parentDirectoryId?: string) => void;
+  updateTaskPoolCanvasNode: (
+    nodeId: string,
+    nodeKind: "directory" | "task",
+    x: number,
+    y: number,
+    isCollapsed: boolean
+  ) => void;
+  resetTaskPoolCanvasLayout: (positionsByStableId: Record<string, { x: number; y: number }>) => void;
   focusedTask: Task | null;
   primarySequenceTasks: Task[];
   nextTasks: Task[];
@@ -528,6 +549,124 @@ export const useWebAppController = (): WebAppController => {
     setIsSyncSettingsOpen(false);
   }, []);
 
+  const createTaskPoolDirectoryEntry = useCallback(
+    (name: string, parentDirectoryId?: string) => {
+      const nextOrganization = createTaskPoolDirectory(taskPoolOrganizationRef.current, {
+        directoryId: createId(),
+        name,
+        ...(parentDirectoryId ? { parentDirectoryId } : {}),
+        updatedAt: nowIso()
+      });
+      commitState(tasksRef.current, nextOrganization);
+    },
+    [commitState]
+  );
+
+  const renameTaskPoolDirectoryEntry = useCallback(
+    (directoryId: string, name: string) => {
+      const nextOrganization = renameTaskPoolDirectory(taskPoolOrganizationRef.current, {
+        directoryId,
+        name,
+        updatedAt: nowIso()
+      });
+      commitState(tasksRef.current, nextOrganization);
+    },
+    [commitState]
+  );
+
+  const deleteTaskPoolDirectoryEntry = useCallback(
+    (directoryId: string) => {
+      const nextOrganization = deleteTaskPoolDirectory(taskPoolOrganizationRef.current, {
+        directoryId,
+        updatedAt: nowIso()
+      });
+      commitState(tasksRef.current, nextOrganization);
+    },
+    [commitState]
+  );
+
+  const moveTaskPoolDirectoryEntry = useCallback(
+    (directoryId: string, parentDirectoryId?: string) => {
+      const nextOrganization = moveTaskPoolDirectory(taskPoolOrganizationRef.current, {
+        directoryId,
+        ...(parentDirectoryId ? { parentDirectoryId } : {}),
+        updatedAt: nowIso()
+      });
+      commitState(tasksRef.current, nextOrganization);
+    },
+    [commitState]
+  );
+
+  const placeTaskInTaskPoolEntry = useCallback(
+    (taskId: string, parentDirectoryId?: string) => {
+      const nextOrganization = placeTaskInTaskPool(taskPoolOrganizationRef.current, {
+        taskId,
+        ...(parentDirectoryId ? { parentDirectoryId } : {}),
+        updatedAt: nowIso()
+      });
+      commitState(tasksRef.current, nextOrganization);
+    },
+    [commitState]
+  );
+
+  const updateTaskPoolCanvasNodeEntry = useCallback(
+    (
+      nodeId: string,
+      nodeKind: "directory" | "task",
+      x: number,
+      y: number,
+      isCollapsed: boolean
+    ) => {
+      const nextOrganization = updateTaskPoolCanvasNode(taskPoolOrganizationRef.current, {
+        nodeId,
+        nodeKind,
+        x,
+        y,
+        isCollapsed,
+        updatedAt: nowIso()
+      });
+      commitState(tasksRef.current, nextOrganization);
+    },
+    [commitState]
+  );
+
+  const resetTaskPoolCanvasLayout = useCallback(
+    (positionsByStableId: Record<string, { x: number; y: number }>) => {
+      const normalizedOrganization = normalizeTaskPoolOrganizationDocument(taskPoolOrganizationRef.current);
+      let nextOrganization = resetTaskPoolCanvasPositions(normalizedOrganization, {
+        positionsByStableId,
+        updatedAt: nowIso()
+      });
+
+      const existingStableIds = new Set(
+        normalizedOrganization.canvasNodes.map((node) =>
+          getTaskPoolCanvasStableId(node.nodeKind, node.nodeId)
+        )
+      );
+
+      for (const [stableId, position] of Object.entries(positionsByStableId)) {
+        if (existingStableIds.has(stableId)) continue;
+
+        const [nodeKind, ...nodeIdParts] = stableId.split(":");
+        const nodeId = nodeIdParts.join(":");
+        if (!nodeId) continue;
+        if (nodeKind !== "directory" && nodeKind !== "task") continue;
+
+        nextOrganization = updateTaskPoolCanvasNode(nextOrganization, {
+          nodeId,
+          nodeKind,
+          x: position.x,
+          y: position.y,
+          isCollapsed: false,
+          updatedAt: nowIso()
+        });
+      }
+
+      commitState(tasksRef.current, nextOrganization);
+    },
+    [commitState]
+  );
+
   return {
     currentTab,
     setCurrentTab,
@@ -582,6 +721,13 @@ export const useWebAppController = (): WebAppController => {
     openSyncSettings: () => setIsSyncSettingsOpen(true),
     closeSyncSettings: () => setIsSyncSettingsOpen(false),
     saveSyncSettings: saveRuntimeSyncSettings,
+    createTaskPoolDirectory: createTaskPoolDirectoryEntry,
+    renameTaskPoolDirectory: renameTaskPoolDirectoryEntry,
+    deleteTaskPoolDirectory: deleteTaskPoolDirectoryEntry,
+    moveTaskPoolDirectory: moveTaskPoolDirectoryEntry,
+    placeTaskInTaskPool: placeTaskInTaskPoolEntry,
+    updateTaskPoolCanvasNode: updateTaskPoolCanvasNodeEntry,
+    resetTaskPoolCanvasLayout,
     focusedTask,
     primarySequenceTasks,
     nextTasks,

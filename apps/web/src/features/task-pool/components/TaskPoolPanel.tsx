@@ -1,61 +1,77 @@
-import type { Task } from "@retodo/core";
+import { type Task, type TaskPoolOrganizationDocument } from "@retodo/core";
 import { useState } from "react";
-import TaskItem from "./TaskItem";
+import TaskPoolCanvasView from "./TaskPoolCanvasView";
+import TaskPoolTreeBrowser from "./TaskPoolTreeBrowser";
 
 interface TaskPoolPanelProps {
   tasks: Task[];
-  searchQuery: string;
-  onSearchQueryChange: (value: string) => void;
-  onToggleDone: (taskId: string) => void;
-  onArchive: (taskId: string) => void;
+  organization: TaskPoolOrganizationDocument;
   syncMessage: string;
   isSyncing: boolean;
   onRefresh: () => void;
   onOpenSyncSettings: () => void;
   onExport: () => void;
   onImport: (file: File | null) => Promise<void>;
-  onOpenDetail: (task: Task) => void;
-  onEdit: (task: Task) => void;
+  onOpenTask: (task: Task) => void;
+  onCreateDirectory: (name: string, parentDirectoryId?: string) => void;
+  onRenameDirectory: (directoryId: string, name: string) => void;
+  onDeleteDirectory: (directoryId: string) => void;
+  onMoveDirectory: (directoryId: string, parentDirectoryId?: string) => void;
+  onPlaceTask: (taskId: string, parentDirectoryId?: string) => void;
+  onUpdateCanvasNode: (
+    nodeId: string,
+    nodeKind: "directory" | "task",
+    x: number,
+    y: number,
+    isCollapsed: boolean
+  ) => void;
+  onResetCanvasLayout: (positionsByStableId: Record<string, { x: number; y: number }>) => void;
 }
+
+type TaskPoolViewMode = "tree" | "canvas";
 
 export default function TaskPoolPanel({
   tasks,
-  searchQuery,
-  onSearchQueryChange,
-  onToggleDone,
-  onArchive,
+  organization,
   syncMessage,
   isSyncing,
   onRefresh,
   onOpenSyncSettings,
   onExport,
   onImport,
-  onOpenDetail,
-  onEdit
+  onOpenTask,
+  onCreateDirectory,
+  onRenameDirectory,
+  onDeleteDirectory,
+  onMoveDirectory,
+  onPlaceTask,
+  onUpdateCanvasNode,
+  onResetCanvasLayout
 }: TaskPoolPanelProps) {
-  const [viewMode, setViewMode] = useState<"list" | "quadrant" | "cluster">("list");
+  const [viewMode, setViewMode] = useState<TaskPoolViewMode>("tree");
 
   return (
-    <section className="card">
+    <section className="card task-pool-panel">
       <div className="panel-header">
         <div>
           <div className="panel-title">任务池</div>
-          <div className="panel-caption">任务、依赖、子步骤都在这里维护。</div>
+          <div className="panel-caption">目录负责归位，脑图负责观察结构；导入导出只保留为 Web 侧辅助工具。</div>
         </div>
-        <div className={`inline-sync-status ${isSyncing ? "syncing" : syncMessage.startsWith("同步失败") || syncMessage.startsWith("拉取失败") ? "error" : ""}`}>
+        <div
+          className={`inline-sync-status ${isSyncing ? "syncing" : syncMessage.startsWith("同步失败") || syncMessage.startsWith("拉取失败") ? "error" : ""}`}
+        >
           {syncMessage}
         </div>
       </div>
 
-      <div className="panel-toolbar">
-        <div className="search-wrapper compact">
-          <span className="search-icon">⌕</span>
-          <input
-            className="search-input"
-            value={searchQuery}
-            onChange={(event) => onSearchQueryChange(event.target.value)}
-            placeholder="搜索任务"
-          />
+      <div className="task-pool-toolbar">
+        <div className="filter-tabs">
+          <button className={`filter-tab${viewMode === "tree" ? " active" : ""}`} onClick={() => setViewMode("tree")}>
+            目录
+          </button>
+          <button className={`filter-tab${viewMode === "canvas" ? " active" : ""}`} onClick={() => setViewMode("canvas")}>
+            脑图
+          </button>
         </div>
 
         <div className="toolbar compact-toolbar">
@@ -79,38 +95,29 @@ export default function TaskPoolPanel({
         </div>
       </div>
 
-      <div className="filter-tabs task-pool-mode-switcher">
-        <button className={`filter-tab${viewMode === "list" ? " active" : ""}`} onClick={() => setViewMode("list")}>
-          列表
-        </button>
-        <button className={`filter-tab${viewMode === "quadrant" ? " active" : ""}`} onClick={() => setViewMode("quadrant")}>
-          四象限
-        </button>
-        <button className={`filter-tab${viewMode === "cluster" ? " active" : ""}`} onClick={() => setViewMode("cluster")}>
-          聚类
-        </button>
+      <div className="helper-text task-pool-toolbar-caption">
+        已完成任务是否隐藏由设置面板统一控制，目录和脑图共用同一份组织文档。
       </div>
 
-      {viewMode === "list" ? (
-        <ul className="task-list">
-          {tasks.length === 0 && <li className="empty-state">没有匹配的任务</li>}
-          {tasks.map((task) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onToggleDone={() => onToggleDone(task.id)}
-              onArchive={() => onArchive(task.id)}
-              onOpenDetail={() => onOpenDetail(task)}
-              onEdit={() => onEdit(task)}
-            />
-          ))}
-        </ul>
+      {viewMode === "tree" ? (
+        <TaskPoolTreeBrowser
+          tasks={tasks}
+          organization={organization}
+          onOpenTask={onOpenTask}
+          onCreateDirectory={onCreateDirectory}
+          onRenameDirectory={onRenameDirectory}
+          onDeleteDirectory={onDeleteDirectory}
+          onMoveDirectory={onMoveDirectory}
+          onMoveTask={onPlaceTask}
+        />
       ) : (
-        <div className="empty-panel">
-          {viewMode === "quadrant"
-            ? "四象限视图暂未接通，本轮继续以列表作为唯一真实输入面。"
-            : "聚类视图暂未接通，等待分组规则和交互边界明确后再接。"}
-        </div>
+        <TaskPoolCanvasView
+          tasks={tasks}
+          organization={organization}
+          onOpenTask={onOpenTask}
+          onUpdateNode={onUpdateCanvasNode}
+          onResetLayout={onResetCanvasLayout}
+        />
       )}
     </section>
   );
