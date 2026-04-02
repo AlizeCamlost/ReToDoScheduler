@@ -16,17 +16,25 @@
 
 ### 2.1 Web
 
+1. 可选：先用 `.env` 预填默认值
+
 ```bash
 cp apps/web/.env.example apps/web/.env
 ```
 
-在 `apps/web/.env` 中设置：
+在 `apps/web/.env` 中可选设置：
 
 ```text
+VITE_API_BASE_URL=<server-base-url>
 VITE_API_AUTH_TOKEN=<与服务端一致的 token>
 ```
 
-如果切换服务端地址，还要同步检查 Web 端当前使用的 API Base URL 配置。
+2. 打开 Web `任务池` 页，进入 `设置`
+3. 在浏览器内确认或修改：
+   - `API Base URL`
+   - `API Auth Token`
+   - `Device ID（留空自动生成）`
+4. 点击保存；这些值会写入浏览器本地存储，刷新页面后仍会保留
 
 ### 2.2 iPhone
 
@@ -84,6 +92,7 @@ curl -H "Authorization: Bearer <API_AUTH_TOKEN>" <server-base-url>/v1/tasks
 
 - token 不一致
 - 修改 token 后未重新触发同步
+- Web 端浏览器本地存储里保留了旧 token，需要在 Web `设置` 中更新
 
 ### 同步结果与预期不一致
 

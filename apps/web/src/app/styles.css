@@ -1804,6 +1804,29 @@ select {
   cursor: pointer;
 }
 
+.settings-status-card {
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  background: rgba(249, 247, 243, 0.9);
+  padding: 14px 16px;
+}
+
+.settings-status-card.state-syncing {
+  border-color: rgba(62, 107, 216, 0.24);
+  background: rgba(62, 107, 216, 0.08);
+}
+
+.settings-status-card.state-error {
+  border-color: rgba(196, 84, 82, 0.24);
+  background: rgba(196, 84, 82, 0.08);
+}
+
+.settings-status-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
 /* ── Tag input ── */
 
 .tag-input-area {

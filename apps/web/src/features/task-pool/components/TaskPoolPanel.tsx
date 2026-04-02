@@ -11,6 +11,7 @@ interface TaskPoolPanelProps {
   syncMessage: string;
   isSyncing: boolean;
   onRefresh: () => void;
+  onOpenSyncSettings: () => void;
   onExport: () => void;
   onImport: (file: File | null) => Promise<void>;
   onOpenDetail: (task: Task) => void;
@@ -26,6 +27,7 @@ export default function TaskPoolPanel({
   syncMessage,
   isSyncing,
   onRefresh,
+  onOpenSyncSettings,
   onExport,
   onImport,
   onOpenDetail,
@@ -59,6 +61,9 @@ export default function TaskPoolPanel({
         <div className="toolbar compact-toolbar">
           <button className="btn-text" onClick={onRefresh} disabled={isSyncing}>
             {isSyncing ? "同步中" : "刷新"}
+          </button>
+          <button className="btn-text" onClick={onOpenSyncSettings}>
+            设置
           </button>
           <button className="btn-text" onClick={onExport}>
             导出

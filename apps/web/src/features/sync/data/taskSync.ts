@@ -1,10 +1,22 @@
-import { makeTask, sortNornTasks, type Task } from "@retodo/core";
-import { API_AUTH_TOKEN } from "../../../shared/config/env";
+import {
+  makeTask,
+  normalizeTaskPoolOrganizationDocument,
+  parseTaskPoolOrganizationDocument,
+  sortNornTasks,
+  type Task,
+  type TaskPoolOrganizationDocument
+} from "@retodo/core";
+import type { WebSyncSettings } from "../../../shared/storage/syncSettingsStore";
 
 const buildUrl = (baseUrl: string, path: string): string => {
   const normalized = baseUrl.trim().replace(/\/+$/, "");
   return `${normalized}${path}`;
 };
+
+export interface TaskSyncSnapshot {
+  tasks: Task[];
+  taskPoolOrganization: TaskPoolOrganizationDocument | null;
+}
 
 export const mergeByLww = (localTasks: Task[], remoteTasks: Task[]): Task[] => {
   const merged = new Map<string, Task>();
@@ -28,6 +40,19 @@ export const mergeByLww = (localTasks: Task[], remoteTasks: Task[]): Task[] => {
   }
 
   return sortNornTasks([...merged.values()]);
+};
+
+export const mergeTaskPoolOrganizationByLww = (
+  local: TaskPoolOrganizationDocument,
+  remote: TaskPoolOrganizationDocument | null
+): TaskPoolOrganizationDocument => {
+  if (!remote) {
+    return normalizeTaskPoolOrganizationDocument(local);
+  }
+
+  const localTime = new Date(local.updatedAt).getTime();
+  const remoteTime = new Date(remote.updatedAt).getTime();
+  return normalizeTaskPoolOrganizationDocument(remoteTime >= localTime ? remote : local);
 };
 
 const parseItems = (payload: unknown): Task[] => {
@@ -76,38 +101,55 @@ const parseItems = (payload: unknown): Task[] => {
     });
 };
 
-export const pullRemoteTasks = async (baseUrl: string): Promise<Task[]> => {
-  if (!API_AUTH_TOKEN) {
-    throw new Error("Missing VITE_API_AUTH_TOKEN");
+const parseSnapshot = (payload: unknown): TaskSyncSnapshot => {
+  if (!payload || typeof payload !== "object") {
+    return { tasks: [], taskPoolOrganization: null };
   }
-  const response = await fetch(buildUrl(baseUrl, "/v1/tasks"), {
+
+  const data = payload as { taskPoolOrganization?: unknown };
+  return {
+    tasks: parseItems(payload),
+    taskPoolOrganization: parseTaskPoolOrganizationDocument(data.taskPoolOrganization) ?? null
+  };
+};
+
+const assertConfigured = (settings: WebSyncSettings): void => {
+  if (!settings.baseUrl.trim() || !settings.authToken.trim()) {
+    throw new Error("Sync settings are incomplete");
+  }
+};
+
+export const pullRemoteTasks = async (settings: WebSyncSettings): Promise<TaskSyncSnapshot> => {
+  assertConfigured(settings);
+
+  const response = await fetch(buildUrl(settings.baseUrl, "/v1/tasks"), {
     headers: {
-      authorization: `Bearer ${API_AUTH_TOKEN}`
+      authorization: `Bearer ${settings.authToken}`
     }
   });
   if (!response.ok) {
     throw new Error(`Pull failed (${response.status})`);
   }
-  return parseItems(await response.json());
+  return parseSnapshot(await response.json());
 };
 
 export const pushAndPullTasks = async (
-  baseUrl: string,
-  deviceId: string,
-  tasks: Task[]
-): Promise<Task[]> => {
-  if (!API_AUTH_TOKEN) {
-    throw new Error("Missing VITE_API_AUTH_TOKEN");
-  }
-  const response = await fetch(buildUrl(baseUrl, "/v1/tasks/sync"), {
+  settings: WebSyncSettings,
+  tasks: Task[],
+  taskPoolOrganization: TaskPoolOrganizationDocument
+): Promise<TaskSyncSnapshot> => {
+  assertConfigured(settings);
+
+  const response = await fetch(buildUrl(settings.baseUrl, "/v1/tasks/sync"), {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${API_AUTH_TOKEN}`
+      authorization: `Bearer ${settings.authToken}`
     },
     body: JSON.stringify({
-      deviceId,
-      tasks
+      deviceId: settings.deviceId,
+      tasks,
+      taskPoolOrganization
     })
   });
 
@@ -115,5 +157,5 @@ export const pushAndPullTasks = async (
     throw new Error(`Sync failed (${response.status})`);
   }
 
-  return parseItems(await response.json());
+  return parseSnapshot(await response.json());
 };

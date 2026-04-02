@@ -1,3 +1,4 @@
+import SyncSettingsModal from "../features/settings/components/SyncSettingsModal";
 import QuickAddDock from "../features/sequence/components/QuickAddDock";
 import SequenceTab from "../features/sequence/components/SequenceTab";
 import SchedulePanel from "../features/schedule/components/SchedulePanel";
@@ -52,10 +53,15 @@ function App() {
 
             <div className="sync-area shell-sync-area">
               <span
-                className={`sync-dot ${controller.isSyncing ? "syncing" : controller.syncMessage.startsWith("同步失败") || controller.syncMessage.startsWith("拉取失败") ? "error" : ""}`}
+                className={`sync-dot ${controller.syncState === "syncing" ? "syncing" : controller.syncState === "error" ? "error" : ""}`}
               />
               <span className="sync-text">{controller.syncMessage}</span>
-              <button className="btn-icon subtle" onClick={() => void controller.performSync()} disabled={controller.isSyncing} title="立即同步">
+              <button
+                className="btn-icon subtle"
+                onClick={() => void controller.performSync()}
+                disabled={controller.isSyncing || !controller.isSyncConfigured}
+                title={controller.isSyncConfigured ? "立即同步" : "先在任务池设置同步"}
+              >
                 {controller.isSyncing ? "..." : "↻"}
               </button>
             </div>
@@ -133,6 +139,7 @@ function App() {
               syncMessage={controller.syncMessage}
               isSyncing={controller.isSyncing}
               onRefresh={() => void controller.performSync()}
+              onOpenSyncSettings={controller.openSyncSettings}
               onExport={controller.exportMarkdown}
               onImport={controller.importMarkdownFile}
               onOpenDetail={controller.openTaskDetail}
@@ -174,6 +181,17 @@ function App() {
           onPromoteToDoing={() => controller.promoteTaskToDoing(controller.selectedTask!.id)}
           onAddStep={(title) => controller.appendTaskStep(controller.selectedTask!.id, title)}
           onCompleteCurrentStep={(stepId) => controller.completeTaskStep(controller.selectedTask!.id, stepId)}
+        />
+      )}
+
+      {controller.isSyncSettingsOpen && (
+        <SyncSettingsModal
+          settings={controller.syncSettings}
+          hideCompletedTasks={controller.hideCompletedTasks}
+          syncMessage={controller.syncMessage}
+          syncState={controller.syncState}
+          onSave={controller.saveSyncSettings}
+          onClose={controller.closeSyncSettings}
         />
       )}
     </main>
