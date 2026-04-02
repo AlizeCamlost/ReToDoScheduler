@@ -4,6 +4,7 @@ import {
   buildQuickTask,
   buildSchedulePresentation,
   completeTaskStep as completeTaskStepOnTask,
+  createTasksFromSequence,
   createDefaultTaskPoolOrganizationDocument,
   getCurrentTaskStep,
   makeTask,
@@ -40,6 +41,11 @@ import { createId } from "../shared/utils/createId";
 export type WebAppTab = "sequence" | "schedule" | "taskPool";
 export type WebSyncState = "idle" | "syncing" | "error" | "notConfigured";
 
+export interface WebTaskSequenceDraft {
+  title: string;
+  entries: string[];
+}
+
 export interface WebAppController {
   currentTab: WebAppTab;
   setCurrentTab: (tab: WebAppTab) => void;
@@ -52,6 +58,10 @@ export interface WebAppController {
   openTaskEditor: (task: Task) => void;
   closeTaskEditor: () => void;
   openQuickAddEditor: () => void;
+  taskSequenceDraft: WebTaskSequenceDraft | null;
+  openQuickAddSequence: () => void;
+  closeTaskSequence: () => void;
+  saveTaskSequenceDraft: (draft: WebTaskSequenceDraft) => void;
   horizonDays: number;
   setHorizonDays: (days: number) => void;
   searchQuery: string;
@@ -81,6 +91,7 @@ export interface WebAppController {
   performSync: () => Promise<void>;
   toggleDone: (taskId: string) => void;
   archiveTask: (taskId: string) => void;
+  deleteTask: (taskId: string) => void;
   promoteTaskToDoing: (taskId: string) => void;
   appendTaskStep: (taskId: string, title: string) => void;
   completeTaskStep: (taskId: string, stepId: string) => void;
@@ -145,6 +156,7 @@ export const useWebAppController = (): WebAppController => {
   const [quickInput, setQuickInput] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [taskSequenceDraft, setTaskSequenceDraft] = useState<WebTaskSequenceDraft | null>(null);
   const [horizonDays, setHorizonDays] = useState<number>(7);
   const [searchQuery, setSearchQuery] = useState("");
   const [templateOpen, setTemplateOpen] = useState(false);
@@ -369,6 +381,22 @@ export const useWebAppController = (): WebAppController => {
     [editingTask?.id, mutateTask, selectedTaskId]
   );
 
+  const deleteTask = useCallback(
+    (taskId: string) => {
+      const nextTasks = tasksRef.current.filter((task) => task.id !== taskId);
+      if (nextTasks.length === tasksRef.current.length) return;
+
+      commitState(nextTasks);
+      if (selectedTaskId === taskId) {
+        setSelectedTaskId(null);
+      }
+      if (editingTask?.id === taskId) {
+        setEditingTask(null);
+      }
+    },
+    [commitState, editingTask?.id, selectedTaskId]
+  );
+
   const promoteTaskToDoing = useCallback(
     (taskId: string) => {
       mutateTask(taskId, (task) => setTaskStatus(task, "doing", nowIso()));
@@ -426,6 +454,26 @@ export const useWebAppController = (): WebAppController => {
 
       const imported = lines.map((line) => buildQuickTask(createId(), line));
       commitState([...imported, ...tasksRef.current]);
+    },
+    [commitState]
+  );
+
+  const saveTaskSequenceDraft = useCallback(
+    (draft: WebTaskSequenceDraft) => {
+      const createdTasks = createTasksFromSequence({
+        title: draft.title,
+        rawInputs: draft.entries,
+        taskIdGenerator: createId,
+        bundleIdGenerator: createId
+      });
+
+      if (createdTasks.length === 0) {
+        setTaskSequenceDraft(null);
+        return;
+      }
+
+      commitState([...createdTasks, ...tasksRef.current]);
+      setTaskSequenceDraft(null);
     },
     [commitState]
   );
@@ -498,9 +546,22 @@ export const useWebAppController = (): WebAppController => {
     closeTaskEditor: () => setEditingTask(null),
     openQuickAddEditor: () => {
       setSelectedTaskId(null);
+      setTaskSequenceDraft(null);
       setEditingTask(buildQuickTaskSeed(quickInput));
       setQuickInput("");
     },
+    taskSequenceDraft,
+    openQuickAddSequence: () => {
+      setSelectedTaskId(null);
+      setEditingTask(null);
+      setTaskSequenceDraft({
+        title: "",
+        entries: [quickInput.trim() || ""]
+      });
+      setQuickInput("");
+    },
+    closeTaskSequence: () => setTaskSequenceDraft(null),
+    saveTaskSequenceDraft,
     horizonDays,
     setHorizonDays,
     searchQuery,
@@ -530,6 +591,7 @@ export const useWebAppController = (): WebAppController => {
     performSync: () => performSyncWithState(),
     toggleDone,
     archiveTask,
+    deleteTask,
     promoteTaskToDoing,
     appendTaskStep,
     completeTaskStep,

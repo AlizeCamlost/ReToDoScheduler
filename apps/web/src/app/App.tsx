@@ -1,6 +1,7 @@
 import SyncSettingsModal from "../features/settings/components/SyncSettingsModal";
 import QuickAddDock from "../features/sequence/components/QuickAddDock";
 import SequenceTab from "../features/sequence/components/SequenceTab";
+import TaskSequenceModal from "../features/sequence/components/TaskSequenceModal";
 import SchedulePanel from "../features/schedule/components/SchedulePanel";
 import TaskDetailModal from "../features/task-detail/components/TaskDetailModal";
 import TaskEditModal from "../features/task-pool/components/TaskEditModal";
@@ -88,6 +89,10 @@ function App() {
               nextTasks={controller.nextTasks}
               getCurrentStepForTask={controller.getCurrentStepForTask}
               onTaskTap={controller.openTaskDetail}
+              onTaskComplete={(task) => controller.toggleDone(task.id)}
+              onTaskEdit={controller.openTaskEditor}
+              onTaskArchive={(task) => controller.archiveTask(task.id)}
+              onTaskDelete={(task) => controller.deleteTask(task.id)}
               onReorderPrimarySequence={controller.reorderPrimarySequence}
             />
           )}
@@ -157,6 +162,7 @@ function App() {
             onChange={controller.setQuickInput}
             onSubmit={controller.addTask}
             onOpenDetail={controller.openQuickAddEditor}
+            onOpenSequence={controller.openQuickAddSequence}
           />
         </>
       )}
@@ -167,6 +173,14 @@ function App() {
           allTasks={controller.visibleTasks}
           onSave={controller.saveEditedTask}
           onClose={controller.closeTaskEditor}
+        />
+      )}
+
+      {controller.taskSequenceDraft && (
+        <TaskSequenceModal
+          draft={controller.taskSequenceDraft}
+          onSave={controller.saveTaskSequenceDraft}
+          onClose={controller.closeTaskSequence}
         />
       )}
 

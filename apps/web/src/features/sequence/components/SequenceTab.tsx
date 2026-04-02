@@ -1,5 +1,6 @@
 import { type Task } from "@retodo/core";
 import { useEffect, useMemo, useState } from "react";
+import TaskBundleBadge from "./TaskBundleBadge";
 
 interface SequenceTabProps {
   focusedTask: Task | null;
@@ -7,8 +8,15 @@ interface SequenceTabProps {
   nextTasks: Task[];
   getCurrentStepForTask: (task: Task) => Task["steps"][number] | null;
   onTaskTap: (task: Task) => void;
+  onTaskComplete: (task: Task) => void;
+  onTaskEdit: (task: Task) => void;
+  onTaskArchive: (task: Task) => void;
+  onTaskDelete: (task: Task) => void;
   onReorderPrimarySequence: (orderedTaskIds: string[]) => void;
 }
+
+const PRIMARY_SEQUENCE_LIMIT = 7;
+const NEXT_TASK_SUMMARY_LIMIT = 5;
 
 const statusLabel = (status: Task["status"]): string => {
   switch (status) {
@@ -55,15 +63,21 @@ export default function SequenceTab({
   nextTasks,
   getCurrentStepForTask,
   onTaskTap,
+  onTaskComplete,
+  onTaskEdit,
+  onTaskArchive,
+  onTaskDelete,
   onReorderPrimarySequence
 }: SequenceTabProps) {
   const primarySignature = useMemo(() => primarySequenceTasks.map((task) => task.id).join("|"), [primarySequenceTasks]);
   const [orderedPrimaryIds, setOrderedPrimaryIds] = useState<string[]>(() => primarySequenceTasks.map((task) => task.id));
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     setOrderedPrimaryIds(primarySequenceTasks.map((task) => task.id));
     setDraggingTaskId(null);
+    setIsEditing(false);
   }, [primarySignature, primarySequenceTasks]);
 
   const orderedPrimaryTasks = useMemo(() => {
@@ -74,10 +88,33 @@ export default function SequenceTab({
     return [...ordered, ...missing];
   }, [orderedPrimaryIds, primarySequenceTasks]);
 
+  const displayedPrimaryTasks = useMemo(
+    () => orderedPrimaryTasks.slice(0, PRIMARY_SEQUENCE_LIMIT),
+    [orderedPrimaryTasks]
+  );
+  const overflowPrimaryTasks = useMemo(
+    () => orderedPrimaryTasks.slice(PRIMARY_SEQUENCE_LIMIT),
+    [orderedPrimaryTasks]
+  );
+  const combinedNextTasks = useMemo(
+    () => [...overflowPrimaryTasks, ...nextTasks],
+    [nextTasks, overflowPrimaryTasks]
+  );
+  const summarizedNextTasks = useMemo(
+    () => combinedNextTasks.slice(0, NEXT_TASK_SUMMARY_LIMIT),
+    [combinedNextTasks]
+  );
+
   const commitPrimaryOrder = () => {
     const currentOrder = primarySequenceTasks.map((task) => task.id);
     if (currentOrder.join("|") === orderedPrimaryIds.join("|")) return;
     onReorderPrimarySequence(orderedPrimaryIds);
+  };
+
+  const finishEditing = () => {
+    commitPrimaryOrder();
+    setDraggingTaskId(null);
+    setIsEditing(false);
   };
 
   return (
@@ -89,7 +126,7 @@ export default function SequenceTab({
         </div>
 
         {focusedTask ? (
-          <button className="focus-card" onClick={() => onTaskTap(focusedTask)}>
+          <button className="focus-card" onClick={() => (isEditing ? finishEditing() : onTaskTap(focusedTask))}>
             <div className="focus-card-header">
               <div>
                 <div className="focus-card-eyebrow">当前聚焦</div>
@@ -105,6 +142,8 @@ export default function SequenceTab({
               <span className="soft-chip">最小块 {focusedTask.minChunkMinutes} 分钟</span>
               {dueLabel(focusedTask.dueAt) && <span className="soft-chip">{dueLabel(focusedTask.dueAt)}</span>}
             </div>
+
+            <TaskBundleBadge task={focusedTask} />
 
             {getCurrentStepForTask(focusedTask) && (
               <div className="step-preview regular">
@@ -126,66 +165,127 @@ export default function SequenceTab({
       </section>
 
       <section className="sequence-section">
-        <div className="sequence-section-heading">
-          <div className="sequence-section-title">主序列</div>
-          <div className="sequence-section-detail">按拖拽顺序表达你想优先推进的执行队列。</div>
+        <div className="sequence-section-head">
+          <div className="sequence-section-heading">
+            <div className="sequence-section-title">当前序列</div>
+            <div className="sequence-section-detail">
+              {isEditing
+                ? "拖拽排序，并直接在卡片内完成、编辑、归档或删除。"
+                : "浏览态只点按；进入编辑后才允许重排和动作。"}
+            </div>
+          </div>
+
+          <button className={`sequence-section-action${isEditing ? " editing" : ""}`} onClick={() => (isEditing ? finishEditing() : setIsEditing(true))}>
+            {isEditing ? "完成编辑" : "编辑当前序列"}
+          </button>
         </div>
 
-        {orderedPrimaryTasks.length === 0 ? (
-          <div className="sequence-empty-card">没有进入主序列的任务。Quick Add 新建后会先落到这里。</div>
+        {displayedPrimaryTasks.length === 0 ? (
+          <div className="sequence-empty-card">当前序列暂时为空。Quick Add 新建后会先进入这里。</div>
         ) : (
           <div className="primary-sequence-list">
-            {orderedPrimaryTasks.map((task, index) => {
+            {displayedPrimaryTasks.map((task, index) => {
               const currentStep = getCurrentStepForTask(task);
+              const cardContent = (
+                <>
+                  <div className="sequence-card-header">
+                    <div className="sequence-card-title-group">
+                      {isEditing && <span className="drag-indicator">⋮⋮</span>}
+                      <div className="sequence-card-title">{task.title}</div>
+                    </div>
+                    <span className={`status-pill status-${task.status}`}>{statusLabel(task.status)}</span>
+                  </div>
+
+                  <div className="sequence-card-meta">
+                    <span>估时 {task.estimatedMinutes} 分钟</span>
+                    {dueLabel(task.dueAt) && <span>{dueLabel(task.dueAt)}</span>}
+                    {task.tags.slice(0, 2).map((tag) => (
+                      <span key={tag}>#{tag}</span>
+                    ))}
+                  </div>
+
+                  <TaskBundleBadge task={task} />
+
+                  {currentStep && (
+                    <div className="step-preview compact">
+                      <div className="step-preview-label">当前步骤</div>
+                      <div className="step-preview-title">{currentStep.title}</div>
+                      <div className="step-preview-meta">
+                        {task.steps.findIndex((step) => step.id === currentStep.id) + 1}/{task.steps.length}
+                      </div>
+                    </div>
+                  )}
+
+                  {isEditing && (
+                    <div className="sequence-card-actions">
+                      <button type="button" className="sequence-card-action" onClick={() => {
+                        onTaskComplete(task);
+                        finishEditing();
+                      }}>
+                        完成
+                      </button>
+                      <button type="button" className="sequence-card-action" onClick={() => {
+                        onTaskEdit(task);
+                        setDraggingTaskId(null);
+                        setIsEditing(false);
+                      }}>
+                        编辑
+                      </button>
+                      <button type="button" className="sequence-card-action" onClick={() => {
+                        onTaskArchive(task);
+                        finishEditing();
+                      }}>
+                        归档
+                      </button>
+                      <button type="button" className="sequence-card-action danger" onClick={() => {
+                        if (window.confirm("删除这个任务？该操作不可恢复。")) {
+                          onTaskDelete(task);
+                          finishEditing();
+                        }
+                      }}>
+                        删除
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+
               return (
                 <article
                   key={task.id}
                   className={`timeline-row${draggingTaskId === task.id ? " dragging" : ""}`}
-                  draggable
+                  draggable={isEditing}
                   onDragStart={(event) => {
+                    if (!isEditing) return;
                     event.dataTransfer.effectAllowed = "move";
                     event.dataTransfer.setData("text/plain", task.id);
                     setDraggingTaskId(task.id);
                   }}
                   onDragOver={(event) => {
+                    if (!isEditing) return;
                     event.preventDefault();
                     if (!draggingTaskId || draggingTaskId === task.id) return;
                     setOrderedPrimaryIds((current) => moveTaskId(current, draggingTaskId, task.id));
                   }}
                   onDragEnd={() => {
+                    if (!isEditing) return;
                     commitPrimaryOrder();
                     setDraggingTaskId(null);
                   }}
                 >
-                  <div className={`timeline-marker marker-${index === 0 ? "first" : index === orderedPrimaryTasks.length - 1 ? "last" : "middle"}`}>
+                  <div className={`timeline-marker marker-${index === 0 ? "first" : index === displayedPrimaryTasks.length - 1 ? "last" : "middle"}`}>
                     <span className={`timeline-node status-${task.status}`} />
                   </div>
 
-                  <button className="sequence-card primary" onClick={() => onTaskTap(task)}>
-                    <div className="sequence-card-header">
-                      <span className="drag-indicator">⋮⋮</span>
-                      <div className="sequence-card-title">{task.title}</div>
-                      <span className={`status-pill status-${task.status}`}>{statusLabel(task.status)}</span>
+                  {isEditing ? (
+                    <div className="sequence-card primary editing">
+                      {cardContent}
                     </div>
-
-                    <div className="sequence-card-meta">
-                      <span>估时 {task.estimatedMinutes} 分钟</span>
-                      {dueLabel(task.dueAt) && <span>{dueLabel(task.dueAt)}</span>}
-                      {task.tags.slice(0, 2).map((tag) => (
-                        <span key={tag}>#{tag}</span>
-                      ))}
-                    </div>
-
-                    {currentStep && (
-                      <div className="step-preview compact">
-                        <div className="step-preview-label">当前步骤</div>
-                        <div className="step-preview-title">{currentStep.title}</div>
-                        <div className="step-preview-meta">
-                          {task.steps.findIndex((step) => step.id === currentStep.id) + 1}/{task.steps.length}
-                        </div>
-                      </div>
-                    )}
-                  </button>
+                  ) : (
+                    <button className="sequence-card primary" onClick={() => onTaskTap(task)}>
+                      {cardContent}
+                    </button>
+                  )}
                 </article>
               );
             })}
@@ -196,26 +296,30 @@ export default function SequenceTab({
       <section className="sequence-section">
         <div className="sequence-section-heading">
           <div className="sequence-section-title">接下来</div>
-          <div className="sequence-section-detail">不急着塞进主序列的任务先留在这里，避免把当前视野挤爆。</div>
+          <div className="sequence-section-detail">主序列之外的待办会先在这里简略出现，不打断当前视野。</div>
         </div>
 
-        {nextTasks.length === 0 ? (
+        {combinedNextTasks.length === 0 ? (
           <div className="sequence-empty-card muted">接下来区域暂时为空，说明当前任务大多都已被纳入主序列。</div>
         ) : (
-          <div className="next-sequence-grid">
-            {nextTasks.map((task) => (
-              <button key={task.id} className="sequence-card next" onClick={() => onTaskTap(task)}>
-                <div className="sequence-card-header">
-                  <div className="sequence-card-title">{task.title}</div>
-                  {dueLabel(task.dueAt) && <span className="soft-badge">{dueLabel(task.dueAt)}</span>}
-                </div>
-
-                <div className="sequence-card-meta">
-                  <span>{task.estimatedMinutes} 分钟</span>
-                  <span>{task.tags.slice(0, 2).map((tag) => `#${tag}`).join(" ") || "尚未添加标签"}</span>
-                </div>
+          <div className="next-tasks-summary">
+            {summarizedNextTasks.map((task) => (
+              <button key={task.id} className="next-task-row" onClick={() => onTaskTap(task)}>
+                <span className={`next-task-dot status-${task.status}`} />
+                <span className="next-task-copy">
+                  <span className="next-task-title">{task.title}</span>
+                  <span className="next-task-meta">
+                    {[dueLabel(task.dueAt), `${task.estimatedMinutes} 分钟`, task.tags.slice(0, 2).map((tag) => `#${tag}`).join(" ") || null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </span>
               </button>
             ))}
+
+            {combinedNextTasks.length > NEXT_TASK_SUMMARY_LIMIT && (
+              <div className="helper-text">还有 {combinedNextTasks.length - NEXT_TASK_SUMMARY_LIMIT} 项等待进入当前序列。</div>
+            )}
           </div>
         )}
       </section>

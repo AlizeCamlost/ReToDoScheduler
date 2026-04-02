@@ -364,6 +364,13 @@ select {
   gap: 4px;
 }
 
+.sequence-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .sequence-section-title {
   font-size: 1.05rem;
   font-weight: 700;
@@ -373,6 +380,23 @@ select {
 .sequence-section-detail {
   font-size: 0.84rem;
   color: var(--text-secondary);
+}
+
+.sequence-section-action {
+  border: none;
+  border-radius: 999px;
+  background: rgba(33, 30, 26, 0.08);
+  color: var(--text);
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sequence-section-action.editing {
+  background: var(--primary);
+  color: #fff;
 }
 
 .focus-card,
@@ -401,6 +425,12 @@ select {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.sequence-card-title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .focus-card-eyebrow {
@@ -489,6 +519,24 @@ select {
 
 .step-preview.compact {
   margin-top: 12px;
+}
+
+.task-bundle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(33, 30, 26, 0.06);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  max-width: fit-content;
+}
+
+.task-bundle-icon {
+  font-size: 0.72rem;
 }
 
 .step-preview-label {
@@ -599,6 +647,10 @@ select {
   padding: 16px 18px;
 }
 
+.sequence-card.editing {
+  cursor: default;
+}
+
 .sequence-card.primary {
   min-height: 112px;
 }
@@ -611,6 +663,7 @@ select {
   color: var(--text-tertiary);
   letter-spacing: -0.08em;
   user-select: none;
+  padding-top: 2px;
 }
 
 .sequence-card-meta {
@@ -619,10 +672,131 @@ select {
   color: var(--text-secondary);
 }
 
-.next-sequence-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+.sequence-card-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
+}
+
+.sequence-card-action {
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text);
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sequence-card-action.danger,
+.danger-text {
+  color: var(--danger);
+}
+
+.next-tasks-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.next-task-row {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  background: rgba(249, 247, 243, 0.92);
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.next-task-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.next-task-dot.status-todo {
+  background: var(--primary);
+}
+
+.next-task-dot.status-doing {
+  background: var(--success);
+}
+
+.next-task-dot.status-done {
+  background: #75839b;
+}
+
+.next-task-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.next-task-title {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.next-task-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.sequence-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sequence-entry-card {
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  background: rgba(249, 247, 243, 0.92);
+  padding: 14px;
+}
+
+.sequence-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sequence-entry-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.sequence-entry-input {
+  min-height: 84px;
+}
+
+.sequence-entry-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 
 /* ── Layout ── */

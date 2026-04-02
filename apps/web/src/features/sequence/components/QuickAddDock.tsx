@@ -5,9 +5,10 @@ interface QuickAddDockProps {
   onChange: (value: string) => void;
   onSubmit: () => void;
   onOpenDetail: () => void;
+  onOpenSequence: () => void;
 }
 
-export default function QuickAddDock({ value, onChange, onSubmit, onOpenDetail }: QuickAddDockProps) {
+export default function QuickAddDock({ value, onChange, onSubmit, onOpenDetail, onOpenSequence }: QuickAddDockProps) {
   const [focused, setFocused] = useState(false);
   const isExpanded = focused || value.trim().length > 0;
   const canSubmit = value.trim().length > 0;
@@ -35,6 +36,9 @@ export default function QuickAddDock({ value, onChange, onSubmit, onOpenDetail }
         <div className={`quick-add-actions${isExpanded ? " visible" : ""}`}>
           <button className="quick-add-secondary" onClick={onOpenDetail}>
             详情
+          </button>
+          <button className="quick-add-secondary" onClick={onOpenSequence}>
+            序列
           </button>
           <button className="quick-add-primary" onClick={onSubmit} disabled={!canSubmit}>
             ↑

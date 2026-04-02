@@ -34,12 +34,15 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口：
 ### 3.1 Sequence
 
 - 顶部显示当前 `doing` 任务作为“当前聚焦”。
-- 主序列显示 `doing` 任务和近 horizon 的 `todo` 任务。
-- 主序列支持拖拽重排，并把顺序写回 `Task.extJson.norn.sequenceRank`。
-- “接下来”区域承载不急于进入主序列的 `todo` 任务。
+- 主序列仍以 `doing` + 近 horizon `todo` 组成，但当前序列默认只保留最优先的 7 项。
+- Web 不再在浏览态直接挂拖拽；当前序列改成显式“编辑当前序列”入口，进入后才允许拖拽重排，并把顺序写回 `Task.extJson.norn.sequenceRank`。
+- 编辑态直接在卡片内承载完成、编辑、归档、删除动作，而不是在浏览态混入拖拽或列表动作。
+- “接下来”区域改成摘要卡，承载超出前 7 项的近 horizon 任务，以及更后面的 `todo` 任务。
 - Quick Add dock 只在 Sequence 页底部出现，并提供：
   - 直接提交 quick add
   - 把当前 quick input 提升成详细新建表单
+  - 把当前 quick input 提升成任务序列批量录入表单
+- 批量录入后的任务会共享 `task bundle` 元数据，但当前仍按单卡展示，不折叠成组卡。
 
 ### 3.2 Task Detail / Editor
 
