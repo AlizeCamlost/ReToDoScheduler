@@ -1,5 +1,7 @@
+import SyncSettingsModal from "../features/settings/components/SyncSettingsModal";
 import QuickAddDock from "../features/sequence/components/QuickAddDock";
 import SequenceTab from "../features/sequence/components/SequenceTab";
+import TaskSequenceModal from "../features/sequence/components/TaskSequenceModal";
 import SchedulePanel from "../features/schedule/components/SchedulePanel";
 import TaskDetailModal from "../features/task-detail/components/TaskDetailModal";
 import TaskEditModal from "../features/task-pool/components/TaskEditModal";
@@ -52,12 +54,9 @@ function App() {
 
             <div className="sync-area shell-sync-area">
               <span
-                className={`sync-dot ${controller.isSyncing ? "syncing" : controller.syncMessage.startsWith("同步失败") || controller.syncMessage.startsWith("拉取失败") ? "error" : ""}`}
+                className={`sync-dot ${controller.syncState === "syncing" ? "syncing" : controller.syncState === "error" ? "error" : ""}`}
               />
               <span className="sync-text">{controller.syncMessage}</span>
-              <button className="btn-icon subtle" onClick={() => void controller.performSync()} disabled={controller.isSyncing} title="立即同步">
-                {controller.isSyncing ? "..." : "↻"}
-              </button>
             </div>
           </div>
         </header>
@@ -82,6 +81,10 @@ function App() {
               nextTasks={controller.nextTasks}
               getCurrentStepForTask={controller.getCurrentStepForTask}
               onTaskTap={controller.openTaskDetail}
+              onTaskComplete={(task) => controller.toggleDone(task.id)}
+              onTaskEdit={controller.openTaskEditor}
+              onTaskArchive={(task) => controller.archiveTask(task.id)}
+              onTaskDelete={(task) => controller.deleteTask(task.id)}
               onReorderPrimarySequence={controller.reorderPrimarySequence}
             />
           )}
@@ -126,17 +129,21 @@ function App() {
           {controller.currentTab === "taskPool" && (
             <TaskPoolPanel
               tasks={controller.filteredTasks}
-              searchQuery={controller.searchQuery}
-              onSearchQueryChange={controller.setSearchQuery}
-              onToggleDone={controller.toggleDone}
-              onArchive={controller.archiveTask}
+              organization={controller.taskPoolOrganization}
               syncMessage={controller.syncMessage}
               isSyncing={controller.isSyncing}
               onRefresh={() => void controller.performSync()}
+              onOpenSyncSettings={controller.openSyncSettings}
               onExport={controller.exportMarkdown}
               onImport={controller.importMarkdownFile}
-              onOpenDetail={controller.openTaskDetail}
-              onEdit={controller.openTaskEditor}
+              onOpenTask={controller.openTaskDetail}
+              onCreateDirectory={controller.createTaskPoolDirectory}
+              onRenameDirectory={controller.renameTaskPoolDirectory}
+              onDeleteDirectory={controller.deleteTaskPoolDirectory}
+              onMoveDirectory={controller.moveTaskPoolDirectory}
+              onPlaceTask={controller.placeTaskInTaskPool}
+              onUpdateCanvasNode={controller.updateTaskPoolCanvasNode}
+              onResetCanvasLayout={controller.resetTaskPoolCanvasLayout}
             />
           )}
         </section>
@@ -150,6 +157,7 @@ function App() {
             onChange={controller.setQuickInput}
             onSubmit={controller.addTask}
             onOpenDetail={controller.openQuickAddEditor}
+            onOpenSequence={controller.openQuickAddSequence}
           />
         </>
       )}
@@ -160,6 +168,14 @@ function App() {
           allTasks={controller.visibleTasks}
           onSave={controller.saveEditedTask}
           onClose={controller.closeTaskEditor}
+        />
+      )}
+
+      {controller.taskSequenceDraft && (
+        <TaskSequenceModal
+          draft={controller.taskSequenceDraft}
+          onSave={controller.saveTaskSequenceDraft}
+          onClose={controller.closeTaskSequence}
         />
       )}
 
@@ -174,6 +190,17 @@ function App() {
           onPromoteToDoing={() => controller.promoteTaskToDoing(controller.selectedTask!.id)}
           onAddStep={(title) => controller.appendTaskStep(controller.selectedTask!.id, title)}
           onCompleteCurrentStep={(stepId) => controller.completeTaskStep(controller.selectedTask!.id, stepId)}
+        />
+      )}
+
+      {controller.isSyncSettingsOpen && (
+        <SyncSettingsModal
+          settings={controller.syncSettings}
+          hideCompletedTasks={controller.hideCompletedTasks}
+          syncMessage={controller.syncMessage}
+          syncState={controller.syncState}
+          onSave={controller.saveSyncSettings}
+          onClose={controller.closeSyncSettings}
         />
       )}
     </main>

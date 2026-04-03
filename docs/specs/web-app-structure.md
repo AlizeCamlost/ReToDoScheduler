@@ -1,6 +1,6 @@
 # Web App 结构与交互对齐
 
-最后更新：2026-03-25
+最后更新：2026-04-02
 
 相关文档：
 
@@ -25,7 +25,7 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口：
 
 - `Sequence`：当前聚焦、主序列、接下来，以及只在该页出现的 Quick Add dock
 - `Schedule`：时间模板编辑与按观察窗口滚动重算的时间视图
-- `Task Pool`：任务搜索、列表维护、详情查看、编辑、导入导出和同步刷新
+- `Task Pool`：目录浏览、脑图浏览、详情查看、导入导出，以及只在该页收口的同步刷新和运行时设置
 
 这意味着 Web 不再以单页 dashboard 作为主壳，而是使用与移动端一致的 `Sequence / Schedule / Task Pool` 主路径。
 
@@ -34,12 +34,15 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口：
 ### 3.1 Sequence
 
 - 顶部显示当前 `doing` 任务作为“当前聚焦”。
-- 主序列显示 `doing` 任务和近 horizon 的 `todo` 任务。
-- 主序列支持拖拽重排，并把顺序写回 `Task.extJson.norn.sequenceRank`。
-- “接下来”区域承载不急于进入主序列的 `todo` 任务。
+- 主序列仍以 `doing` + 近 horizon `todo` 组成，但当前序列默认只保留最优先的 7 项。
+- Web 不再在浏览态直接挂拖拽；当前序列改成显式“编辑当前序列”入口，进入后才允许拖拽重排，并把顺序写回 `Task.extJson.norn.sequenceRank`。
+- 编辑态直接在卡片内承载完成、编辑、归档、删除动作，而不是在浏览态混入拖拽或列表动作。
+- “接下来”区域改成摘要卡，承载超出前 7 项的近 horizon 任务，以及更后面的 `todo` 任务。
 - Quick Add dock 只在 Sequence 页底部出现，并提供：
   - 直接提交 quick add
   - 把当前 quick input 提升成详细新建表单
+  - 把当前 quick input 提升成任务序列批量录入表单
+- 批量录入后的任务会共享 `task bundle` 元数据，但当前仍按单卡展示，不折叠成组卡。
 
 ### 3.2 Task Detail / Editor
 
@@ -54,9 +57,12 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口：
 
 ### 3.3 Task Pool
 
-- 保留移动端同构的 `列表 / 四象限 / 聚类` 视图模式。
-- 当前只有 `列表` 接通真实任务数据；`四象限` 和 `聚类` 继续显式占位，不伪造规则。
-- 任务池页承载搜索、同步刷新、Markdown 导入导出。
+- Web 的 Task Pool 不再保留旧的 `列表 / 四象限 / 聚类` 信息架构，而是与 iOS 一样收敛为 `目录 / 脑图` 双模式。
+- 目录模式使用上半屏导航树、下半屏当前目录目的地的垂直语义；两段都可独立折叠，并显式支持 `..` 返回上级目录。
+- 目录模式承载目录 CRUD、目录移动、任务移动和“归位待整理”入口；任务详情仍通过点击任务卡片进入。
+- 脑图模式使用共享的 `taskPoolOrganization.canvasNodes` 持久化目录与任务节点的位置、折叠状态，并提供拖拽、缩放和重置布局。
+- 任务池页头现在是同步刷新、设置、Markdown 导入导出的唯一显式控制入口；shell 顶部只保留同步状态展示。
+- “隐藏已完成任务”仍写入浏览器本地存储，但由设置页统一控制，并同时作用于目录和脑图。
 
 ### 3.4 Schedule
 
@@ -74,13 +80,15 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口：
   - 只负责组装主壳、三 tab 切换、detail/editor modal 挂载点
 - `src/app/useWebAppController.ts`
   - 当前唯一应用状态入口
-  - 承担 quick add、详情、编辑、步骤推进、序列重排、同步与模板存取编排
+  - 承担 quick add、详情、编辑、步骤推进、序列重排、任务池目录/脑图组织、同步与模板存取编排
 - `src/features/sequence`
   - Sequence 页 UI、主序列拖拽、Quick Add dock
 - `src/features/task-detail`
   - 任务详情 modal 与快捷动作面板
 - `src/features/task-pool`
-  - 任务列表、搜索、编辑器、占位视图模式
+  - 目录浏览器、脑图浏览器、任务编辑器，以及任务池页头工具栏
+- `src/features/settings`
+  - Web 运行时同步设置 modal 与显示配置入口
 - `src/features/schedule`
   - 时间视图和排程结果渲染
 - `src/features/time-template`
@@ -96,12 +104,12 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口：
 - Sequence 的聚焦卡、主序列、接下来和底部 Quick Add dock
 - 任务详情先行、编辑次级进入的主路径
 - 串行步骤追加、推进、完成/归档和主序列排序语义
-- Task Pool 的占位视图模式结构
+- Task Pool 的 `目录 / 脑图` 双模式、目录 CRUD / 任务归位与脑图节点持久化
 
 当前仍保留的 Web 特有边界：
 
 - Schedule 仍然渲染完整的时间块与 horizon 视图，不降级成移动端当前占位页
-- 同步配置仍以环境变量为主，Web 暂未提供 iOS 那种运行时凭据设置 sheet
+- Web 的同步设置与“隐藏已完成任务”写入浏览器本地存储；`.env` 只作为首次默认值
 
 ## 6. 维护约束
 
