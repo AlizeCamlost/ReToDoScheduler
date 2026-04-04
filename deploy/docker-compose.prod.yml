@@ -29,6 +29,8 @@ services:
       PORT: 8787
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       API_AUTH_TOKEN: ${API_AUTH_TOKEN}
+      WEB_LOGIN_USERNAME: ${WEB_LOGIN_USERNAME}
+      WEB_LOGIN_PASSWORD: ${WEB_LOGIN_PASSWORD}
     depends_on:
       db:
         condition: service_healthy
@@ -43,7 +45,6 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         VITE_API_BASE_URL: ""
-        VITE_API_AUTH_TOKEN: ${API_AUTH_TOKEN}
     container_name: retodo-web
     restart: unless-stopped
     depends_on:

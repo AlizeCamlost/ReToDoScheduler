@@ -16,10 +16,7 @@ export default function TimeTemplateEditor({
   return (
     <div className="template-editor">
       <div className="template-header">
-        <div>
-          <div className="panel-title">时间模板</div>
-          <div className="panel-caption">周模板作为背景容量输入，不直接和调度策略耦合。</div>
-        </div>
+        <div className="panel-title">时间模板</div>
         <button className="btn-text" onClick={onAddRange}>
           添加时间段
         </button>

@@ -122,7 +122,6 @@ export default function SequenceTab({
       <section className="sequence-section">
         <div className="sequence-section-heading">
           <div className="sequence-section-title">当前聚焦</div>
-          <div className="sequence-section-detail">如果已经有进行中的任务，就先把它留在视野顶部。</div>
         </div>
 
         {focusedTask ? (
@@ -158,8 +157,7 @@ export default function SequenceTab({
         ) : (
           <div className="focus-card empty">
             <div className="focus-card-eyebrow">当前聚焦</div>
-            <div className="focus-card-title">还没有进行中的任务</div>
-            <p className="focus-card-description">把真正要先做的任务切到“进行中”，这里就会固定呈现它。</p>
+            <div className="focus-card-title">暂无进行中任务</div>
           </div>
         )}
       </section>
@@ -168,11 +166,6 @@ export default function SequenceTab({
         <div className="sequence-section-head">
           <div className="sequence-section-heading">
             <div className="sequence-section-title">当前序列</div>
-            <div className="sequence-section-detail">
-              {isEditing
-                ? "拖拽排序，并直接在卡片内完成、编辑、归档或删除。"
-                : "浏览态只点按；进入编辑后才允许重排和动作。"}
-            </div>
           </div>
 
           <button className={`sequence-section-action${isEditing ? " editing" : ""}`} onClick={() => (isEditing ? finishEditing() : setIsEditing(true))}>
@@ -181,7 +174,7 @@ export default function SequenceTab({
         </div>
 
         {displayedPrimaryTasks.length === 0 ? (
-          <div className="sequence-empty-card">当前序列暂时为空。Quick Add 新建后会先进入这里。</div>
+          <div className="sequence-empty-card">当前序列为空</div>
         ) : (
           <div className="primary-sequence-list">
             {displayedPrimaryTasks.map((task, index) => {
@@ -296,11 +289,10 @@ export default function SequenceTab({
       <section className="sequence-section">
         <div className="sequence-section-heading">
           <div className="sequence-section-title">接下来</div>
-          <div className="sequence-section-detail">主序列之外的待办会先在这里简略出现，不打断当前视野。</div>
         </div>
 
         {combinedNextTasks.length === 0 ? (
-          <div className="sequence-empty-card muted">接下来区域暂时为空，说明当前任务大多都已被纳入主序列。</div>
+          <div className="sequence-empty-card muted">暂无任务</div>
         ) : (
           <div className="next-tasks-summary">
             {summarizedNextTasks.map((task) => (
@@ -318,7 +310,7 @@ export default function SequenceTab({
             ))}
 
             {combinedNextTasks.length > NEXT_TASK_SUMMARY_LIMIT && (
-              <div className="helper-text">还有 {combinedNextTasks.length - NEXT_TASK_SUMMARY_LIMIT} 项等待进入当前序列。</div>
+              <div className="summary-meta">+{combinedNextTasks.length - NEXT_TASK_SUMMARY_LIMIT}</div>
             )}
           </div>
         )}

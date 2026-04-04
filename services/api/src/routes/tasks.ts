@@ -6,6 +6,7 @@ import {
   type TaskPoolOrganizationDocument
 } from "@retodo/core";
 import type { FastifyPluginAsync } from "fastify";
+import { getWebSessionFromRequest } from "../auth.js";
 import { pool } from "../db.js";
 
 type SyncTaskPayload = Task;
@@ -205,16 +206,18 @@ const taskRoutes: FastifyPluginAsync = async (app) => {
 
   app.addHook("onRequest", async (request, reply) => {
     const header = request.headers.authorization;
-    if (!header || !header.startsWith("Bearer ")) {
-      reply.code(401);
-      return reply.send({ error: "Unauthorized" });
+    if (header?.startsWith("Bearer ")) {
+      const token = header.slice("Bearer ".length).trim();
+      if (token === requiredToken) {
+        return;
+      }
     }
 
-    const token = header.slice("Bearer ".length).trim();
-    if (token !== requiredToken) {
-      reply.code(401);
-      return reply.send({ error: "Unauthorized" });
-    }
+    const session = await getWebSessionFromRequest(request);
+    if (session) return;
+
+    reply.code(401);
+    return reply.send({ error: "Unauthorized" });
   });
 
   app.get("/v1/tasks", async () => {
@@ -225,7 +228,13 @@ const taskRoutes: FastifyPluginAsync = async (app) => {
 
   app.post<{ Body: SyncBody }>("/v1/tasks/sync", async (request, reply) => {
     const body = request.body;
-    if (!body || typeof body.deviceId !== "string" || !Array.isArray(body.tasks)) {
+    const session = await getWebSessionFromRequest(request);
+    const normalizedDeviceId =
+      typeof body?.deviceId === "string" && body.deviceId.trim()
+        ? body.deviceId.trim()
+        : session?.deviceId;
+
+    if (!body || !normalizedDeviceId || !Array.isArray(body.tasks)) {
       reply.code(400);
       return { error: "Invalid sync payload" };
     }
@@ -252,7 +261,7 @@ const taskRoutes: FastifyPluginAsync = async (app) => {
     const items = await fetchAllTasks();
     const taskPoolOrganization = await fetchTaskPoolOrganization();
     return {
-      deviceId: body.deviceId,
+      deviceId: normalizedDeviceId,
       synced: normalized.length,
       items,
       taskPoolOrganization

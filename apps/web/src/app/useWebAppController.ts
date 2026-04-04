@@ -34,20 +34,17 @@ import {
   pullRemoteTasks,
   pushAndPullTasks
 } from "../features/sync/data/taskSync";
+import { ApiError } from "../shared/network/apiClient";
 import { downloadMarkdown, parseMarkdownImport } from "../shared/storage/taskTransfer";
 import {
-  isSyncConfigured,
   loadHideCompletedTasks,
-  loadSyncSettings,
   saveHideCompletedTasks,
-  saveSyncSettings as persistSyncSettings,
-  type WebSyncSettings
-} from "../shared/storage/syncSettingsStore";
+} from "../shared/storage/webSettingsStore";
 import { loadTimeTemplate, saveTimeTemplate } from "../shared/storage/timeTemplateStore";
 import { createId } from "../shared/utils/createId";
 
 export type WebAppTab = "sequence" | "schedule" | "taskPool";
-export type WebSyncState = "idle" | "syncing" | "error" | "notConfigured";
+export type WebSyncState = "idle" | "syncing" | "error";
 
 export interface WebTaskSequenceDraft {
   title: string;
@@ -79,17 +76,15 @@ export interface WebAppController {
   timeTemplate: TimeTemplate;
   syncMessage: string;
   syncState: WebSyncState;
-  isSyncConfigured: boolean;
   isSyncing: boolean;
   visibleTasks: Task[];
   filteredTasks: Task[];
   taskPoolOrganization: TaskPoolOrganizationDocument;
-  syncSettings: WebSyncSettings;
   hideCompletedTasks: boolean;
-  isSyncSettingsOpen: boolean;
-  openSyncSettings: () => void;
-  closeSyncSettings: () => void;
-  saveSyncSettings: (settings: WebSyncSettings, hideCompletedTasks: boolean) => void;
+  isSettingsOpen: boolean;
+  openSettings: () => void;
+  closeSettings: () => void;
+  saveSettings: (hideCompletedTasks: boolean) => void;
   createTaskPoolDirectory: (name: string, parentDirectoryId?: string) => void;
   renameTaskPoolDirectory: (directoryId: string, name: string) => void;
   deleteTaskPoolDirectory: (directoryId: string) => void;
@@ -163,12 +158,17 @@ const isWithinPrimarySequenceHorizon = (task: Task, now: Date): boolean => {
   return diffDays <= PRIMARY_SEQUENCE_HORIZON_DAYS;
 };
 
-const configuredSyncState = (settings: WebSyncSettings): { message: string; state: WebSyncState } =>
-  isSyncConfigured(settings)
-    ? { message: "未同步", state: "idle" }
-    : { message: "未配置同步", state: "notConfigured" };
+interface UseWebAppControllerOptions {
+  isAuthenticated: boolean;
+  sessionDeviceId: string | null;
+  onUnauthorized: () => void;
+}
 
-export const useWebAppController = (): WebAppController => {
+export const useWebAppController = ({
+  isAuthenticated,
+  sessionDeviceId,
+  onUnauthorized
+}: UseWebAppControllerOptions): WebAppController => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskPoolOrganization, setTaskPoolOrganization] = useState<TaskPoolOrganizationDocument>(
     createDefaultTaskPoolOrganizationDocument()
@@ -182,16 +182,14 @@ export const useWebAppController = (): WebAppController => {
   const [searchQuery, setSearchQuery] = useState("");
   const [templateOpen, setTemplateOpen] = useState(false);
   const [timeTemplate, setTimeTemplate] = useState<TimeTemplate>(loadTimeTemplate());
-  const [syncSettings, setSyncSettings] = useState<WebSyncSettings>(loadSyncSettings());
   const [hideCompletedTasks, setHideCompletedTasks] = useState(loadHideCompletedTasks());
-  const [isSyncSettingsOpen, setIsSyncSettingsOpen] = useState(false);
-  const [syncMessage, setSyncMessage] = useState(configuredSyncState(loadSyncSettings()).message);
-  const [syncState, setSyncState] = useState<WebSyncState>(configuredSyncState(loadSyncSettings()).state);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [syncMessage, setSyncMessage] = useState(isAuthenticated ? "未同步" : "未登录");
+  const [syncState, setSyncState] = useState<WebSyncState>("idle");
   const [isSyncing, setIsSyncing] = useState(false);
 
   const tasksRef = useRef(tasks);
   const taskPoolOrganizationRef = useRef(taskPoolOrganization);
-  const syncSettingsRef = useRef(syncSettings);
   const syncInFlightRef = useRef(false);
 
   useEffect(() => {
@@ -203,12 +201,15 @@ export const useWebAppController = (): WebAppController => {
   }, [taskPoolOrganization]);
 
   useEffect(() => {
-    syncSettingsRef.current = syncSettings;
-  }, [syncSettings]);
-
-  useEffect(() => {
     saveTimeTemplate(timeTemplate);
   }, [timeTemplate]);
+
+  useEffect(() => {
+    setSyncMessage(isAuthenticated ? "未同步" : "未登录");
+    setSyncState("idle");
+    setIsSyncing(false);
+    syncInFlightRef.current = false;
+  }, [isAuthenticated]);
 
   const visibleTasks = useMemo(() => sortNornTasks(tasks.filter((task) => task.status !== "archived")), [tasks]);
   const selectedTask = useMemo(
@@ -281,10 +282,9 @@ export const useWebAppController = (): WebAppController => {
       tasksToPush: Task[] = tasksRef.current,
       taskPoolOrganizationToPush: TaskPoolOrganizationDocument = taskPoolOrganizationRef.current
     ) => {
-      const settings = syncSettingsRef.current;
-      if (!isSyncConfigured(settings)) {
-        setSyncState("notConfigured");
-        setSyncMessage("未配置同步");
+      if (!isAuthenticated || !sessionDeviceId) {
+        setSyncState("error");
+        setSyncMessage("未登录");
         return;
       }
 
@@ -294,32 +294,34 @@ export const useWebAppController = (): WebAppController => {
       setSyncState("syncing");
       setSyncMessage("同步中…");
       try {
-        const remote = await pushAndPullTasks(settings, tasksToPush, taskPoolOrganizationToPush);
+        const remote = await pushAndPullTasks(tasksToPush, taskPoolOrganizationToPush, sessionDeviceId);
         applyLocalState(remote.tasks, remote.taskPoolOrganization ?? taskPoolOrganizationToPush);
         setSyncState("idle");
         setSyncMessage(`已同步 ${new Date().toLocaleTimeString()}`);
       } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          onUnauthorized();
+          setSyncMessage("登录已失效");
+        } else {
+          setSyncMessage(`同步失败: ${error instanceof Error ? error.message : String(error)}`);
+        }
         setSyncState("error");
-        setSyncMessage(`同步失败: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
         syncInFlightRef.current = false;
         setIsSyncing(false);
       }
     },
-    [applyLocalState]
+    [applyLocalState, isAuthenticated, onUnauthorized, sessionDeviceId]
   );
 
   const pullOnly = useCallback(async () => {
-    const settings = syncSettingsRef.current;
-    if (!isSyncConfigured(settings)) {
-      setSyncState("notConfigured");
-      setSyncMessage("未配置同步");
+    if (!isAuthenticated) {
       return;
     }
 
     if (syncInFlightRef.current) return;
     try {
-      const remote = await pullRemoteTasks(settings);
+      const remote = await pullRemoteTasks();
       const mergedTasks = mergeByLww(tasksRef.current, remote.tasks);
       const mergedOrganization = mergeTaskPoolOrganizationByLww(
         taskPoolOrganizationRef.current,
@@ -329,10 +331,15 @@ export const useWebAppController = (): WebAppController => {
       setSyncState("idle");
       setSyncMessage(`已拉取 ${new Date().toLocaleTimeString()}`);
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        onUnauthorized();
+        setSyncMessage("登录已失效");
+      } else {
+        setSyncMessage(`拉取失败: ${error instanceof Error ? error.message : String(error)}`);
+      }
       setSyncState("error");
-      setSyncMessage(`拉取失败: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }, [applyLocalState]);
+  }, [applyLocalState, isAuthenticated, onUnauthorized]);
 
   const commitState = useCallback(
     (nextTasks: Task[], nextTaskPoolOrganization: TaskPoolOrganizationDocument = taskPoolOrganizationRef.current) => {
@@ -529,24 +536,10 @@ export const useWebAppController = (): WebAppController => {
     }));
   }, []);
 
-  const saveRuntimeSyncSettings = useCallback((settings: WebSyncSettings, hideCompleted: boolean) => {
-    const normalizedSettings = persistSyncSettings(settings);
+  const saveRuntimeSettings = useCallback((hideCompleted: boolean) => {
     const normalizedHideCompleted = saveHideCompletedTasks(hideCompleted);
-
-    setSyncSettings(normalizedSettings);
-    syncSettingsRef.current = normalizedSettings;
-
     setHideCompletedTasks(normalizedHideCompleted);
-
-    if (isSyncConfigured(normalizedSettings)) {
-      setSyncState("idle");
-      setSyncMessage("同步配置已保存");
-    } else {
-      setSyncState("notConfigured");
-      setSyncMessage("未配置同步");
-    }
-
-    setIsSyncSettingsOpen(false);
+    setIsSettingsOpen(false);
   }, []);
 
   const createTaskPoolDirectoryEntry = useCallback(
@@ -710,17 +703,15 @@ export const useWebAppController = (): WebAppController => {
     timeTemplate,
     syncMessage,
     syncState,
-    isSyncConfigured: isSyncConfigured(syncSettings),
     isSyncing,
     visibleTasks,
     filteredTasks,
     taskPoolOrganization,
-    syncSettings,
     hideCompletedTasks,
-    isSyncSettingsOpen,
-    openSyncSettings: () => setIsSyncSettingsOpen(true),
-    closeSyncSettings: () => setIsSyncSettingsOpen(false),
-    saveSyncSettings: saveRuntimeSyncSettings,
+    isSettingsOpen,
+    openSettings: () => setIsSettingsOpen(true),
+    closeSettings: () => setIsSettingsOpen(false),
+    saveSettings: saveRuntimeSettings,
     createTaskPoolDirectory: createTaskPoolDirectoryEntry,
     renameTaskPoolDirectory: renameTaskPoolDirectoryEntry,
     deleteTaskPoolDirectory: deleteTaskPoolDirectoryEntry,

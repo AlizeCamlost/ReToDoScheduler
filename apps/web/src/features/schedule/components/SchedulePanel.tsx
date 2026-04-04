@@ -22,10 +22,7 @@ export default function SchedulePanel({
   return (
     <section className="card">
       <div className="panel-header">
-        <div>
-          <div className="panel-title">时间视图</div>
-          <div className="panel-caption">查看时按当前任务池、时间模板和观察窗口实时重算。</div>
-        </div>
+        <div className="panel-title">时间视图</div>
         <div className="horizon-tabs">
           {HORIZON_OPTIONS.map((option) => (
             <button
@@ -52,7 +49,7 @@ export default function SchedulePanel({
       <div className="schedule-grid">
         <div className="schedule-column">
           <div className="subpanel-title">时间块</div>
-          {blocksByDay.length === 0 && <div className="empty-panel">当前窗口内还没有排入任何时间块。</div>}
+          {blocksByDay.length === 0 && <div className="empty-panel">暂无时间块</div>}
           {blocksByDay.map((group) => (
             <div key={group.dayKey} className="day-group">
               <div className="day-heading">{formatScheduleDay(group.blocks[0]?.startAt ?? `${group.dayKey}T00:00:00`)}</div>

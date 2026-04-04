@@ -9,7 +9,7 @@ interface TaskPoolPanelProps {
   syncMessage: string;
   isSyncing: boolean;
   onRefresh: () => void;
-  onOpenSyncSettings: () => void;
+  onOpenSettings: () => void;
   onExport: () => void;
   onImport: (file: File | null) => Promise<void>;
   onOpenTask: (task: Task) => void;
@@ -36,7 +36,7 @@ export default function TaskPoolPanel({
   syncMessage,
   isSyncing,
   onRefresh,
-  onOpenSyncSettings,
+  onOpenSettings,
   onExport,
   onImport,
   onOpenTask,
@@ -53,10 +53,7 @@ export default function TaskPoolPanel({
   return (
     <section className="card task-pool-panel">
       <div className="panel-header">
-        <div>
-          <div className="panel-title">任务池</div>
-          <div className="panel-caption">目录负责归位，脑图负责观察结构；导入导出只保留为 Web 侧辅助工具。</div>
-        </div>
+        <div className="panel-title">任务池</div>
         <div
           className={`inline-sync-status ${isSyncing ? "syncing" : syncMessage.startsWith("同步失败") || syncMessage.startsWith("拉取失败") ? "error" : ""}`}
         >
@@ -78,7 +75,7 @@ export default function TaskPoolPanel({
           <button className="btn-text" onClick={onRefresh} disabled={isSyncing}>
             {isSyncing ? "同步中" : "刷新"}
           </button>
-          <button className="btn-text" onClick={onOpenSyncSettings}>
+          <button className="btn-text" onClick={onOpenSettings}>
             设置
           </button>
           <button className="btn-text" onClick={onExport}>
@@ -93,10 +90,6 @@ export default function TaskPoolPanel({
             />
           </label>
         </div>
-      </div>
-
-      <div className="helper-text task-pool-toolbar-caption">
-        已完成任务是否隐藏由设置面板统一控制，目录和脑图共用同一份组织文档。
       </div>
 
       {viewMode === "tree" ? (

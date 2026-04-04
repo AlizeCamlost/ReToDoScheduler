@@ -10,7 +10,7 @@
 - 服务端 API 能同时从笔记本和手机访问
 - `GET <server-base-url>/health` 返回正常
 - 服务端已配置 `API_AUTH_TOKEN`
-- Web 与 iPhone 使用同一组 token
+- 服务端已配置 `WEB_LOGIN_USERNAME` 与 `WEB_LOGIN_PASSWORD`
 
 ## 2. 配置
 
@@ -26,15 +26,13 @@ cp apps/web/.env.example apps/web/.env
 
 ```text
 VITE_API_BASE_URL=<server-base-url>
-VITE_API_AUTH_TOKEN=<与服务端一致的 token>
 ```
 
-2. 打开 Web `任务池` 页，进入 `设置`
-3. 在浏览器内确认或修改：
-   - `API Base URL`
-   - `API Auth Token`
-   - `Device ID（留空自动生成）`
-4. 点击保存；这些值会写入浏览器本地存储，刷新页面后仍会保留
+2. 打开 Web 并登录：
+   - username = `WEB_LOGIN_USERNAME`
+   - password = `WEB_LOGIN_PASSWORD`
+3. 登录成功后，浏览器会保存 HttpOnly session cookie；后续同一设备通常无需重复登录
+4. 如需管理设备，在 Web `任务池 -> 设置` 中查看当前设备和其它已登录设备，并可主动让其它设备退出
 
 ### 2.2 iPhone
 
@@ -70,6 +68,12 @@ curl -H "Authorization: Bearer <API_AUTH_TOKEN>" <server-base-url>/v1/tasks
 
 返回体除 `items` 外，还应包含当前 `taskPoolOrganization`；若服务端尚未收到过该文档，则该字段可为 `null`。
 
+Web 登录验证：
+
+1. 在浏览器打开 Web
+2. 登录后刷新页面，确认仍保持登录
+3. 在 `任务池 -> 设置` 中点“退出其他设备”，再到其它设备确认会话失效
+
 ### 4.3 双端联调
 
 1. 在 Web 创建或编辑任务
@@ -88,11 +92,17 @@ curl -H "Authorization: Bearer <API_AUTH_TOKEN>" <server-base-url>/v1/tasks
 3. 如果 Safari 可通但 app 不通，检查 app 设置里的 URL 和 token
 4. 检查服务端 `API_AUTH_TOKEN` 与 iPhone `API Auth Token` 是否一致
 
-### Web 或 iPhone 返回 401
+### Web 返回 401 或被要求重新登录
+
+- Web 会话已过期或被主动退出
+- 浏览器访问的域名和 API 实际域名不一致，导致 cookie 没有随请求发送
+- 生产环境未保持 HTTPS / 同域部署，cookie 策略不匹配
+
+### iPhone 返回 401
 
 - token 不一致
 - 修改 token 后未重新触发同步
-- Web 端浏览器本地存储里保留了旧 token，需要在 Web `设置` 中更新
+- 服务端 `API_AUTH_TOKEN` 与 app 内保存的 `API Auth Token` 不一致
 
 ### 同步结果与预期不一致
 

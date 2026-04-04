@@ -47,14 +47,15 @@ vi deploy/.env.prod
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
 - `API_AUTH_TOKEN`
+- `WEB_LOGIN_USERNAME`
+- `WEB_LOGIN_PASSWORD`
 
 ### 3.3 构建并启动容器
 
 ```bash
 DOCKER_BUILDKIT=0 docker build --target runner -f services/api/Dockerfile -t retodoscheduler-api:latest .
 DOCKER_BUILDKIT=0 docker build -f apps/web/Dockerfile -t retodoscheduler-web:latest \
-  --build-arg VITE_API_BASE_URL="" \
-  --build-arg VITE_API_AUTH_TOKEN="$API_AUTH_TOKEN" .
+  --build-arg VITE_API_BASE_URL="" .
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up -d --no-build --remove-orphans
 ```
 
@@ -68,11 +69,10 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up 
 
 在那之前，默认保留当前方案；只有在用户主动询问或明确安排部署收敛时，才重新推进这项改造。
 
-### 3.4 执行初始 migration
+### 3.4 执行 migration
 
 ```bash
-docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod \
-  exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /migrations/001_init.sql
+COMPOSE_FILE=deploy/docker-compose.prod.yml ENV_FILE=deploy/.env.prod bash scripts/run-migrations.sh
 ```
 
 如果当前 shell 没有加载 `.env.prod`：
@@ -91,6 +91,12 @@ set +a
 curl http://127.0.0.1:8787/health
 curl -H "Authorization: Bearer $API_AUTH_TOKEN" http://127.0.0.1:8787/v1/tasks
 ```
+
+浏览器侧校验：
+
+- 打开 Web 域名
+- 使用 `WEB_LOGIN_USERNAME` / `WEB_LOGIN_PASSWORD` 登录
+- 打开 `任务池 -> 设置`，确认当前设备已出现在设备列表中
 
 ## 5. 日常运维
 
@@ -147,6 +153,7 @@ mkdir -p /opt/retodo/backups
 ## 8. 安全边界
 
 - 对公网暴露前优先接入域名和 HTTPS 反向代理
+- Web 生产环境应尽量保持同域部署，让浏览器直接用同源 session cookie 访问 `/v1/*`
 - 尽量限制 `8787` 的暴露范围
 - 部署 key 使用最小权限用户，不要直接使用 root
 - `docker compose` 项目名应显式固定，避免容器名和卷名漂移

@@ -259,7 +259,7 @@ export default function TaskEditModal({ task, allTasks, onSave, onClose }: TaskE
             <div className="form-section">
               <div className="form-section-title">任务依赖</div>
               {dependencyCandidates.length === 0 ? (
-                <div className="helper-text">当前没有可依赖的其他任务。</div>
+                <div className="empty-panel">暂无可依赖任务</div>
               ) : (
                 <div className="dependency-grid">
                   {dependencyCandidates.map((candidate) => (
@@ -283,7 +283,6 @@ export default function TaskEditModal({ task, allTasks, onSave, onClose }: TaskE
                   添加步骤
                 </button>
               </div>
-              {steps.length === 0 && <div className="helper-text">留空表示该任务直接作为一个调度单元。</div>}
               {steps.map((step, index) => (
                 <div key={`${step.id}-${index}`} className="step-card">
                   <div className="form-row">

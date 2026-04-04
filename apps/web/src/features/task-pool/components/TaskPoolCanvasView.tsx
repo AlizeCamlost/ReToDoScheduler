@@ -235,10 +235,7 @@ export default function TaskPoolCanvasView({
   return (
     <section className="task-pool-canvas-shell">
       <div className="task-pool-canvas-toolbar">
-        <div>
-          <div className="task-pool-section-kicker">脑图</div>
-          <div className="helper-text">拖动节点会写回组织文档，目录折叠状态与布局位置一起持久化。</div>
-        </div>
+        <div className="task-pool-section-kicker">脑图</div>
 
         <div className="task-pool-canvas-controls">
           <button className="btn-icon subtle" onClick={() => setZoom((current) => Math.max(0.7, current - 0.1))} title="缩小">
@@ -332,9 +329,7 @@ export default function TaskPoolCanvasView({
                   {node.nodeKind === "directory" ? (
                     <div className="task-pool-canvas-node-body">
                       <div className="task-pool-canvas-node-secondary">{node.secondary}</div>
-                      <div className="helper-text">
-                        {node.hasChildren ? (node.isCollapsed ? "已折叠下级节点" : "显示下级目录与任务") : "没有下级节点"}
-                      </div>
+                      {node.hasChildren && node.isCollapsed && <div className="canvas-node-meta">已折叠</div>}
                     </div>
                   ) : (
                     <button className="task-pool-canvas-card" onClick={() => node.task && onOpenTask(node.task)}>
@@ -348,7 +343,7 @@ export default function TaskPoolCanvasView({
                         </div>
                       )}
                       {currentStep && (
-                        <div className="helper-text">
+                        <div className="canvas-node-meta">
                           当前步骤 {node.task!.steps.findIndex((step) => step.id === currentStep.id) + 1}/{node.task!.steps.length} · {currentStep.title}
                         </div>
                       )}

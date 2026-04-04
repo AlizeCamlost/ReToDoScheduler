@@ -73,14 +73,6 @@ export default function TaskSequenceModal({ draft, onSave, onClose }: TaskSequen
         <form className="modal-form" onSubmit={handleSubmit}>
           <div className="modal-body detail-modal-body">
             <section className="detail-panel">
-              <div className="detail-panel-title">批量录入</div>
-              <p className="helper-text">
-                把今天要串着推进的一组事项一起录下来。每行都支持和 Quick Add 一样的语法，例如
-                `45m`、`#work`、`明天`。
-              </p>
-            </section>
-
-            <section className="detail-panel">
               <div className="form-group">
                 <label className="form-label" htmlFor="sequence-title">
                   序列标签（可选）
@@ -132,9 +124,7 @@ export default function TaskSequenceModal({ draft, onSave, onClose }: TaskSequen
                           <span>{preview.estimatedMinutes} 分钟</span>
                           {preview.tags.length > 0 && <span>{preview.tags.slice(0, 2).map((tag) => `#${tag}`).join(" ")}</span>}
                         </div>
-                      ) : (
-                        <div className="helper-text">留空的行不会保存。</div>
-                      )}
+                      ) : null}
                     </div>
                   );
                 })}

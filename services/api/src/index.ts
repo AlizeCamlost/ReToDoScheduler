@@ -1,13 +1,16 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import authRoutes from "./routes/auth.js";
 import healthRoute from "./routes/health.js";
 import taskRoutes from "./routes/tasks.js";
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true, trustProxy: true });
 
 await app.register(cors, {
-  origin: true
+  origin: true,
+  credentials: true
 });
+await app.register(authRoutes);
 await app.register(healthRoute);
 await app.register(taskRoutes);
 

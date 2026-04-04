@@ -28,6 +28,7 @@
     "Helvetica Neue", "Noto Sans SC", sans-serif;
   color: var(--text);
   background: var(--bg);
+  color-scheme: light;
 }
 
 * {
@@ -45,6 +46,7 @@ body {
     radial-gradient(circle at top right, rgba(211, 226, 255, 0.76), transparent 32%),
     linear-gradient(180deg, #f6f1e7 0%, #eef4ff 100%);
   color: var(--text);
+  transition: background var(--transition), color var(--transition);
 }
 
 #root {
@@ -98,6 +100,57 @@ select {
   width: min(880px, calc(100vw - 32px));
   margin: 0 auto;
   padding: 28px 0 56px;
+}
+
+.auth-shell {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: min(420px, calc(100vw - 32px));
+  padding: 24px;
+  border-radius: 28px;
+  border: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(24px);
+}
+
+.compact-auth-card {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+}
+
+.auth-brand {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.auth-card h1 {
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+  margin-bottom: 18px;
+}
+
+.auth-error {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--danger-light);
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.auth-submit {
+  min-width: 112px;
 }
 
 .shell-header {
@@ -719,6 +772,12 @@ select {
   gap: 10px;
   text-align: left;
   cursor: pointer;
+}
+
+.summary-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
 }
 
 .next-task-dot {
@@ -2001,6 +2060,11 @@ select {
   margin-bottom: 6px;
 }
 
+.settings-status-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 /* ── Tag input ── */
 
 .tag-input-area {
@@ -2261,6 +2325,12 @@ select {
   flex-shrink: 0;
 }
 
+.task-pool-directory-path {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .task-pool-destination-actions {
   display: flex;
   align-items: center;
@@ -2354,6 +2424,13 @@ select {
 .task-pool-task-meta {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.task-pool-task-step,
+.canvas-node-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 .task-pool-task-actions {
@@ -2498,6 +2575,212 @@ select {
   color: #8a4b24;
   font-size: 11px;
   font-weight: 600;
+}
+
+.settings-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-section + .settings-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.theme-toggle {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.theme-toggle-option {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-secondary);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.theme-toggle-option.active {
+  border-color: rgba(62, 107, 216, 0.28);
+  background: var(--primary-light);
+  color: var(--text);
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.session-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.session-card.current {
+  border-color: rgba(62, 107, 216, 0.24);
+  background: rgba(62, 107, 216, 0.08);
+}
+
+.session-card-header,
+.session-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.session-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.session-card-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(62, 107, 216, 0.14);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+[data-theme="dark"] {
+  --bg: #111723;
+  --card: rgba(18, 25, 37, 0.82);
+  --primary-light: rgba(112, 154, 255, 0.16);
+  --primary-hover: #7d9fff;
+  --success-light: rgba(75, 171, 122, 0.18);
+  --danger-light: rgba(214, 108, 108, 0.16);
+  --text: #f3f6fb;
+  --text-secondary: #b4c0d2;
+  --text-tertiary: #738097;
+  --border: rgba(180, 192, 210, 0.24);
+  --border-light: rgba(180, 192, 210, 0.16);
+  --hover-bg: rgba(27, 37, 54, 0.9);
+  --shadow-sm: 0 2px 8px rgba(2, 6, 15, 0.28);
+  --shadow: 0 14px 30px rgba(2, 6, 15, 0.32);
+  --shadow-lg: 0 28px 64px rgba(2, 6, 15, 0.42);
+  color-scheme: dark;
+}
+
+[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top left, rgba(145, 94, 54, 0.24), transparent 34%),
+    radial-gradient(circle at top right, rgba(67, 98, 172, 0.3), transparent 28%),
+    linear-gradient(180deg, #101621 0%, #0c1119 100%);
+}
+
+[data-theme="dark"] .shell-background {
+  background:
+    radial-gradient(circle at 8% 8%, rgba(170, 106, 58, 0.2), transparent 24%),
+    radial-gradient(circle at 92% 6%, rgba(84, 120, 208, 0.24), transparent 22%),
+    linear-gradient(180deg, rgba(17, 24, 35, 0.98) 0%, rgba(10, 15, 24, 0.98) 100%);
+}
+
+[data-theme="dark"] .safe-area-scrim.top {
+  background: linear-gradient(180deg, rgba(15, 21, 31, 0.94) 0%, rgba(15, 21, 31, 0.62) 38%, rgba(15, 21, 31, 0) 100%);
+}
+
+[data-theme="dark"] .safe-area-scrim.bottom {
+  background: linear-gradient(0deg, rgba(10, 15, 24, 0.94) 0%, rgba(10, 15, 24, 0.62) 40%, rgba(10, 15, 24, 0) 100%);
+}
+
+[data-theme="dark"] .shell-sync-area,
+[data-theme="dark"] .tab-switcher,
+[data-theme="dark"] .quick-add-dock,
+[data-theme="dark"] .detail-hero,
+[data-theme="dark"] .detail-panel,
+[data-theme="dark"] .modal,
+[data-theme="dark"] .task-pool-section-card,
+[data-theme="dark"] .task-pool-canvas-shell,
+[data-theme="dark"] .task-pool-directory-select,
+[data-theme="dark"] .task-pool-directory-chip,
+[data-theme="dark"] .task-pool-task-card,
+[data-theme="dark"] .task-pool-canvas-node,
+[data-theme="dark"] .schedule-block,
+[data-theme="dark"] .ordered-item,
+[data-theme="dark"] .session-card,
+[data-theme="dark"] .theme-toggle-option,
+[data-theme="dark"] .settings-status-card,
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .btn-icon.subtle {
+  background-color: rgba(18, 25, 37, 0.86);
+}
+
+[data-theme="dark"] .task-pool-section-card,
+[data-theme="dark"] .task-pool-canvas-shell {
+  background:
+    radial-gradient(circle at top right, rgba(170, 106, 58, 0.12), transparent 38%),
+    linear-gradient(180deg, rgba(18, 25, 37, 0.96), rgba(13, 19, 29, 0.98));
+}
+
+[data-theme="dark"] .task-pool-canvas-shell,
+[data-theme="dark"] .task-pool-section-card,
+[data-theme="dark"] .task-pool-task-card,
+[data-theme="dark"] .schedule-block,
+[data-theme="dark"] .ordered-item,
+[data-theme="dark"] .settings-status-card,
+[data-theme="dark"] .session-card {
+  border-color: var(--border-light);
+}
+
+[data-theme="dark"] .task-pool-canvas-node.directory {
+  background: linear-gradient(180deg, rgba(64, 46, 33, 0.96), rgba(33, 26, 21, 0.96));
+}
+
+[data-theme="dark"] .task-pool-canvas-scroller {
+  border-color: rgba(170, 106, 58, 0.16);
+  background:
+    linear-gradient(90deg, rgba(170, 106, 58, 0.06) 1px, transparent 1px),
+    linear-gradient(rgba(170, 106, 58, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(15, 21, 31, 0.98), rgba(10, 15, 24, 0.98));
+  background-size: 28px 28px, 28px 28px, auto;
+}
+
+[data-theme="dark"] .btn-close,
+[data-theme="dark"] .btn-secondary {
+  background: rgba(18, 25, 37, 0.92);
+}
+
+[data-theme="dark"] .warning-item.warning {
+  background: rgba(148, 114, 44, 0.18);
+  color: #f7d88f;
+}
+
+[data-theme="dark"] .warning-item.danger {
+  background: rgba(141, 60, 74, 0.26);
+  color: #f7b7c6;
 }
 
 /* ── Responsive ── */

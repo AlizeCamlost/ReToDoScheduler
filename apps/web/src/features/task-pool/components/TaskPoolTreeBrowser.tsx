@@ -208,7 +208,7 @@ export default function TaskPoolTreeBrowser({
               <div className="task-pool-section-title">
                 {selectedDirectory ? displayDirectoryName(normalizedOrganization, selectedDirectory) : "待整理"}
               </div>
-              <div className="helper-text">
+              <div className="task-pool-directory-path">
                 {selectedPath.map((directory) => displayDirectoryName(normalizedOrganization, directory)).join(" / ")}
               </div>
             </div>
@@ -291,7 +291,7 @@ export default function TaskPoolTreeBrowser({
               <div className="task-pool-destination-block">
                 <div className="task-pool-block-title">任务</div>
                 {selectedTasks.length === 0 ? (
-                  <div className="helper-text">这个目录下还没有任务。</div>
+                  <div className="empty-panel">暂无任务</div>
                 ) : (
                   <div className="task-pool-task-list">
                     {selectedTasks.map((task) => {
@@ -309,7 +309,7 @@ export default function TaskPoolTreeBrowser({
                             </div>
                             <TaskBundleBadge task={task} />
                             {currentStep && (
-                              <div className="helper-text">
+                              <div className="task-pool-task-step">
                                 当前步骤 {task.steps.findIndex((step) => step.id === currentStep.id) + 1}/{task.steps.length} · {currentStep.title}
                               </div>
                             )}

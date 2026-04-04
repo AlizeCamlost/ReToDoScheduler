@@ -51,10 +51,11 @@ apps/web + apps/mobile
 ### 3.2 `apps/web`
 
 - 浏览器端任务池、时间模板、调度视图 UI
-- 以服务端同步为主要远端入口
-- 本地持有 Web 端的同步设置与显示配置
+- 以服务端同步和 owner 登录为主要远端入口
+- 作为当前桌面级编辑主界面；未来若包装成桌面 app，应优先复用这一壳
+- 本地持有 Web 端的显示配置与外观偏好
 - 对外呈现 `packages/core` 的派生结果
-- 当前主壳对齐 `Norn` 的 `Sequence / Schedule / Task Pool` 三入口；更细的 Web 交互结构见 [web-app-structure.md](web-app-structure.md)
+- 当前主壳对齐 `Norn` 的 `Sequence / Task Pool / Schedule` 三入口；更细的 Web 交互结构见 [web-app-structure.md](web-app-structure.md)
 
 ### 3.3 `apps/mobile`
 
@@ -64,8 +65,8 @@ apps/web + apps/mobile
 
 ### 3.4 `services/api`
 
-- 对外提供 `/health`、`/v1/tasks`、`/v1/tasks/sync`
-- 以 Bearer token 作为当前 MVP 认证边界
+- 对外提供 `/health`、`/v1/auth/*`、`/v1/tasks`、`/v1/tasks/sync`
+- Web 侧通过 owner 登录 + HttpOnly session cookie 访问；iPhone 仍通过 Bearer token 访问
 - 负责同步收敛和持久化出入口
 - 对外暴露最小 `Task` sync contract，并并行承载 `TaskPoolOrganizationDocument`；旧数据库列只作为内部兼容细节
 
@@ -96,10 +97,11 @@ apps/web + apps/mobile
 
 1. 用户在 Web 或 iPhone 创建、编辑、完成或归档任务，或在 iPhone 调整任务池目录树 / 画布组织。
 2. 客户端先更新本地任务表与本地 `TaskPoolOrganizationDocument`。
-3. 客户端向 `/v1/tasks/sync` 发起同步；未实现组织编辑的客户端可以省略 `taskPoolOrganization`。
-4. 服务端对任务按各自 `updatedAt` 做 LWW，对任务池组织文档按文档级 `updatedAt` 做 LWW。
-5. 服务端返回当前任务集合与当前 `TaskPoolOrganizationDocument`。
-6. 客户端收敛到服务端返回结果；若请求省略 `taskPoolOrganization`，服务端必须保留现有组织文档。
+3. Web 先经 `/v1/auth/login` 建立设备会话；iPhone 继续直接持有 Bearer token。
+4. 客户端向 `/v1/tasks/sync` 发起同步；未实现组织编辑的客户端可以省略 `taskPoolOrganization`。
+5. 服务端对任务按各自 `updatedAt` 做 LWW，对任务池组织文档按文档级 `updatedAt` 做 LWW。
+6. 服务端返回当前任务集合与当前 `TaskPoolOrganizationDocument`。
+7. 客户端收敛到服务端返回结果；若请求省略 `taskPoolOrganization`，服务端必须保留现有组织文档。
 
 ### 4.2 调度视图生成
 
@@ -116,6 +118,7 @@ apps/web + apps/mobile
 - 改时间模板结构时，必须同时检查 Web 的模板存取逻辑和 iOS `TaskRepository` 的读写逻辑。
 - 改调度展示语义时，必须同时检查 Web `SchedulePanel` 和 iOS `ScheduleSection`。
 - 改同步协议时，必须同时检查 Web `features/sync/data/taskSync.ts`、iOS `Infrastructure/Sync/HTTPTaskSyncClient.swift` 和 API 路由。
+- 改 Web 登录或设备会话语义时，必须同时检查 Web `features/auth/*`、API `/v1/auth/*` 和部署 runbook。
 - 改任务池目录树 / 画布组织语义时，必须同时检查 `packages/core` 的组织文档类型、API `/v1/tasks*`、iOS `TaskPoolOrganization*` 仓库与 sync DTO。
 - 只做单端的视觉样式微调可以分开改；只要涉及字段、流程、信息架构或调度语义，就必须按双端改动处理。
 

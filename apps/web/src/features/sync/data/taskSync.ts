@@ -6,12 +6,7 @@ import {
   type Task,
   type TaskPoolOrganizationDocument
 } from "@retodo/core";
-import type { WebSyncSettings } from "../../../shared/storage/syncSettingsStore";
-
-const buildUrl = (baseUrl: string, path: string): string => {
-  const normalized = baseUrl.trim().replace(/\/+$/, "");
-  return `${normalized}${path}`;
-};
+import { apiJson } from "../../../shared/network/apiClient";
 
 export interface TaskSyncSnapshot {
   tasks: Task[];
@@ -113,49 +108,26 @@ const parseSnapshot = (payload: unknown): TaskSyncSnapshot => {
   };
 };
 
-const assertConfigured = (settings: WebSyncSettings): void => {
-  if (!settings.baseUrl.trim() || !settings.authToken.trim()) {
-    throw new Error("Sync settings are incomplete");
-  }
-};
-
-export const pullRemoteTasks = async (settings: WebSyncSettings): Promise<TaskSyncSnapshot> => {
-  assertConfigured(settings);
-
-  const response = await fetch(buildUrl(settings.baseUrl, "/v1/tasks"), {
-    headers: {
-      authorization: `Bearer ${settings.authToken}`
-    }
-  });
-  if (!response.ok) {
-    throw new Error(`Pull failed (${response.status})`);
-  }
-  return parseSnapshot(await response.json());
+export const pullRemoteTasks = async (): Promise<TaskSyncSnapshot> => {
+  return parseSnapshot(await apiJson("/v1/tasks"));
 };
 
 export const pushAndPullTasks = async (
-  settings: WebSyncSettings,
   tasks: Task[],
-  taskPoolOrganization: TaskPoolOrganizationDocument
+  taskPoolOrganization: TaskPoolOrganizationDocument,
+  deviceId: string
 ): Promise<TaskSyncSnapshot> => {
-  assertConfigured(settings);
-
-  const response = await fetch(buildUrl(settings.baseUrl, "/v1/tasks/sync"), {
+  return parseSnapshot(
+    await apiJson("/v1/tasks/sync", {
     method: "POST",
     headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${settings.authToken}`
+      "content-type": "application/json"
     },
     body: JSON.stringify({
-      deviceId: settings.deviceId,
+      deviceId,
       tasks,
       taskPoolOrganization
     })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Sync failed (${response.status})`);
-  }
-
-  return parseSnapshot(await response.json());
+    })
+  );
 };

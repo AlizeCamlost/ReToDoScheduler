@@ -102,8 +102,7 @@ export default function TaskDetailModal({
             <div className="detail-panel-title">快捷操作</div>
             <div className="detail-action-list">
               <button className="detail-action-row" onClick={onPromoteToDoing}>
-                <span>切到进行中</span>
-                <span>{task.status === "doing" ? "当前已在执行" : "把任务直接提到当前聚焦"}</span>
+                <span>{task.status === "doing" ? "已在进行中" : "切到进行中"}</span>
               </button>
 
               <form className="detail-inline-form" onSubmit={handleAddStep}>
