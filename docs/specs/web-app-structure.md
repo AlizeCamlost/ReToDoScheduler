@@ -31,7 +31,7 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口，并保持与 iOS 一
 
 这意味着 Web 不再以单页 dashboard 作为主壳，而是使用与移动端一致的 `Sequence / Task Pool / Schedule` 主路径。
 同时，壳顶部现在只保留全局可见的标题和设置入口；外观三态切换、同步状态与设备会话管理都收回设置面板。顶层导航不再只是本地状态切场景，而是改成真实 path 路由：`/` 对应 `Sequence`，`/task-pool` 对应 `Task Pool`，`/schedule` 对应 `Schedule`。因此刷新页面后仍会停留在当前页，浏览器前进 / 后退也会回到正确的主视图。
-主标题和三枚页签也不再跟着各页内容一起参与整页滚动，而是由共享 `ShellChrome` 固定在视口壳层；只有下面的 route viewport 会按当前页内容滚动。这样切回 `Sequence` 时不会再因为 dock、内容高度或滚动条状态不同，把顶层 chrome 的位置和宽度一起带偏。顶部 segmented nav 的衬底也只包裹实际按钮组，不再伪装成整行宽条，从而保持更稳定、更干练的桌面端壳层节奏。
+主标题和三枚页签也不再跟着各页内容一起参与整页滚动，而是由共享 `ShellChrome` 固定在视口壳层；只有下面的 route viewport 会按当前页内容滚动。这样切回 `Sequence` 时不会再因为 dock、内容高度或滚动条状态不同，把顶层 chrome 的位置和宽度一起带偏。顶部 segmented nav 的衬底也只包裹实际按钮组，不再伪装成整行宽条，从而保持更稳定、更干练的桌面端壳层节奏。这里的前提是：固定壳只固定 chrome，本身不能吞掉内容滚动；`Sequence / Task Pool / Schedule` 三个顶层页都必须继续通过共享 viewport 独立滚动。
 视觉语言上，Web 仍沿用与 iOS 对齐的语义层级，但不再硬模仿 SwiftUI 的材质和拟物光效：背景继续使用 `canvasTop -> canvasBottom` 的纵向渐变，卡片统一落在 `cardSurface / cardSurfaceMuted` 语义层，分段导航与次级按钮则维持更扁平的 pill surface。与此同时，桌面端 spacing 已收敛到更紧凑的节奏，默认只保留必要的呼吸空间，避免把主壳、卡片和 modal 做成松散的 dashboard。也就是说，Web 对齐的是信息架构和层级语义，不是把 SwiftUI 的立体感直接照搬进 CSS。
 
 ## 3. 交互对齐点

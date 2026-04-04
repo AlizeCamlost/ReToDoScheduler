@@ -99,3 +99,9 @@
 - 适用范围：`apps/web` 视觉系统、表面层级、背景、dock、胶囊按钮与 modal。
 - 反面模式：为了“像 iOS”，把 SwiftUI 的材质、高光、立体阴影和拟物感直接翻译成 CSS，导致页面发亮、发糊、层级反而更乱，既不精致，也不像成熟桌面 Web。
 - 正向约束：Web 应只对齐 iOS 的信息架构、组件语义和层级命名；具体视觉表达仍以扁平化 Web 为主，用纯色 surface、清晰边框和克制阴影表达层级，不要再用 glossy 渐变或假材质去模拟 SwiftUI。
+
+### L016 Web 固定壳不能以牺牲 route 滚动为代价
+
+- 适用范围：`apps/web` 顶层固定壳、route viewport、高度约束和滚动容器。
+- 反面模式：为了让标题区和页签胶囊稳定，给根壳加 `100dvh` / `overflow: hidden`，却没有把剩余高度明确交给 route viewport，导致三个主页面内容被裁死、不可滚动。
+- 正向约束：只要改固定壳、高度约束或 route viewport，就必须显式验证 `Sequence / Task Pool / Schedule` 三个顶层页都还能滚动。固定 chrome 可以独立，但滚动能力必须完整保留在下方 viewport，而不是被根壳吞掉。
