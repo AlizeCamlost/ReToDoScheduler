@@ -261,13 +261,6 @@ function App() {
             <button type="button" className="btn-text shell-settings-button" onClick={openSettings}>
               设置
             </button>
-
-            <div className="sync-area shell-sync-area">
-              <span
-                className={`sync-dot ${controller.syncState === "syncing" ? "syncing" : controller.syncState === "error" ? "error" : ""}`}
-              />
-              <span className="sync-text">{controller.syncMessage}</span>
-            </div>
           </div>
         </header>
 
@@ -304,7 +297,6 @@ function App() {
               <TaskPoolPanel
                 tasks={controller.filteredTasks}
                 organization={controller.taskPoolOrganization}
-                syncMessage={controller.syncMessage}
                 isSyncing={controller.isSyncing}
                 onRefresh={() => void controller.performSync()}
                 onOpenSettings={openSettings}

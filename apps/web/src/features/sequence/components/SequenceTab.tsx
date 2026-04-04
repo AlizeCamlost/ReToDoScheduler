@@ -169,7 +169,7 @@ export default function SequenceTab({
           </div>
 
           <button className={`sequence-section-action${isEditing ? " editing" : ""}`} onClick={() => (isEditing ? finishEditing() : setIsEditing(true))}>
-            {isEditing ? "完成编辑" : "编辑当前序列"}
+            {isEditing ? "完成编辑" : "编辑"}
           </button>
         </div>
 

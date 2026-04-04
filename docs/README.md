@@ -20,7 +20,7 @@
 - [specs/norn-mobile-structure.md](specs/norn-mobile-structure.md): Norn iOS_ng 的当前目录快照、目标类型地图、调用关系和 feature 提交拓扑，并同步记录根容器背景、全屏 edge-to-edge 分页裁剪壳、root scoped Sequence dock safeAreaInset、固定化的 dock reserve、Quick Add 拉起任务序列编辑器的批量录入路径，以及任务 bundle 标识的单卡展示边界；当前 `Sequence` 已收敛为更紧凑的“当前聚焦 + 当前序列 + 接下来摘要”，浏览态不挂拖拽，长按进入编辑态后只让卡片接管悬停拖拽与左滑托盘动作，卡片外区域继续保留页面滚动与翻页，且当前序列默认只保留最优先的 7 项；任务池则已收敛为 `目录 / 脑图` 双模式，顶层只保留标题、刷新和设置入口，同步状态与“隐藏已完成任务”开关已收进设置页，目录视图也进一步改成带横向留白的沉浸式导航树 + 当前目录目的地，并显式支持两段独立折叠、`..` 返回上级目录和更紧凑的子目录列表。当前实施状态：F20 已完成。最后更新：2026-04-02
 - [specs/product-model.md](specs/product-model.md): 当前产品语义真相源。定义 Norn / Kairos 边界、任务池核心抽象、价值语义和输入契约，并补充目录树 / 画布共用的 `TaskPoolOrganizationDocument` 语义。最后更新：2026-03-31
 - [specs/scheduling-model.md](specs/scheduling-model.md): 当前调度模型真相源。把 Kairos 明确为“硬约束 + 价值最大化”的滚动装箱问题，并说明比较器接口与实现边界。最后更新：2026-03-22
-- [specs/web-app-structure.md](specs/web-app-structure.md): Web 端当前对齐 Norn 移动端后的主壳、三 tab 信息架构、详情流、Sequence 交互和 feature 边界真相源，并同步记录 Web 当前继续承担桌面优先的系统化编辑工作流、与 iOS 一致的 `Sequence / Task Pool / Schedule` 顺序、壳顶部全局可见的设置入口、以及 URL 持久化的顶层页签状态。最后更新：2026-04-04
+- [specs/web-app-structure.md](specs/web-app-structure.md): Web 端当前对齐 Norn 移动端后的主壳、三 tab 信息架构、详情流、Sequence 交互和 feature 边界真相源，并同步记录 Web 当前继续承担桌面优先的系统化编辑工作流、与 iOS 一致的 `Sequence / Task Pool / Schedule` 顺序、壳顶部全局可见但已收敛为标题 + 设置入口的主壳、以及 URL 持久化的顶层页签状态。最后更新：2026-04-04
 
 ## runbooks
 

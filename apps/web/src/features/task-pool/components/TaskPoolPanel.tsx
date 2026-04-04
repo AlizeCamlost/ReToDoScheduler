@@ -6,7 +6,6 @@ import TaskPoolTreeBrowser from "./TaskPoolTreeBrowser";
 interface TaskPoolPanelProps {
   tasks: Task[];
   organization: TaskPoolOrganizationDocument;
-  syncMessage: string;
   isSyncing: boolean;
   onRefresh: () => void;
   onOpenSettings: () => void;
@@ -33,7 +32,6 @@ type TaskPoolViewMode = "tree" | "canvas";
 export default function TaskPoolPanel({
   tasks,
   organization,
-  syncMessage,
   isSyncing,
   onRefresh,
   onOpenSettings,
@@ -54,11 +52,6 @@ export default function TaskPoolPanel({
     <section className="card task-pool-panel">
       <div className="panel-header">
         <div className="panel-title">任务池</div>
-        <div
-          className={`inline-sync-status ${isSyncing ? "syncing" : syncMessage.startsWith("同步失败") || syncMessage.startsWith("拉取失败") ? "error" : ""}`}
-        >
-          {syncMessage}
-        </div>
       </div>
 
       <div className="task-pool-toolbar">
@@ -73,7 +66,7 @@ export default function TaskPoolPanel({
 
         <div className="toolbar compact-toolbar">
           <button className="btn-text" onClick={onRefresh} disabled={isSyncing}>
-            {isSyncing ? "同步中" : "刷新"}
+            {isSyncing ? "刷新中" : "刷新"}
           </button>
           <button className="btn-text" onClick={onOpenSettings}>
             设置

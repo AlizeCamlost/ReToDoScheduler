@@ -30,11 +30,13 @@
   --focus-shadow: 0 0 0 3px rgba(72, 104, 186, 0.1);
   --shadow-sm: 0 2px 4px rgba(44, 36, 26, 0.04);
   --shadow: 0 12px 30px rgba(57, 45, 28, 0.08);
+  --shadow-hover: 0 18px 40px rgba(57, 45, 28, 0.13);
   --shadow-lg: 0 28px 64px rgba(57, 45, 28, 0.18);
   --radius: 22px;
   --radius-sm: 16px;
   --radius-xs: 12px;
   --transition: 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  --scene-transition: 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 
   font-family:
     "Avenir Next", "SF Pro Text", "PingFang SC",
@@ -210,13 +212,13 @@ select {
 
 .shell-title-text {
   display: inline-block;
-  animation: shell-title-enter 220ms ease;
+  animation: shell-title-enter var(--scene-transition);
 }
 
 @keyframes shell-title-enter {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -257,15 +259,6 @@ select {
   color: var(--text-secondary);
 }
 
-.shell-sync-area {
-  padding: 10px 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 999px;
-  background: var(--surface-elevated);
-  backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-sm);
-}
-
 .tab-switcher {
   display: inline-flex;
   gap: 8px;
@@ -288,10 +281,12 @@ select {
   transition:
     background var(--transition),
     color var(--transition),
-    transform var(--transition);
+    transform var(--transition),
+    box-shadow var(--transition);
 }
 
 .tab-switcher-button:hover {
+  background: rgba(255, 252, 248, 0.44);
   color: var(--text);
   transform: translateY(-1px);
 }
@@ -325,9 +320,9 @@ select {
   pointer-events: none;
   visibility: hidden;
   transition:
-    opacity 220ms ease,
-    transform 220ms ease,
-    visibility 220ms ease;
+    opacity var(--scene-transition),
+    transform var(--scene-transition),
+    visibility var(--scene-transition);
 }
 
 .tab-scene.active {
@@ -468,6 +463,38 @@ select {
   cursor: not-allowed;
 }
 
+.btn-text,
+.file-label,
+.filter-tab,
+.badge-filter,
+.btn-action,
+.btn-close,
+.btn-cancel,
+.btn-secondary,
+.btn-save,
+.btn-primary,
+.sequence-section-action,
+.sequence-card-action,
+.focus-card,
+.sequence-card,
+.next-task-row,
+.detail-action-row,
+.task-pool-directory-toggle,
+.task-pool-directory-select,
+.task-pool-directory-chip,
+.task-pool-task-card,
+.task-pool-canvas-node,
+.theme-toggle-option,
+.session-card {
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    color var(--transition),
+    box-shadow var(--transition),
+    transform var(--transition),
+    opacity var(--transition);
+}
+
 .sequence-screen {
   display: flex;
   flex-direction: column;
@@ -521,6 +548,11 @@ select {
   color: #fff;
 }
 
+.sequence-section-action:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
 .focus-card,
 .sequence-card,
 .sequence-empty-card {
@@ -539,6 +571,13 @@ select {
 
 .focus-card.empty {
   cursor: default;
+}
+
+.focus-card:not(.empty):hover,
+.sequence-card:not(.editing):hover {
+  border-color: var(--border);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
 }
 
 .focus-card-header,
@@ -819,6 +858,13 @@ select {
   color: var(--danger);
 }
 
+.sequence-card-action:hover,
+.detail-action-row:hover {
+  border-color: var(--border);
+  background: var(--surface-selected);
+  transform: translateY(-1px);
+}
+
 .next-tasks-summary {
   display: flex;
   flex-direction: column;
@@ -844,6 +890,8 @@ select {
 }
 
 .next-task-row:hover {
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 
@@ -967,46 +1015,6 @@ select {
   font-weight: 400;
 }
 
-.sync-area {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.sync-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sync-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--success);
-  flex-shrink: 0;
-}
-
-.sync-dot.error {
-  background: var(--danger);
-}
-
-.sync-dot.syncing {
-  background: var(--warning);
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.sync-text {
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
 .btn-icon {
   display: flex;
   align-items: center;
@@ -1025,6 +1033,7 @@ select {
 .btn-icon:hover {
   background: var(--hover-bg);
   color: var(--text);
+  transform: translateY(-1px);
 }
 
 .btn-icon:disabled {
@@ -1085,12 +1094,13 @@ select {
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: background var(--transition), transform var(--transition);
   white-space: nowrap;
 }
 
 .btn-add:hover {
   background: var(--primary-hover);
+  transform: translateY(-1px);
 }
 
 /* ── Toolbar ── */
@@ -1117,6 +1127,7 @@ select {
 .btn-text:hover {
   background: var(--hover-bg);
   color: var(--text);
+  transform: translateY(-1px);
 }
 
 .btn-text.active {
@@ -1140,6 +1151,7 @@ select {
 .file-label:hover {
   background: var(--hover-bg);
   color: var(--text);
+  transform: translateY(-1px);
 }
 
 .file-label input {
@@ -1211,6 +1223,10 @@ select {
   box-shadow: var(--shadow-sm);
 }
 
+.filter-tab:hover {
+  color: var(--text);
+}
+
 .task-pool-mode-switcher {
   margin-bottom: 14px;
 }
@@ -1279,6 +1295,7 @@ select {
 .badge-filter:hover {
   border-color: var(--primary);
   color: var(--primary);
+  transform: translateY(-1px);
 }
 
 .badge-filter.active {
@@ -1436,6 +1453,7 @@ select {
 .btn-action:hover {
   background: var(--hover-bg);
   color: var(--text);
+  transform: translateY(-1px);
 }
 
 .btn-action.danger:hover {
@@ -1488,27 +1506,6 @@ select {
 .compact-toolbar {
   gap: 8px;
   margin-top: 0;
-}
-
-.inline-sync-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(43, 122, 87, 0.12);
-  color: var(--success);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.inline-sync-status.syncing {
-  background: rgba(204, 135, 48, 0.12);
-  color: var(--warning);
-}
-
-.inline-sync-status.error {
-  background: var(--danger-light);
-  color: var(--danger);
 }
 
 .horizon-tabs {
@@ -1755,6 +1752,7 @@ select {
 .btn-close:hover {
   background: var(--border-light);
   color: var(--text);
+  transform: translateY(-1px);
 }
 
 .modal-body {
@@ -2243,6 +2241,7 @@ select {
 .btn-cancel:hover,
 .btn-secondary:hover {
   background: var(--hover-bg);
+  transform: translateY(-1px);
 }
 
 .btn-save,
@@ -2255,13 +2254,14 @@ select {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background var(--transition);
+  transition: background var(--transition), transform var(--transition);
   font-family: inherit;
 }
 
 .btn-save:hover,
 .btn-primary:hover {
   background: var(--primary-hover);
+  transform: translateY(-1px);
 }
 
 /* ── Empty state ── */
@@ -2379,6 +2379,11 @@ select {
   cursor: pointer;
 }
 
+.task-pool-directory-toggle:hover {
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
 .task-pool-directory-select {
   display: flex;
   align-items: center;
@@ -2398,6 +2403,8 @@ select {
 .task-pool-directory-select:hover {
   border-color: var(--border);
   background: var(--surface-selected);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
 .task-pool-directory-name {
@@ -2481,6 +2488,14 @@ select {
   background: var(--surface-raised);
 }
 
+.task-pool-task-card:hover,
+.task-pool-canvas-node:hover,
+.session-card:hover {
+  border-color: var(--border);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
 .task-pool-task-main {
   display: flex;
   flex-direction: column;
@@ -2505,6 +2520,11 @@ select {
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
+}
+
+.task-pool-task-main:hover .task-pool-task-title,
+.task-pool-canvas-card:hover .task-pool-canvas-node-title {
+  color: var(--primary);
 }
 
 .task-pool-task-meta {
@@ -2668,6 +2688,10 @@ select {
   gap: 16px;
 }
 
+.settings-section-actions {
+  justify-content: flex-end;
+}
+
 .settings-section {
   display: flex;
   flex-direction: column;
@@ -2729,6 +2753,7 @@ select {
 
 .theme-toggle-option:hover,
 .shell-settings-button:hover {
+  background: var(--surface-selected);
   transform: translateY(-1px);
 }
 
@@ -2821,6 +2846,7 @@ select {
   --focus-shadow: 0 0 0 3px rgba(148, 173, 243, 0.12);
   --shadow-sm: 0 2px 8px rgba(2, 6, 15, 0.28);
   --shadow: 0 14px 30px rgba(2, 6, 15, 0.32);
+  --shadow-hover: 0 18px 40px rgba(2, 6, 15, 0.4);
   --shadow-lg: 0 28px 64px rgba(2, 6, 15, 0.42);
   color-scheme: dark;
 }
@@ -2890,6 +2916,10 @@ select {
 [data-theme="dark"] .warning-item.danger {
   background: rgba(141, 60, 74, 0.26);
   color: #f7b7c6;
+}
+
+[data-theme="dark"] .tab-switcher-button:hover {
+  background: rgba(35, 45, 60, 0.6);
 }
 
 [data-theme="dark"] .tab-switcher-button.active,
@@ -3002,11 +3032,6 @@ select {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
-  }
-
-  .sync-area {
-    width: 100%;
-    justify-content: space-between;
   }
 
   .filter-bar {

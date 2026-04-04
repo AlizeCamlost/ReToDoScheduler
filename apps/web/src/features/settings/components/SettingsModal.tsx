@@ -138,9 +138,6 @@ export default function SettingsModal({
           <section className="settings-section">
             <div className="settings-section-header">
               <div className="form-section-title">同步</div>
-              <button type="button" className="btn-text" onClick={onRefreshSessions} disabled={sessionsBusy}>
-                {sessionsBusy ? "刷新中" : "刷新设备"}
-              </button>
             </div>
             <div className={`settings-status-card state-${syncState}`}>
               <div className="settings-status-title">{syncMessage}</div>
@@ -151,14 +148,19 @@ export default function SettingsModal({
           <section className="settings-section">
             <div className="settings-section-header">
               <div className="form-section-title">设备</div>
-              <button
-                type="button"
-                className="btn-text"
-                onClick={onRevokeOtherSessions}
-                disabled={otherSessions.length === 0 || sessionsBusy}
-              >
-                退出其他设备
-              </button>
+              <div className="toolbar compact-toolbar settings-section-actions">
+                <button type="button" className="btn-text" onClick={onRefreshSessions} disabled={sessionsBusy}>
+                  {sessionsBusy ? "刷新中" : "刷新设备"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-text"
+                  onClick={onRevokeOtherSessions}
+                  disabled={otherSessions.length === 0 || sessionsBusy}
+                >
+                  退出其他设备
+                </button>
+              </div>
             </div>
 
             <div className="session-list">
