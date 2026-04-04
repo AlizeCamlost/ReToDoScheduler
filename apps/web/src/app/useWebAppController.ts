@@ -52,8 +52,6 @@ export interface WebTaskSequenceDraft {
 }
 
 export interface WebAppController {
-  currentTab: WebAppTab;
-  setCurrentTab: (tab: WebAppTab) => void;
   quickInput: string;
   setQuickInput: (value: string) => void;
   editingTask: Task | null;
@@ -173,7 +171,6 @@ export const useWebAppController = ({
   const [taskPoolOrganization, setTaskPoolOrganization] = useState<TaskPoolOrganizationDocument>(
     createDefaultTaskPoolOrganizationDocument()
   );
-  const [currentTab, setCurrentTab] = useState<WebAppTab>("sequence");
   const [quickInput, setQuickInput] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -661,8 +658,6 @@ export const useWebAppController = ({
   );
 
   return {
-    currentTab,
-    setCurrentTab,
     quickInput,
     setQuickInput,
     editingTask,

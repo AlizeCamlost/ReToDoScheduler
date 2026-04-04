@@ -191,6 +191,26 @@ select {
   margin-bottom: 10px;
 }
 
+.shell-title {
+  min-height: 3rem;
+}
+
+.shell-title-text {
+  display: inline-block;
+  animation: shell-title-enter 220ms ease;
+}
+
+@keyframes shell-title-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .shell-header p {
   max-width: 48ch;
   font-size: 0.97rem;
@@ -277,6 +297,32 @@ select {
 .shell-panel {
   position: relative;
   min-height: 60vh;
+}
+
+.shell-scenes {
+  position: relative;
+  min-height: inherit;
+}
+
+.tab-scene {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    visibility 220ms ease;
+}
+
+.tab-scene.active {
+  position: relative;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .app-shell.sequence-active .shell-panel {
