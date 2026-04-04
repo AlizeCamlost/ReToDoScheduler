@@ -87,3 +87,9 @@
 - 适用范围：`apps/web` 顶层 `Sequence / Task Pool / Schedule` 导航、shell 布局和浏览器 history。
 - 反面模式：仅用本地状态切换 class 或绝对定位叠场景，再把 URL 当作附带同步值，导致导航元素看起来像路由，实际页面结构却没有稳定的 route viewport，进而出现切页偏移、固定壳语义漂移和 history 语义失真。
 - 正向约束：顶层导航必须由真实 URL path 驱动，并在页面结构上明确区分固定壳与当前 route scene。导航控件应优先表达为真实链接和 history entry，而不是假按钮切场景；视觉过渡只能建立在真实 route 语义之上，不能反过来掩盖结构问题。
+
+### L014 Web 顶层 chrome 必须独立于页面内容滚动
+
+- 适用范围：`apps/web` 顶层标题、页签胶囊、设置入口、Sequence dock 与 route viewport。
+- 反面模式：虽然已经用了真路由，但仍把标题区、主导航和当前页面内容放在同一个滚动流里，或者让 `Sequence` 独有的 dock / 内容高度反向影响顶层 chrome 的位置、尺寸与对齐，导致切回主序列时出现肉眼可见的跳变。
+- 正向约束：顶层 chrome 必须抽成共享壳层，由视口尺寸决定位置和宽度；真正滚动的只能是下面的 route viewport。任何只属于某一页的 dock、内容 padding 或滚动条状态，都不能再牵动主标题和页签胶囊。

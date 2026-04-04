@@ -81,8 +81,9 @@ select {
 
 .app-shell {
   position: relative;
-  min-height: 100vh;
-  overflow-x: hidden;
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .shell-background {
@@ -118,9 +119,12 @@ select {
 .shell-layout {
   position: relative;
   z-index: 1;
-  width: min(880px, calc(100vw - 32px));
+  width: min(912px, 100vw);
   margin: 0 auto;
-  padding: 28px 0 56px;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  padding: 28px 16px 24px;
 }
 
 .auth-shell {
@@ -318,18 +322,27 @@ select {
 
 .shell-panel {
   position: relative;
-  min-height: 60vh;
+  min-height: 0;
   width: 100%;
+  overflow: hidden;
+}
+
+.shell-scroll-viewport {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0 32px;
+  scrollbar-gutter: stable both-edges;
+}
+
+.shell-scroll-viewport.has-bottom-dock {
+  padding-bottom: 168px;
 }
 
 .route-scene {
   width: 100%;
-  min-height: inherit;
+  min-height: 100%;
   animation: shell-title-enter var(--scene-transition);
-}
-
-.app-shell.sequence-active .shell-panel {
-  padding-bottom: 168px;
 }
 
 .stack-layout {
@@ -3011,8 +3024,8 @@ select {
 
 @media (max-width: 600px) {
   .shell-layout {
-    width: calc(100vw - 24px);
-    padding: 18px 0 28px;
+    width: 100vw;
+    padding: 18px 12px 22px;
   }
 
   .shell-header,

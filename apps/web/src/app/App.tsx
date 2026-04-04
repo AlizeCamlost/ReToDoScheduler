@@ -21,24 +21,8 @@ import { ApiError } from "../shared/network/apiClient";
 import { applyResolvedTheme, loadThemeMode, resolveThemeMode, saveThemeMode, type ThemeMode } from "../shared/storage/themeStore";
 import { loadTabFromLocation, pathForTab, writeTabToLocation } from "./tabRoute";
 import { useWebAppController, type WebAppTab } from "./useWebAppController";
+import ShellChrome from "./ShellChrome";
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
-
-const TAB_ORDER: WebAppTab[] = ["sequence", "taskPool", "schedule"];
-
-const TAB_META: Record<WebAppTab, { label: string; title: string }> = {
-  sequence: {
-    label: "主序列",
-    title: "主序列"
-  },
-  taskPool: {
-    label: "任务池",
-    title: "任务池"
-  },
-  schedule: {
-    label: "时间视图",
-    title: "时间视图"
-  }
-};
 
 function App() {
   const [currentTab, setCurrentTab] = useState<WebAppTab>(loadTabFromLocation);
@@ -142,7 +126,6 @@ function App() {
     }
   }, [authStatus, controller.isSettingsOpen, refreshSessions]);
 
-  const activeMeta = TAB_META[currentTab];
   const sequenceActive = currentTab === "sequence";
 
   const handleLogin = useCallback(
@@ -344,47 +327,18 @@ function App() {
   }
 
   return (
-    <main className={`app-shell${sequenceActive ? " sequence-active" : ""}`}>
+    <main className="app-shell">
       <div className="shell-background" />
       <div className="safe-area-scrim top" />
 
-      <div className="shell-layout">
-        <header className="shell-header">
-          <h1 className="shell-title" id="shell-route-title">
-            <span key={currentTab} className="shell-title-text">
-              {activeMeta.title}
-            </span>
-          </h1>
-          <div className="shell-header-actions">
-            <button type="button" className="btn-text shell-settings-button" onClick={openSettings}>
-              设置
-            </button>
-          </div>
-        </header>
-
-        <nav className="tab-switcher" aria-label="主导航">
-          <ul className="shell-nav-list" role="list">
-            {TAB_ORDER.map((tab) => (
-              <li key={tab}>
-                <a
-                  className={`tab-switcher-link${currentTab === tab ? " active" : ""}`}
-                  href={pathForTab(tab)}
-                  aria-current={currentTab === tab ? "page" : undefined}
-                  onClick={(event) => handleTabLinkClick(event, tab)}
-                >
-                  <span className="tab-switcher-label">{TAB_META[tab].label}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <section className="shell-panel" aria-labelledby="shell-route-title">
-          <div key={currentTab} className="route-scene">
-            {activeScene}
-          </div>
-        </section>
-      </div>
+      <ShellChrome
+        currentTab={currentTab}
+        reserveBottomDock={sequenceActive}
+        onOpenSettings={openSettings}
+        onTabLinkClick={handleTabLinkClick}
+      >
+        {activeScene}
+      </ShellChrome>
 
       {sequenceActive && (
         <>
