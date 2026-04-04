@@ -6,28 +6,30 @@
 
 ## 1. 打开工程
 
-在项目根目录执行：
-
-```bash
-npm run ios:prepare
-```
-
-或：
-
-```bash
-npm run ios:dev
-```
-
-这两个命令都会打开原生工程：
+推荐把它当成一个纯 Xcode GUI 工作流：
 
 - `apps/mobile/ios_ng/Norn/Norn.xcodeproj`
+
+当前 iPhone 客户端源码树位于：
+
+- `apps/mobile/ios_ng/Norn/Norn`
+
+日常直接手动打开这个工程，在 Xcode 里选设备并运行即可。
+
+如果只是想保留一个可选 helper 命令，仓库根目录只保留这一条：
+
+```bash
+npm run ios:open
+```
+
+这个命令只会打开同一个 Xcode 工程，不承担 `prepare`、`dev` 或其它额外语义。
 
 当前 iPhone 客户端已经是原生 SwiftUI 应用，不再依赖 React Native、Metro、Pods 或 Expo。
 
 ## 2. 首次安装到真机
 
-1. 执行 `npm run ios:prepare`
-2. 在 Xcode 中打开 `Norn` target
+1. 手动打开 `apps/mobile/ios_ng/Norn/Norn.xcodeproj`
+2. 在 Xcode 中选择 `Norn` scheme / target
 3. 设置签名：
    - `Team`: 你的开发者账号
    - `Bundle Identifier`: 保持唯一，默认 `camloshi.Norn`
@@ -39,7 +41,7 @@ npm run ios:dev
 
 ## 3. 日常运行
 
-1. 执行 `npm run ios:dev`
+1. 打开 `apps/mobile/ios_ng/Norn/Norn.xcodeproj`
 2. 在 Xcode 中选择模拟器或真机
 3. 按 `Cmd + R`
 
@@ -68,6 +70,8 @@ npm run ios:dev
 ### 无法运行
 
 - 确认打开的是 `apps/mobile/ios_ng/Norn/Norn.xcodeproj`
+- 如果还在打开旧的 `apps/mobile/ios/ReToDoScheduler.xcodeproj`，说明你走的是过期入口；回到 `apps/mobile/ios_ng/Norn/Norn.xcodeproj`
+- 如果确实要用 helper 命令，只使用 `npm run ios:open`
 - 检查签名团队和 `Bundle Identifier`
 
 ### 真机开发镜像报错

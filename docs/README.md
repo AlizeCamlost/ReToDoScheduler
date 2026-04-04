@@ -1,14 +1,18 @@
 # 文档目录
 
-最后更新：2026-04-02
+最后更新：2026-04-04
 
-`docs/` 根目录只保留这个索引。当前真相源、runbook、协作指南和历史材料全部放在子目录下。
+`docs/` 根目录只保留这个索引。当前真相源、runbook、协作指南和历史材料全部放在子目录下；仓库根入口文档位于根目录 `README.md`。
 
 时间标记规则：
 
 - 本索引对每个收录文档都标记 `最后更新：YYYY-MM-DD`。
 - 以后每次修改 `docs/` 下的活动文档或归档索引，都必须同步更新这里对应条目的日期。
 - 新文档仍按 `specs/`、`runbooks/`、`guides/`、`adr/`、`archive/` 组织，不再把活动文档放回 `docs/` 根目录。
+
+## repo
+
+- [../README.md](../README.md): 仓库根入口文档。用于快速说明当前产品入口、仓库结构、启动方式、同步边界和文档导航；不替代 `docs/` 内各活动真相源。最后更新：2026-04-04
 
 ## specs
 
@@ -21,13 +25,13 @@
 ## runbooks
 
 - [runbooks/client-sync.md](runbooks/client-sync.md): Web、iPhone、API 的最小 Task 模型与 `taskPoolOrganization` 文档同步配置、联调验证和排障步骤，并补充 Web `设置` 页的运行时同步配置流程。最后更新：2026-04-02
-- [runbooks/ios.md](runbooks/ios.md): iOS 原生工程打开、真机安装、日常运行和最小同步配置，并补充 `任务池` 现位于第二个顶层分页入口，默认展示 `目录` 并可切换到 `脑图`，同步状态与“隐藏已完成任务”开关统一位于设置页，目录页已收敛为带横向留白的上半屏导航树 + 下半屏当前目录目的地并支持独立折叠、`..` 返回上级目录和更紧凑的子目录列表，`Sequence` 当前序列则需长按进入编辑态后才支持卡片内悬停拖拽与左滑托盘动作。最后更新：2026-04-02
+- [runbooks/ios.md](runbooks/ios.md): iOS 原生工程打开、真机安装、日常运行和最小同步配置，并明确当前主入口是手动打开 `apps/mobile/ios_ng/Norn/Norn.xcodeproj`，命令行只保留一个可选 `npm run ios:open` helper；同时补充 `任务池` 现位于第二个顶层分页入口，默认展示 `目录` 并可切换到 `脑图`，同步状态与“隐藏已完成任务”开关统一位于设置页，目录页已收敛为带横向留白的上半屏导航树 + 下半屏当前目录目的地并支持独立折叠、`..` 返回上级目录和更紧凑的子目录列表，`Sequence` 当前序列则需长按进入编辑态后才支持卡片内悬停拖拽与左滑托盘动作。最后更新：2026-04-04
 - [runbooks/server-deploy.md](runbooks/server-deploy.md): API + PostgreSQL 的首轮部署、校验、日常运维、备份和 GitHub Actions 部署说明，并记录当前生产部署绕过 `docker compose build`、改用 `DOCKER_BUILDKIT=0 docker build` 的过渡性约束，以及待业务形态稳定后再重新评估的边界。最后更新：2026-04-01
 - [runbooks/recovery.md](runbooks/recovery.md): 本地和远端恢复的停写、恢复、校验、复盘流程。最后更新：2026-03-22
 
 ## guides
 
-- [guides/implementation-lessons.md](guides/implementation-lessons.md): 项目级实施教训真相源。记录用户纠错后的具体教训，以及生成方案前后的 lesson review 工作流，并补充 `Sequence` route B 下不要再赌 `ScrollView` 行内系统 `swipeActions` 的约束。最后更新：2026-04-02
+- [guides/implementation-lessons.md](guides/implementation-lessons.md): 项目级实施教训真相源。记录用户纠错后的具体教训，以及生成方案前后的 lesson review 工作流，并补充 `Sequence` route B 下不要再赌 `ScrollView` 行内系统 `swipeActions`、以及工程入口迁移后要同步收口脚本与入口文档并收敛到真实工作流入口的约束。最后更新：2026-04-04
 - [guides/ui-design-process.md](guides/ui-design-process.md): AI 协作做 UI 时的决策方法论，用于减少“代码先生成、决策却没发生”的问题。最后更新：2026-03-22
 
 ## adr

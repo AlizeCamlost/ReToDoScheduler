@@ -1,66 +1,81 @@
 # ReToDoScheduler
 
-ReToDoScheduler is a local-first todo scheduler for iPhone + Web with incremental sync.
+ReToDoScheduler is a local-first task pool and rolling scheduler for Web + iPhone. The current product surface is organized around three top-level views shared across clients:
+
+- `Sequence`: current focus, current sequence, upcoming work, and quick add.
+- `Schedule`: time templates and horizon-based derived schedule.
+- `Task Pool`: directory / canvas organization, task detail flow, import/export, and sync entrypoints.
+
+The repository keeps product semantics in shared docs and shared core types, while Web, iPhone, API, and database evolve around the same task and sync contract.
 
 ## Workspace layout
 
-- `apps/mobile`: native SwiftUI iPhone client with local persistence.
-- `apps/web`: React + Vite SPA for browser access (runs as local dev server on mac).
-- `services/api`: Fastify API service.
-- `services/db`: PostgreSQL migrations and database service artifacts.
-- `packages/core`: shared domain model and rules:
-  - `norn/*`: stable core model and ordering surface.
-  - `kairos/*`: dynamic decision cursor (rank/strategy metadata).
-- `docs`: current specs, runbooks, ADRs, and archived drafts.
+- `apps/mobile`: native iPhone clients and Xcode projects. The current maintained iPhone app lives in `apps/mobile/ios_ng/Norn/Norn`.
+- `apps/web`: React + Vite browser client.
+- `services/api`: Fastify API for health checks, task reads, and sync.
+- `services/db`: PostgreSQL migrations and DB service artifacts.
+- `packages/core`: shared task model, task-pool organization model, defaults, ordering helpers, and scheduler logic.
+- `docs`: specs, runbooks, ADRs, guides, and archived material. Start with `docs/README.md`.
 
 ## Quick start
 
+Install dependencies:
+
 ```bash
 npm install
-npm run dev:web
-npm run dev:mobile
-npm run dev:api
-npm run dev:db:up
-npm run ios:prepare
 ```
 
-Before running sync-enabled clients, configure the Web auth token locally:
+Optional: prefill default Web sync settings locally:
 
 ```bash
 cp apps/web/.env.example apps/web/.env
 ```
 
-## Current status (Phase 1)
+Start the local stack:
 
-- Monorepo scaffold is ready.
-- Core task model and defaults are implemented.
-- Web uses server as source of truth (no local task persistence) with basic sync.
-- Mobile local CRUD + basic server sync is implemented in the native SwiftUI app.
-- API has `/health`, `/v1/tasks`, and `/v1/tasks/sync`.
+```bash
+npm run dev:db:up
+npm run dev:db:migrate
+npm run dev:api
+npm run dev:web
+```
 
-## Next steps
+For iPhone development, open the Xcode project directly:
 
-- Implement deterministic scheduler and Kairos decision-cursor persistence.
-- Evolve from full-list sync to `sync_ops` incremental cursor sync.
-- Add backup jobs and restore runbook automation.
+- `apps/mobile/ios_ng/Norn/Norn.xcodeproj`
 
-## Sync setup (MVP)
+If you want a helper command, keep only this one:
 
-- Start API server and ensure `GET /health` works.
-- Set `API_AUTH_TOKEN` on server and same token in:
-  - `apps/web/.env` as `VITE_API_AUTH_TOKEN`
-  - iPhone app `设置` page as `API Auth Token`
-- Web uses the built-in fixed API URL (`http://43.159.136.45:8787`).
-- iPhone app reads API URL from its in-app settings page.
-- Trigger `立即同步` on either side. The other side will receive updates on next poll.
+```bash
+npm run ios:open
+```
 
-## Deployment
+It only opens the same Xcode project. The primary workflow is still launching and running from Xcode GUI.
 
-- Docs index: `docs/README.md`
-- Architecture: `docs/specs/architecture.md`
-- Product model: `docs/specs/product-model.md`
+For the exact iPhone workflow, signing steps, and sync setup, use `docs/runbooks/ios.md`.
+
+## Current behavior
+
+- Clients maintain local state first, then reconcile with the server.
+- The API currently exposes `GET /health`, `GET /v1/tasks`, and `POST /v1/tasks/sync`.
+- Task sync is still full-list + LWW by `updatedAt`.
+- Task-pool organization sync travels in parallel as `taskPoolOrganization`, covering both directory tree and canvas layout.
+- Web runtime sync settings live in browser storage; `.env` only provides initial defaults.
+- iPhone sync settings are configured inside the app.
+
+## Docs map
+
+- Repo docs index: `docs/README.md`
+- System architecture: `docs/specs/architecture.md`
+- Product semantics: `docs/specs/product-model.md`
 - Scheduling model: `docs/specs/scheduling-model.md`
-- Server deploy runbook: `docs/runbooks/server-deploy.md`
-- iOS setup runbook: `docs/runbooks/ios.md`
+- Web structure: `docs/specs/web-app-structure.md`
+- iPhone structure: `docs/specs/norn-mobile-structure.md`
 - Client sync runbook: `docs/runbooks/client-sync.md`
+- iOS runbook: `docs/runbooks/ios.md`
+- Server deploy runbook: `docs/runbooks/server-deploy.md`
 - Recovery runbook: `docs/runbooks/recovery.md`
+
+## Working rule
+
+If implementation behavior, interaction semantics, or repository structure changes, update the corresponding active docs in `docs/` together with the code. The root `README.md` is the repo entrypoint; `docs/README.md` is the detailed document index.

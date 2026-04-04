@@ -3,10 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "open:xcode": "open ios/ReToDoScheduler.xcodeproj",
-    "build": "SDK=$(xcrun --sdk iphoneos --show-sdk-path) && mkdir -p ios/.swift-module-cache && xcrun swiftc -typecheck -sdk \"$SDK\" -target arm64-apple-ios16.0 -module-cache-path ios/.swift-module-cache $(find ios/ReToDoScheduler -name '*.swift' -print | sort)",
-    "lint": "SDK=$(xcrun --sdk iphoneos --show-sdk-path) && mkdir -p ios/.swift-module-cache && xcrun swiftc -typecheck -sdk \"$SDK\" -target arm64-apple-ios16.0 -module-cache-path ios/.swift-module-cache $(find ios/ReToDoScheduler -name '*.swift' -print | sort)",
-    "xcode:build": "xcodebuild -project ios/ReToDoScheduler.xcodeproj -scheme ReToDoScheduler -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build",
+    "build": "SDK=$(xcrun --sdk iphoneos --show-sdk-path) && mkdir -p ios_ng/Norn/.swift-module-cache && xcrun swiftc -typecheck -sdk \"$SDK\" -target arm64-apple-ios26.2 -module-cache-path ios_ng/Norn/.swift-module-cache $(find ios_ng/Norn/Norn -name '*.swift' -print | sort)",
+    "lint": "SDK=$(xcrun --sdk iphoneos --show-sdk-path) && mkdir -p ios_ng/Norn/.swift-module-cache && xcrun swiftc -typecheck -sdk \"$SDK\" -target arm64-apple-ios26.2 -module-cache-path ios_ng/Norn/.swift-module-cache $(find ios_ng/Norn/Norn -name '*.swift' -print | sort)",
+    "xcode:build": "xcodebuild -project ios_ng/Norn/Norn.xcodeproj -scheme Norn -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath ios_ng/Norn/build CODE_SIGNING_ALLOWED=NO build",
     "test": "echo \"No tests yet\""
   }
 }

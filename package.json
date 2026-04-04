@@ -12,13 +12,11 @@
     "lint": "npm --prefix packages/core run lint && npm --prefix apps/web run lint && npm --prefix apps/mobile run lint && npm --prefix services/api run lint",
     "test": "npm --prefix packages/core run test && npm --prefix apps/web run test && npm --prefix apps/mobile run test && npm --prefix services/api run test",
     "dev:web": "npm --workspace apps/web run dev",
-    "dev:mobile": "npm --prefix apps/mobile run open:xcode",
     "dev:api": "npm --workspace services/api run dev",
     "dev:db:up": "docker compose up -d db",
     "dev:db:down": "docker compose stop db",
     "dev:db:migrate": "bash scripts/run-migrations.sh",
-    "ios:dev": "bash scripts/ios-dev.sh",
-    "ios:prepare": "bash scripts/ios-dev.sh"
+    "ios:open": "bash scripts/ios-open.sh"
   },
   "devDependencies": {
     "typescript": "^5.7.3"
