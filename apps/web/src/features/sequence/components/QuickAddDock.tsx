@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 
 interface QuickAddDockProps {
   value: string;
@@ -12,6 +12,15 @@ export default function QuickAddDock({ value, onChange, onSubmit, onOpenDetail, 
   const [focused, setFocused] = useState(false);
   const isExpanded = focused || value.trim().length > 0;
   const canSubmit = value.trim().length > 0;
+
+  const preserveFocusDuringAction = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+  };
+
+  const runDockAction = (action: () => void) => {
+    setFocused(false);
+    action();
+  };
 
   return (
     <div className="quick-add-shell">
@@ -34,13 +43,26 @@ export default function QuickAddDock({ value, onChange, onSubmit, onOpenDetail, 
         />
 
         <div className={`quick-add-actions${isExpanded ? " visible" : ""}`}>
-          <button className="quick-add-secondary" onClick={onOpenDetail}>
+          <button
+            className="quick-add-secondary"
+            onMouseDown={preserveFocusDuringAction}
+            onClick={() => runDockAction(onOpenDetail)}
+          >
             详情
           </button>
-          <button className="quick-add-secondary" onClick={onOpenSequence}>
+          <button
+            className="quick-add-secondary"
+            onMouseDown={preserveFocusDuringAction}
+            onClick={() => runDockAction(onOpenSequence)}
+          >
             序列
           </button>
-          <button className="quick-add-primary" onClick={onSubmit} disabled={!canSubmit}>
+          <button
+            className="quick-add-primary"
+            onMouseDown={preserveFocusDuringAction}
+            onClick={() => runDockAction(onSubmit)}
+            disabled={!canSubmit}
+          >
             ↑
           </button>
         </div>

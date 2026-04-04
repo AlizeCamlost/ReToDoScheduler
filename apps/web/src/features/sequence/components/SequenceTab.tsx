@@ -1,5 +1,5 @@
 import { type Task } from "@retodo/core";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import TaskBundleBadge from "./TaskBundleBadge";
 
 interface SequenceTabProps {
@@ -57,6 +57,14 @@ const moveTaskId = (orderedIds: string[], draggedId: string, destinationId: stri
   return next;
 };
 
+const reconcileOrderedIds = (orderedIds: string[], nextTaskIds: string[]): string[] => {
+  const nextTaskIdSet = new Set(nextTaskIds);
+  const retained = orderedIds.filter((taskId) => nextTaskIdSet.has(taskId));
+  const retainedSet = new Set(retained);
+  const additions = nextTaskIds.filter((taskId) => !retainedSet.has(taskId));
+  return [...retained, ...additions];
+};
+
 export default function SequenceTab({
   focusedTask,
   primarySequenceTasks,
@@ -69,16 +77,32 @@ export default function SequenceTab({
   onTaskDelete,
   onReorderPrimarySequence
 }: SequenceTabProps) {
-  const primarySignature = useMemo(() => primarySequenceTasks.map((task) => task.id).join("|"), [primarySequenceTasks]);
+  const primaryMembershipSignature = useMemo(
+    () => [...primarySequenceTasks].map((task) => task.id).sort().join("|"),
+    [primarySequenceTasks]
+  );
   const [orderedPrimaryIds, setOrderedPrimaryIds] = useState<string[]>(() => primarySequenceTasks.map((task) => task.id));
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const previousMembershipSignatureRef = useRef(primaryMembershipSignature);
 
   useEffect(() => {
-    setOrderedPrimaryIds(primarySequenceTasks.map((task) => task.id));
+    const membershipChanged = previousMembershipSignatureRef.current !== primaryMembershipSignature;
+    previousMembershipSignatureRef.current = primaryMembershipSignature;
+
+    const nextTaskIds = primarySequenceTasks.map((task) => task.id);
+    setOrderedPrimaryIds((current) => {
+      if (!isEditing) {
+        return nextTaskIds;
+      }
+
+      return reconcileOrderedIds(current, nextTaskIds);
+    });
     setDraggingTaskId(null);
-    setIsEditing(false);
-  }, [primarySignature, primarySequenceTasks]);
+    if (membershipChanged) {
+      setIsEditing(false);
+    }
+  }, [isEditing, primaryMembershipSignature, primarySequenceTasks]);
 
   const orderedPrimaryTasks = useMemo(() => {
     const byId = new Map(primarySequenceTasks.map((task) => [task.id, task]));
