@@ -270,8 +270,11 @@ select {
 }
 
 .tab-switcher {
-  display: block;
-  padding: 6px;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--pill-surface);
@@ -282,8 +285,9 @@ select {
 .shell-nav-list {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   list-style: none;
+  flex-wrap: nowrap;
 }
 
 .tab-switcher-link {
@@ -3006,17 +3010,15 @@ select {
   }
 
   .tab-switcher {
-    width: 100%;
+    max-width: 100%;
   }
 
   .shell-nav-list {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .tab-switcher-link {
-    padding: 10px 8px;
+    padding: 9px 12px;
   }
 
   .quick-add-shell {
