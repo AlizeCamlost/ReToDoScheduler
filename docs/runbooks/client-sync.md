@@ -16,7 +16,7 @@
 
 ### 2.1 Web
 
-1. 可选：先用 `.env` 预填默认值
+1. 可选：只有当 Web 需要指向非默认 API 地址时，才需要写 `.env`
 
 ```bash
 cp apps/web/.env.example apps/web/.env
@@ -27,6 +27,8 @@ cp apps/web/.env.example apps/web/.env
 ```text
 VITE_API_BASE_URL=<server-base-url>
 ```
+
+本地开发默认通过 Vite 把同源 `/v1/*` 和 `/health` 代理到 `127.0.0.1:8787`，因此只跑本机 API 时可以不写这个值；这样浏览器登录 cookie 会和 Web 保持同源，不会被 `localhost` / `127.0.0.1` 混用打断。
 
 2. 打开 Web 并登录：
    - username = `WEB_LOGIN_USERNAME`

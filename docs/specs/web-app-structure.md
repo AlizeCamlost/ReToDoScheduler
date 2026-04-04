@@ -100,6 +100,7 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口，并保持与 iOS 一
   - 远端同步访问与 LWW 合并
 - `src/features/auth`
   - Web owner 登录、会话查询、设备退出
+- 本地开发时，Web 优先通过同源 `/v1/*` 与 `/health` 路径访问 API，由 Vite dev server 代理到 `127.0.0.1:8787`；这样浏览器 session cookie 不会被 `localhost` / `127.0.0.1` 混用打断
 
 ## 5. 当前对齐边界
 

@@ -25,11 +25,13 @@ Install dependencies:
 npm install
 ```
 
-Optional: prefill default Web API base URL locally:
+Optional: only if you want Web to point at a non-default API base URL:
 
 ```bash
 cp apps/web/.env.example apps/web/.env
 ```
+
+Local development defaults to same-origin `/v1/*` proxying through Vite, so you do not need to set `VITE_API_BASE_URL` just to connect to the local API.
 
 Start the local stack:
 

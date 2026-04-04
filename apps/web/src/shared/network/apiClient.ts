@@ -9,7 +9,23 @@ export class ApiError extends Error {
   }
 }
 
+const shouldUseDevProxy = (): boolean => {
+  if (!import.meta.env.DEV || typeof window === "undefined") return false;
+
+  const configuredBase = API_BASE_URL.trim();
+  if (!configuredBase) return true;
+
+  try {
+    const url = new URL(configuredBase);
+    return ["127.0.0.1", "localhost"].includes(url.hostname);
+  } catch {
+    return false;
+  }
+};
+
 export const buildApiUrl = (path: string): string => {
+  if (shouldUseDevProxy()) return path;
+
   const normalized = API_BASE_URL.trim().replace(/\/+$/, "");
   return normalized ? `${normalized}${path}` : path;
 };
