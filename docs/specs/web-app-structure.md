@@ -30,7 +30,7 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口，并保持与 iOS 一
 - `Schedule`：时间模板编辑与按观察窗口滚动重算的时间视图
 
 这意味着 Web 不再以单页 dashboard 作为主壳，而是使用与移动端一致的 `Sequence / Task Pool / Schedule` 主路径。
-同时，壳顶部现在只保留全局可见的标题和设置入口；外观三态切换、同步状态与设备会话管理都收回设置面板。顶层页签状态则写入 URL 查询参数，因此刷新页面后仍会停留在当前页签，而不是回退到默认页。
+同时，壳顶部现在只保留全局可见的标题和设置入口；外观三态切换、同步状态与设备会话管理都收回设置面板。顶层导航不再只是本地状态切场景，而是改成真实 path 路由：`/` 对应 `Sequence`，`/task-pool` 对应 `Task Pool`，`/schedule` 对应 `Schedule`。因此刷新页面后仍会停留在当前页，浏览器前进 / 后退也会回到正确的主视图。
 
 ## 3. 交互对齐点
 
@@ -81,7 +81,9 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口，并保持与 iOS 一
 当前 Web 目录边界如下：
 
 - `src/app/App.tsx`
-  - 只负责组装主壳、三 tab 切换、detail/editor modal 挂载点
+  - 只负责组装稳定主壳、顶层 path 路由切换和 detail/editor modal 挂载点
+- `src/app/tabRoute.ts`
+  - 顶层 path 路由真相源；负责 `pathname <-> WebAppTab` 映射和 history 写回
 - `src/app/useWebAppController.ts`
   - 当前唯一应用状态入口
   - 承担 quick add、详情、编辑、步骤推进、序列重排、任务池目录/脑图组织、同步与模板存取编排

@@ -19,9 +19,9 @@ import TaskPoolPanel from "../features/task-pool/components/TaskPoolPanel";
 import TimeTemplateEditor from "../features/time-template/components/TimeTemplateEditor";
 import { ApiError } from "../shared/network/apiClient";
 import { applyResolvedTheme, loadThemeMode, resolveThemeMode, saveThemeMode, type ThemeMode } from "../shared/storage/themeStore";
-import { loadTabFromLocation, writeTabToLocation } from "./tabRoute";
+import { loadTabFromLocation, pathForTab, writeTabToLocation } from "./tabRoute";
 import { useWebAppController, type WebAppTab } from "./useWebAppController";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 
 const TAB_ORDER: WebAppTab[] = ["sequence", "taskPool", "schedule"];
 
@@ -225,6 +225,104 @@ function App() {
     writeTabToLocation(tab, "push");
   }, []);
 
+  const handleTabLinkClick = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>, tab: WebAppTab) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.shiftKey
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      if (tab === currentTab) {
+        writeTabToLocation(tab);
+        return;
+      }
+
+      navigateTab(tab);
+    },
+    [currentTab, navigateTab]
+  );
+
+  const activeScene = useMemo(() => {
+    switch (currentTab) {
+      case "sequence":
+        return (
+          <SequenceTab
+            focusedTask={controller.focusedTask}
+            primarySequenceTasks={controller.primarySequenceTasks}
+            nextTasks={controller.nextTasks}
+            getCurrentStepForTask={controller.getCurrentStepForTask}
+            onTaskTap={controller.openTaskDetail}
+            onTaskComplete={(task) => controller.toggleDone(task.id)}
+            onTaskEdit={controller.openTaskEditor}
+            onTaskArchive={(task) => controller.archiveTask(task.id)}
+            onTaskDelete={(task) => controller.deleteTask(task.id)}
+            onReorderPrimarySequence={controller.reorderPrimarySequence}
+          />
+        );
+      case "taskPool":
+        return (
+          <TaskPoolPanel
+            tasks={controller.filteredTasks}
+            organization={controller.taskPoolOrganization}
+            isSyncing={controller.isSyncing}
+            onRefresh={() => void controller.performSync()}
+            onOpenSettings={openSettings}
+            onExport={controller.exportMarkdown}
+            onImport={controller.importMarkdownFile}
+            onOpenTask={controller.openTaskDetail}
+            onCreateDirectory={controller.createTaskPoolDirectory}
+            onRenameDirectory={controller.renameTaskPoolDirectory}
+            onDeleteDirectory={controller.deleteTaskPoolDirectory}
+            onMoveDirectory={controller.moveTaskPoolDirectory}
+            onPlaceTask={controller.placeTaskInTaskPool}
+            onUpdateCanvasNode={controller.updateTaskPoolCanvasNode}
+            onResetCanvasLayout={controller.resetTaskPoolCanvasLayout}
+          />
+        );
+      case "schedule":
+        return (
+          <div className="stack-layout">
+            <section className="card shell-subcard">
+              <div className="panel-header">
+                <div className="panel-title">时间模板</div>
+                <div className="toolbar compact-toolbar">
+                  <button className="btn-text" onClick={controller.resetTimeTemplate}>
+                    重置模板
+                  </button>
+                  <button className="btn-text" onClick={controller.toggleTemplateOpen}>
+                    {controller.templateOpen ? "收起" : "展开"}
+                  </button>
+                </div>
+              </div>
+
+              {controller.templateOpen && (
+                <TimeTemplateEditor
+                  timeTemplate={controller.timeTemplate}
+                  onAddRange={controller.addRange}
+                  onUpdateRange={controller.updateRange}
+                  onRemoveRange={controller.removeRange}
+                />
+              )}
+            </section>
+
+            <SchedulePanel
+              horizonDays={controller.horizonDays}
+              onChangeHorizon={controller.setHorizonDays}
+              scheduleView={controller.scheduleView}
+              blocksByDay={controller.blocksByDay}
+            />
+          </div>
+        );
+    }
+  }, [controller, currentTab, openSettings]);
+
   if (authStatus === "checking") {
     return (
       <main className="auth-shell">
@@ -252,7 +350,7 @@ function App() {
 
       <div className="shell-layout">
         <header className="shell-header">
-          <h1 className="shell-title">
+          <h1 className="shell-title" id="shell-route-title">
             <span key={currentTab} className="shell-title-text">
               {activeMeta.title}
             </span>
@@ -265,87 +363,25 @@ function App() {
         </header>
 
         <nav className="tab-switcher" aria-label="主导航">
-          {TAB_ORDER.map((tab) => (
-            <button
-              key={tab}
-              className={`tab-switcher-button${currentTab === tab ? " active" : ""}`}
-              onClick={() => navigateTab(tab)}
-            >
-              <span className="tab-switcher-label">{TAB_META[tab].label}</span>
-            </button>
-          ))}
+          <ul className="shell-nav-list" role="list">
+            {TAB_ORDER.map((tab) => (
+              <li key={tab}>
+                <a
+                  className={`tab-switcher-link${currentTab === tab ? " active" : ""}`}
+                  href={pathForTab(tab)}
+                  aria-current={currentTab === tab ? "page" : undefined}
+                  onClick={(event) => handleTabLinkClick(event, tab)}
+                >
+                  <span className="tab-switcher-label">{TAB_META[tab].label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
         </nav>
 
-        <section className="shell-panel">
-          <div className="shell-scenes">
-            <div className={`tab-scene${currentTab === "sequence" ? " active" : ""}`} aria-hidden={currentTab !== "sequence"}>
-              <SequenceTab
-                focusedTask={controller.focusedTask}
-                primarySequenceTasks={controller.primarySequenceTasks}
-                nextTasks={controller.nextTasks}
-                getCurrentStepForTask={controller.getCurrentStepForTask}
-                onTaskTap={controller.openTaskDetail}
-                onTaskComplete={(task) => controller.toggleDone(task.id)}
-                onTaskEdit={controller.openTaskEditor}
-                onTaskArchive={(task) => controller.archiveTask(task.id)}
-                onTaskDelete={(task) => controller.deleteTask(task.id)}
-                onReorderPrimarySequence={controller.reorderPrimarySequence}
-              />
-            </div>
-
-            <div className={`tab-scene${currentTab === "taskPool" ? " active" : ""}`} aria-hidden={currentTab !== "taskPool"}>
-              <TaskPoolPanel
-                tasks={controller.filteredTasks}
-                organization={controller.taskPoolOrganization}
-                isSyncing={controller.isSyncing}
-                onRefresh={() => void controller.performSync()}
-                onOpenSettings={openSettings}
-                onExport={controller.exportMarkdown}
-                onImport={controller.importMarkdownFile}
-                onOpenTask={controller.openTaskDetail}
-                onCreateDirectory={controller.createTaskPoolDirectory}
-                onRenameDirectory={controller.renameTaskPoolDirectory}
-                onDeleteDirectory={controller.deleteTaskPoolDirectory}
-                onMoveDirectory={controller.moveTaskPoolDirectory}
-                onPlaceTask={controller.placeTaskInTaskPool}
-                onUpdateCanvasNode={controller.updateTaskPoolCanvasNode}
-                onResetCanvasLayout={controller.resetTaskPoolCanvasLayout}
-              />
-            </div>
-
-            <div className={`tab-scene${currentTab === "schedule" ? " active" : ""}`} aria-hidden={currentTab !== "schedule"}>
-              <div className="stack-layout">
-                <section className="card shell-subcard">
-                  <div className="panel-header">
-                    <div className="panel-title">时间模板</div>
-                    <div className="toolbar compact-toolbar">
-                      <button className="btn-text" onClick={controller.resetTimeTemplate}>
-                        重置模板
-                      </button>
-                      <button className="btn-text" onClick={controller.toggleTemplateOpen}>
-                        {controller.templateOpen ? "收起" : "展开"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {controller.templateOpen && (
-                    <TimeTemplateEditor
-                      timeTemplate={controller.timeTemplate}
-                      onAddRange={controller.addRange}
-                      onUpdateRange={controller.updateRange}
-                      onRemoveRange={controller.removeRange}
-                    />
-                  )}
-                </section>
-
-                <SchedulePanel
-                  horizonDays={controller.horizonDays}
-                  onChangeHorizon={controller.setHorizonDays}
-                  scheduleView={controller.scheduleView}
-                  blocksByDay={controller.blocksByDay}
-                />
-              </div>
-            </div>
+        <section className="shell-panel" aria-labelledby="shell-route-title">
+          <div key={currentTab} className="route-scene">
+            {activeScene}
           </div>
         </section>
       </div>
