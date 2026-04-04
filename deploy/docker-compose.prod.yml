@@ -31,6 +31,7 @@ services:
       API_AUTH_TOKEN: ${API_AUTH_TOKEN}
       WEB_LOGIN_USERNAME: ${WEB_LOGIN_USERNAME}
       WEB_LOGIN_PASSWORD: ${WEB_LOGIN_PASSWORD}
+      WEB_SESSION_COOKIE_SECURE: ${WEB_SESSION_COOKIE_SECURE}
     depends_on:
       db:
         condition: service_healthy

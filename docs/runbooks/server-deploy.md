@@ -105,6 +105,7 @@ curl -H "Authorization: Bearer $API_AUTH_TOKEN" http://127.0.0.1:8787/v1/tasks
 - 打开 `任务池 -> 设置`，确认当前设备已出现在设备列表中
 - 如果你是通过 HTTPS 域名访问，`WEB_SESSION_COOKIE_SECURE` 应保持 `true`
 - 如果你当前只能通过 `http://<ip>:3080` 访问，必须把 `WEB_SESSION_COOKIE_SECURE=false` 写进 `deploy/.env.prod` 后再重建 `api` 容器，否则登录请求即使成功，cookie 也不会被浏览器持久化
+- 上面这个开关只有在 `deploy/docker-compose.prod.yml` 已经把 `WEB_SESSION_COOKIE_SECURE` 传给 `api` 容器时才会生效；当前仓库主线已包含这项映射
 
 ## 5. 日常运维
 
