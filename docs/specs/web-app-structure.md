@@ -31,6 +31,7 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口，并保持与 iOS 一
 
 这意味着 Web 不再以单页 dashboard 作为主壳，而是使用与移动端一致的 `Sequence / Task Pool / Schedule` 主路径。
 同时，壳顶部现在只保留全局可见的标题和设置入口；外观三态切换、同步状态与设备会话管理都收回设置面板。顶层导航不再只是本地状态切场景，而是改成真实 path 路由：`/` 对应 `Sequence`，`/task-pool` 对应 `Task Pool`，`/schedule` 对应 `Schedule`。因此刷新页面后仍会停留在当前页，浏览器前进 / 后退也会回到正确的主视图。
+视觉语言上，Web 也进一步向 iOS `NornTheme` 靠拢：背景继续使用 `canvasTop -> canvasBottom` 的纵向渐变，卡片统一落在 `cardSurface / cardSurfaceMuted` 语义层，分段导航与次级按钮则使用更接近 SwiftUI segmented control 的 pill surface，而不是普通网页按钮堆。
 
 ## 3. 交互对齐点
 
@@ -121,6 +122,7 @@ Web 端当前与 iOS 一样，收敛到三个顶层入口，并保持与 iOS 一
 - Schedule 仍然渲染完整的时间块与 horizon 视图，不降级成移动端当前占位页
 - Web 继续承担桌面优先的整理与编辑工作流；手机端不需要承担全部系统化编辑密度
 - Web owner 登录通过服务端会话 cookie 维持；主题模式与“隐藏已完成任务”写入浏览器本地存储；`.env` 只作为首次默认值
+- 虽然 Web 不能直接复用 SwiftUI `Material`，但当前背景、card surface、dock 和 segmented nav 已按同一套语义化层级收口，后续再调样式时应优先维护这套层级，而不是回退到零散的单点颜色修补
 
 ## 6. 维护约束
 
