@@ -26,7 +26,7 @@
 
 - [runbooks/client-sync.md](runbooks/client-sync.md): Web、iPhone、API 的最小 Task 模型与 `taskPoolOrganization` 文档同步配置、联调验证和排障步骤，并补充 Web owner 登录、设备会话保持与远程退出其它设备的流程。最后更新：2026-04-04
 - [runbooks/ios.md](runbooks/ios.md): iOS 原生工程打开、真机安装、日常运行和最小同步配置，并明确当前主入口是手动打开 `apps/mobile/ios_ng/Norn/Norn.xcodeproj`，命令行只保留一个可选 `npm run ios:open` helper；同时补充 `任务池` 现位于第二个顶层分页入口，默认展示 `目录` 并可切换到 `脑图`，同步状态与“隐藏已完成任务”开关统一位于设置页，目录页已收敛为带横向留白的上半屏导航树 + 下半屏当前目录目的地并支持独立折叠、`..` 返回上级目录和更紧凑的子目录列表，`Sequence` 当前序列则需长按进入编辑态后才支持卡片内悬停拖拽与左滑托盘动作。最后更新：2026-04-04
-- [runbooks/server-deploy.md](runbooks/server-deploy.md): API + PostgreSQL 的首轮部署、校验、日常运维、备份和 GitHub Actions 部署说明，并记录当前生产部署绕过 `docker compose build`、改用 `DOCKER_BUILDKIT=0 docker build` 的过渡性约束，以及 Web owner 登录环境变量、同源 session cookie 与 migration runner 的部署边界。最后更新：2026-04-04
+- [runbooks/server-deploy.md](runbooks/server-deploy.md): API + PostgreSQL 的首轮部署、校验、日常运维、备份和 GitHub Actions 部署说明，并记录当前生产部署绕过 `docker compose build`、改用 `DOCKER_BUILDKIT=0 docker build` 的过渡性约束，以及 Web owner 登录环境变量、同源 session cookie、`Secure` cookie 依赖 HTTPS 的登录前提与 migration runner 的部署边界。最后更新：2026-04-04
 - [runbooks/recovery.md](runbooks/recovery.md): 本地和远端恢复的停写、恢复、校验、复盘流程。最后更新：2026-03-22
 
 ## guides

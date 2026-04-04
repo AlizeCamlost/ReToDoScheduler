@@ -97,6 +97,7 @@ curl -H "Authorization: Bearer $API_AUTH_TOKEN" http://127.0.0.1:8787/v1/tasks
 - 打开 Web 域名
 - 使用 `WEB_LOGIN_USERNAME` / `WEB_LOGIN_PASSWORD` 登录
 - 打开 `任务池 -> 设置`，确认当前设备已出现在设备列表中
+- 生产 Web 登录依赖 `Secure` session cookie；如果你是直接用 `http://<ip>:3080` 访问，而不是通过 HTTPS 域名访问，登录请求即使成功，cookie 也不会被浏览器持久化，页面会重新回到登录态
 
 ## 5. 日常运维
 
@@ -154,6 +155,7 @@ mkdir -p /opt/retodo/backups
 
 - 对公网暴露前优先接入域名和 HTTPS 反向代理
 - Web 生产环境应尽量保持同域部署，让浏览器直接用同源 session cookie 访问 `/v1/*`
+- 当前生产 cookie 会带 `Secure`；因此不要把“浏览器直接访问 HTTP 容器端口”当成正式登录入口
 - 尽量限制 `8787` 的暴露范围
 - 部署 key 使用最小权限用户，不要直接使用 root
 - `docker compose` 项目名应显式固定，避免容器名和卷名漂移

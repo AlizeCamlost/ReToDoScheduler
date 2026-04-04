@@ -134,11 +134,28 @@ function App() {
       setAuthError("");
 
       try {
-        const result = await loginWebOwner(payload);
-        setCurrentSession(result.session);
+        await loginWebOwner(payload);
+
+        const state = await fetchWebSessionState();
+        if (!state.authenticated || !state.session) {
+          throw new Error("登录未保持，请确认当前部署站点使用 HTTPS，并允许站点 Cookie。");
+        }
+
+        setCurrentSession(state.session);
         setAuthStatus("authenticated");
-        const sessionPayload = await fetchWebSessions();
-        setSessions(sessionPayload.sessions);
+
+        try {
+          const sessionPayload = await fetchWebSessions();
+          setSessions(sessionPayload.sessions);
+          setCurrentSession(sessionPayload.sessions.find((session) => session.current) ?? state.session);
+        } catch (error) {
+          if (error instanceof ApiError && error.status === 401) {
+            handleUnauthorized();
+            return;
+          }
+
+          setSessions([]);
+        }
       } catch (error) {
         setCurrentSession(null);
         setSessions([]);
@@ -146,7 +163,7 @@ function App() {
         setAuthError(error instanceof Error ? error.message : String(error));
       }
     },
-    []
+    [handleUnauthorized]
   );
 
   const handleLogout = useCallback(async () => {
