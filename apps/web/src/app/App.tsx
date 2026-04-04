@@ -23,6 +23,11 @@ import { useWebAppController, type WebAppTab } from "./useWebAppController";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const TAB_ORDER: WebAppTab[] = ["sequence", "taskPool", "schedule"];
+const THEME_OPTIONS: Array<{ value: ThemeMode; label: string }> = [
+  { value: "system", label: "跟随" },
+  { value: "light", label: "浅色" },
+  { value: "dark", label: "深色" }
+];
 
 const TAB_META: Record<WebAppTab, { label: string; title: string }> = {
   sequence: {
@@ -233,11 +238,31 @@ function App() {
       <div className="shell-layout">
         <header className="shell-header">
           <h1>{activeMeta.title}</h1>
-          <div className="sync-area shell-sync-area">
-            <span
-              className={`sync-dot ${controller.syncState === "syncing" ? "syncing" : controller.syncState === "error" ? "error" : ""}`}
-            />
-            <span className="sync-text">{controller.syncMessage}</span>
+          <div className="shell-header-actions">
+            <div className="theme-toggle theme-toggle-compact" role="radiogroup" aria-label="外观模式">
+              {THEME_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`theme-toggle-option${themeMode === option.value ? " active" : ""}`}
+                  aria-pressed={themeMode === option.value}
+                  onClick={() => setThemeMode(saveThemeMode(option.value))}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <button type="button" className="btn-text shell-settings-button" onClick={openSettings}>
+              设置
+            </button>
+
+            <div className="sync-area shell-sync-area">
+              <span
+                className={`sync-dot ${controller.syncState === "syncing" ? "syncing" : controller.syncState === "error" ? "error" : ""}`}
+              />
+              <span className="sync-text">{controller.syncMessage}</span>
+            </div>
           </div>
         </header>
 
