@@ -32,6 +32,13 @@ export interface WebSessionSummary {
 
 const isProduction = process.env.NODE_ENV === "production";
 
+const shouldUseSecureSessionCookie = (): boolean => {
+  const configured = process.env.WEB_SESSION_COOKIE_SECURE?.trim().toLowerCase();
+  if (configured === "true") return true;
+  if (configured === "false") return false;
+  return isProduction;
+};
+
 const getOwnerUsername = (): string => {
   const configured = process.env.WEB_LOGIN_USERNAME?.trim();
   if (configured) return configured;
@@ -68,7 +75,7 @@ const serializeCookie = (name: string, value: string, maxAgeSeconds: number): st
     `Max-Age=${maxAgeSeconds}`
   ];
 
-  if (isProduction) {
+  if (shouldUseSecureSessionCookie()) {
     parts.push("Secure");
   }
 

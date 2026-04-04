@@ -49,6 +49,12 @@ vi deploy/.env.prod
 - `API_AUTH_TOKEN`
 - `WEB_LOGIN_USERNAME`
 - `WEB_LOGIN_PASSWORD`
+- `WEB_SESSION_COOKIE_SECURE`
+
+建议值：
+
+- 正常公网部署、有 HTTPS：`WEB_SESSION_COOKIE_SECURE=true`
+- 临时 HTTP-only 部署：`WEB_SESSION_COOKIE_SECURE=false`
 
 ### 3.3 构建并启动容器
 
@@ -97,7 +103,8 @@ curl -H "Authorization: Bearer $API_AUTH_TOKEN" http://127.0.0.1:8787/v1/tasks
 - 打开 Web 域名
 - 使用 `WEB_LOGIN_USERNAME` / `WEB_LOGIN_PASSWORD` 登录
 - 打开 `任务池 -> 设置`，确认当前设备已出现在设备列表中
-- 生产 Web 登录依赖 `Secure` session cookie；如果你是直接用 `http://<ip>:3080` 访问，而不是通过 HTTPS 域名访问，登录请求即使成功，cookie 也不会被浏览器持久化，页面会重新回到登录态
+- 如果你是通过 HTTPS 域名访问，`WEB_SESSION_COOKIE_SECURE` 应保持 `true`
+- 如果你当前只能通过 `http://<ip>:3080` 访问，必须把 `WEB_SESSION_COOKIE_SECURE=false` 写进 `deploy/.env.prod` 后再重建 `api` 容器，否则登录请求即使成功，cookie 也不会被浏览器持久化
 
 ## 5. 日常运维
 
@@ -155,7 +162,7 @@ mkdir -p /opt/retodo/backups
 
 - 对公网暴露前优先接入域名和 HTTPS 反向代理
 - Web 生产环境应尽量保持同域部署，让浏览器直接用同源 session cookie 访问 `/v1/*`
-- 当前生产 cookie 会带 `Secure`；因此不要把“浏览器直接访问 HTTP 容器端口”当成正式登录入口
+- 默认生产 cookie 会带 `Secure`；只有在明确接受风险、且当前确实没有 HTTPS 时，才把 `WEB_SESSION_COOKIE_SECURE=false` 作为过渡方案
 - 尽量限制 `8787` 的暴露范围
 - 部署 key 使用最小权限用户，不要直接使用 root
 - `docker compose` 项目名应显式固定，避免容器名和卷名漂移
